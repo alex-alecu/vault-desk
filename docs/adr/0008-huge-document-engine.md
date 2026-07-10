@@ -8,7 +8,7 @@ Status: Proposed
 
 Vault Desk must work on folders with tens of large PDFs, spreadsheets, CSVs, Word documents, scanned files, and mixed professional records.
 
-Model-only reading is not reliable or efficient enough for this workload, especially on 16 GB systems.
+Model-only reading is not reliable or efficient enough for this workload, especially on Local 12 and Local 16 systems.
 
 ## Decision
 
@@ -49,3 +49,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial ADR created. |
+| 2026-06-30 | Updated constrained-hardware language for Local 12 and Local 16. |

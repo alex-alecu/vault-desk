@@ -12,6 +12,8 @@ Do not ask the model to read the folder.
 
 The system should build a durable document corpus first, then ask Gemma-family models to reason over selected, cited evidence.
 
+This is especially important for Local 12 and Local 16. Gemma 4 12B QAT should receive evidence packs, not raw folders.
+
 ## Folder Job Lifecycle
 
 1. Inventory files.
@@ -70,6 +72,20 @@ Use a layered parser strategy rather than one universal converter.
 | Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation path, not primary parsing |
 
 The first implementation should treat MarkItDown as a broad ingestion adapter, not the entire document engine.
+
+## Minimal First Implementation
+
+The first implementation should include the smallest parser surface that can prove the accounting-style document workflow:
+
+- File inventory, hashing, and manifest creation.
+- Native text and metadata extraction for common text-like files.
+- MarkItDown adapter for broad first-pass conversion.
+- Docling adapter for high-value PDFs and layout-sensitive files.
+- Native spreadsheet and CSV adapter for formulas, sheets, cells, typed values, and row windows.
+- OCR adapter only when native or layout extraction is missing or low-confidence.
+- Gemma 4 multimodal inspection only for unresolved page regions.
+
+Do not add a custom parser, custom OCR engine, or custom document database in the first implementation.
 
 ## Format-Specific Strategy
 
@@ -133,6 +149,10 @@ Huge documents should be processed as streams or shards:
 
 The system should build page and section summaries first, then document summaries, then folder summaries. Large tasks should use the summary tree and targeted retrieval instead of repeatedly rereading raw documents.
 
+The document engine should be able to continue work after model context compaction because canonical document objects, summaries, evidence chunks, warnings, and source anchors live outside the prompt.
+
+See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
+
 ## Summary Tree
 
 The summary tree should contain:
@@ -173,8 +193,24 @@ Document processing should surface:
 
 Errors should not silently disappear from final reports.
 
+## Performance Records
+
+Every folder job should record enough timing and memory data to support profile certification:
+
+- Inventory time.
+- Parser route per file.
+- Parser runtime per file.
+- OCR runtime per page where used.
+- Embedding runtime per chunk batch.
+- Summary runtime per node.
+- Peak CPU RAM during document work.
+- Peak VRAM if any parser, OCR, embedding, or multimodal step uses GPU.
+- Cache hits and misses.
+- Resume point after cancellation or failure.
+
 ## Revision History
 
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial huge-document and folder-scale document engine architecture created. |
+| 2026-06-30 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |

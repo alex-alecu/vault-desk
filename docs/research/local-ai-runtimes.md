@@ -8,12 +8,12 @@ This document summarizes the supplied runtime research. Runtime support changes 
 
 The current architecture recommends a Gemma-family local model stack:
 
-- Gemma 4 12B QAT for the first 16 GB certified local profile.
-- Gemma 4 12B QAT, 26B A4B, or 31B dense for 64 GB certified profiles.
+- Gemma 4 12B QAT for the first Local 12 and Local 16 certified local profiles.
 - EmbeddingGemma for retrieval.
 - Gemma 4 native function calling for tool proposals.
 - ShieldGemma or Gemma-family safety classification where validated.
-- DiffusionGemma as an experimental fast-generation path, not the first correctness path.
+- Multi-Token Prediction as an optional latency optimization after validation.
+- DiffusionGemma, Gemma 4 26B A4B, and Gemma 4 31B dense as later research paths, not first-product requirements.
 
 The exact runtime remains an implementation decision. The product family should stay Gemma-centered unless a future ADR changes that direction.
 
@@ -27,11 +27,11 @@ The main product reason is unified memory and platform fit.
 
 ### Windows With NVIDIA
 
-Windows with NVIDIA should prefer llama.cpp or Ollama-compatible local serving first for the 16 GB Gemma 4 12B QAT profile.
+Windows with NVIDIA should prefer llama.cpp-compatible local serving first for the Local 12 and Local 16 Gemma 4 12B QAT profiles.
 
 The main product reason is low-friction local deployment and a practical low-VRAM path.
 
-64 GB NVIDIA appliances should evaluate vLLM-class serving for larger context, stronger scheduling, and cache reuse.
+Ollama-compatible serving should be evaluated only when packaging, context behavior, and telemetry controls are explicit.
 
 ### AMD Desktop
 
@@ -41,7 +41,7 @@ ROCm and advanced serving should be treated cautiously until specific hardware a
 
 ### Office Appliance Or Server
 
-For stronger office hardware, vLLM-class serving may become the better throughput and scheduling path. It should be benchmarked with Gemma 4 12B QAT, 26B A4B, and 31B dense before being certified.
+For stronger office hardware, vLLM-class serving may become the better throughput and scheduling path. It should be benchmarked only after Local 12 and Local 16 are validated.
 
 ### Hosted Escalation
 
@@ -57,8 +57,9 @@ Suggested tuning order:
 4. Use prefix or prompt caching where supported.
 5. Use chunked prefill where supported.
 6. Use memory mapping carefully on desktop runners.
-7. Add speculative decoding only after quality and stability are validated.
-8. Treat DiffusionGemma as a separate speed experiment until it passes the same verification suite.
+7. Add KV-cache quantization only after citation precision and structured-output validity are unchanged.
+8. Add Multi-Token Prediction only after quality, context, and memory stability are validated.
+9. Treat DiffusionGemma as a separate speed experiment until it passes the same verification suite.
 
 ## Benchmark Priorities
 
@@ -74,6 +75,7 @@ Measure:
 - Tool-loop success rate.
 - Stability under repeated local jobs.
 - Stable active context under document-worker memory load.
+- Stable compaction behavior after the live context fills.
 - Cache reuse on repeated folder questions.
 - Citation and verifier failure rates.
 
@@ -83,3 +85,4 @@ Measure:
 |---|---|
 | 2026-06-29 | Initial runtime research summary created from supplied deep research report. |
 | 2026-06-29 | Updated around Gemma 4 QAT 16 GB and 64 GB profiles, EmbeddingGemma, and DiffusionGemma validation. |
+| 2026-06-30 | Recentered runtime validation on Local 12 and Local 16 Gemma 4 12B QAT profiles with context compaction and MTP validation. |

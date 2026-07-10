@@ -13,6 +13,8 @@ This document captures the current document tooling baseline for Vault Desk. The
 
 ## Recommended Tool Roles
 
+The Local 12 and Local 16 performance constraint makes parser routing more important than adding model context. Vault Desk should preserve source structure, cache deterministic extraction, and send only selected evidence to Gemma 4 12B QAT.
+
 ### MarkItDown
 
 Use MarkItDown as a broad first-pass converter for common user files into LLM-friendly Markdown-oriented content.
@@ -64,6 +66,18 @@ For high-value documents, Vault Desk should compare parser outputs:
 
 Disagreement should create warnings and review queues rather than being hidden.
 
+## Minimal First Benchmark
+
+The first benchmark should compare the smallest useful parser set:
+
+- MarkItDown first-pass conversion.
+- Docling high-fidelity PDF and layout conversion.
+- Native spreadsheet and CSV parsing.
+- OCR only for pages that need it.
+- Unstructured only as fallback or parser-disagreement comparison.
+
+Do not benchmark a custom parser or custom OCR path unless the maintained tools fail a required workflow.
+
 ## Benchmark Corpus Needed
 
 Create private benchmark folders containing:
@@ -85,3 +99,4 @@ Create private benchmark folders containing:
 |---|---|
 | 2026-06-29 | Initial document tooling research note created. |
 | 2026-06-29 | Added concrete MarkItDown security, Docling, Unstructured, and turbovec research implications. |
+| 2026-06-30 | Added Local 12 and Local 16 parser-routing and minimal benchmark guidance. |

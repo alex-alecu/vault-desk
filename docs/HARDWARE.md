@@ -41,19 +41,23 @@ May work for technical users. No guarantee and limited support.
 
 Earlier community targets:
 
-- Useful operation on approximately 12-16 GB discrete VRAM.
+- Useful operation on 12 GB and 16 GB discrete VRAM targets.
 - Better capability on larger unified-memory or workstation systems.
 - Dynamic capability detection based on available memory and runtime support.
 
-The product should degrade by reducing model size, active context, multimodal usage, or concurrency rather than exposing low-level choices to ordinary users.
+The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level choices to ordinary users. Local 12 and Local 16 should not differ by model, verification strictness, citation requirements, supported workflows, or safety policy.
 
 Current model target:
 
-- Gemma 4 12B QAT as the first 16 GB certified profile.
+- Gemma 4 12B QAT as the first Local 12 and Local 16 certified profile.
 - Approximate Q4_0 model-load memory target: 6.7 GB before KV cache and product overhead.
 - Retrieval-first prompting and bounded active context.
 - One foreground reasoning job by default.
 - Background ingestion throttled around available memory.
+- Local 12 initial active-context target: 32K, with 64K as a stretch target.
+- Local 16 initial active-context target: 64K, with 128K as a stretch target.
+
+See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
 ## Personal Computer Target
 
@@ -90,25 +94,28 @@ Possible configurations:
 - Larger NVIDIA appliance class for bigger models and concurrency.
 - Later multi-node setups.
 
-Current 64 GB model targets:
+Current appliance stance:
 
-- Base: Gemma 4 12B QAT with larger context, wider retrieval, deeper verifier passes, and more concurrency.
-- High-synthesis candidate: Gemma 4 31B dense QAT, with approximate Q4_0 model-load memory of 17.5 GB before KV cache and product overhead.
-- Throughput candidate: Gemma 4 26B A4B QAT, with approximate Q4_0 model-load memory of 14.4 GB before KV cache and product overhead.
+- Do not choose a 64 GB default SKU before Local 12 and Local 16 are validated.
+- Treat Gemma 4 12B QAT with larger context and concurrency as the conservative later appliance baseline.
+- Treat Gemma 4 31B dense QAT and Gemma 4 26B A4B QAT as later research candidates.
+- Do not let larger-model appliance work change the desktop architecture.
 
-The first 64 GB product should benchmark all three options before choosing the default SKU. The operationally conservative default is the same 12B QAT model with more context and verification, because it keeps behavior closest to the 16 GB desktop product.
+The first office appliance should benchmark from real workflow demand, not from model-size appeal.
 
 ## Runtime Implications
 
 Planned first-choice runtime directions:
 
 - Apple Silicon: MLX-family path first.
-- Windows with NVIDIA: llama.cpp or Ollama-style GGUF path first.
+- Windows with NVIDIA: llama.cpp-compatible GGUF path first, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
 - AMD desktop: llama.cpp with HIP or Vulkan first.
-- Shared appliance or Linux server: vLLM-class serving where validated.
+- Shared appliance or Linux server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
 Runtime certification must include the model format, quantization type, maximum stable active context, KV-cache behavior, multimodal behavior, and document-worker memory overhead.
+
+Local 12 and Local 16 certification must also include context-compaction stability. A profile is not certified if it works only until the first context window fills.
 
 ## Benchmark Strategy
 
@@ -127,6 +134,7 @@ Benchmarks should measure:
 - Claim verification failure rate.
 - Folder-level summary coverage.
 - Large-folder resumability.
+- Stable multi-compaction behavior over long folder sessions.
 
 Tokens per second alone is not a product benchmark.
 
@@ -151,3 +159,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-06-29 | Initial hardware strategy document created from supplied concept material. |
 | 2026-06-29 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
 | 2026-06-29 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
+| 2026-06-30 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |

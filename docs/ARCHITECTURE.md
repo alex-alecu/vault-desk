@@ -6,7 +6,7 @@ Vault Desk should be an offline-first, cross-vendor desktop and appliance platfo
 
 The architecture should separate the model, document reader, control plane, and tool loop. This prevents the product from becoming a fragile wrapper around one local model runtime.
 
-The current strategic constraint is stronger than the initial architecture: Vault Desk should standardize on one primary model family, the Gemma family, with different certified profiles for 16 GB and 64 GB systems. The product should vary quantization, active context, retrieval budget, verification depth, and concurrency before it varies model families.
+The current strategic constraint is stronger than the initial architecture: Vault Desk should standardize on one primary model family, the Gemma family, with first certified profiles for 12 GB and 16 GB VRAM systems. Local 12 and Local 16 should use the same Gemma 4 12B QAT model and differ only by certified active context size.
 
 ## Architectural Goals
 
@@ -15,7 +15,7 @@ The current strategic constraint is stronger than the initial architecture: Vaul
 - Keep documents private and local by default.
 - Provide strong provenance through citations, audit trails, and replayable traces.
 - Keep first-token latency and streaming responsiveness high.
-- Degrade gracefully within the Gemma family from 12B QAT to larger 26B or 31B profiles only when hardware supports it.
+- Degrade gracefully by reducing active context pressure, multimodal scope, and concurrency before changing model behavior.
 - Support both single-user desktop and multi-user office appliance modes.
 - Read, summarize, verify, and export work across folders containing tens of large PDFs, Office files, spreadsheets, CSVs, images, and mixed document sets.
 
@@ -58,11 +58,11 @@ Expected model roles:
 
 Current target profiles:
 
-- 16 GB local profile: Gemma 4 12B QAT as the default reasoning and synthesis model, with bounded active context and retrieval-first prompting.
-- 64 GB workstation or appliance profile: the same Gemma 4 12B QAT with larger context, wider retrieval, deeper verification, and more concurrency; optionally Gemma 4 26B A4B or 31B for certified higher-synthesis tiers.
+- Local 12 profile: Gemma 4 12B QAT as the default reasoning and synthesis model, with bounded active context and retrieval-first prompting.
+- Local 16 profile: the same Gemma 4 12B QAT model, workflows, retrieval, verification, safety, and approval policy with a larger certified active context.
 - Retrieval profile: EmbeddingGemma as the default dense encoder, paired with lexical search and vector compression.
 
-See [MODEL_STRATEGY.md](MODEL_STRATEGY.md).
+See [MODEL_STRATEGY.md](MODEL_STRATEGY.md), [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md), and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
 ### Document Plane
 
@@ -99,6 +99,7 @@ Planned services and modules:
 - Claim and citation verifier.
 - Model router.
 - Prompt and context builder.
+- Context compaction manager.
 - Tool policy engine.
 - Approval service.
 - Tool sandbox.
@@ -115,9 +116,9 @@ These are logical modules. They are not implementation folders yet.
 The runtime strategy should be hardware-aware:
 
 - Apple Silicon: MLX-family local serving first for supported Gemma profiles.
-- Windows with NVIDIA: llama.cpp or Ollama-style GGUF serving first for 12B QAT, with a vLLM-class path for certified 64 GB appliances where validated.
+- Windows with NVIDIA: llama.cpp-compatible GGUF serving first for 12B QAT, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
 - AMD desktop: llama.cpp through HIP or Vulkan first for 12B QAT.
-- Shared office appliance or server: vLLM-class serving where validated for 12B, 26B, or 31B profiles.
+- Shared office appliance or server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
 - Hosted or hybrid escalation: only for explicitly allowed hard tasks.
 
 See [HARDWARE.md](HARDWARE.md) and [research/local-ai-runtimes.md](research/local-ai-runtimes.md).
@@ -134,13 +135,14 @@ High-level flow:
 6. Summary tree builder creates page, section, document, and folder summaries with source anchors.
 7. Retrieval selects evidence using dense vectors, lexical search, filters, and optional compressed-vector acceleration.
 8. Model router selects the appropriate Gemma profile for hardware and task risk.
-9. Prompt builder sends selected evidence, task instructions, and output schema.
-10. Model returns an answer, structured extraction, summary, or proposed tool call.
-11. Verifier checks claims, citations, calculations, table references, and unsupported statements.
-12. Policy engine validates tool requests and may ask for approval.
-13. Tool sandbox executes approved actions.
-14. Audit log records request, evidence, verification results, tools, timings, and outputs.
-15. UI streams answer, citations, previews, diffs, verification warnings, and exports.
+9. Context manager compacts session, task, evidence, artifact, preference, and warning state when active context approaches the certified limit.
+10. Prompt builder sends selected evidence, task instructions, current state, and output schema.
+11. Model returns an answer, structured extraction, summary, or proposed tool call.
+12. Verifier checks claims, citations, calculations, table references, and unsupported statements.
+13. Policy engine validates tool requests and may ask for approval.
+14. Tool sandbox executes approved actions.
+15. Audit log records request, evidence, verification results, compaction records, tools, timings, and outputs.
+16. UI streams answer, citations, previews, diffs, verification warnings, and exports.
 
 ## Desktop And Appliance Compatibility
 
@@ -162,14 +164,16 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 - Tools are typed and policy-gated.
 - Business controls are modular.
 - Runtime adapters are replaceable.
+- The live model context is a working set, not durable product memory.
 - User-facing workflows hide infrastructure vocabulary.
 
 ## Open Architecture Questions
 
 - Exact open-source license.
 - Exact community versus business module boundary.
-- Gemma 4 runtime validation matrix for 12B QAT on 16 GB and 12B/26B/31B on 64 GB.
-- Exact 64 GB default profile: larger-context 12B QAT, 26B A4B, or 31B dense.
+- Gemma 4 runtime validation matrix for 12B QAT on 12 GB and 16 GB targets.
+- Exact certified active-context targets after real hardware benchmarks.
+- Whether and when to re-open 64 GB appliance profiles.
 - Whether desktop shell should be Tauri, Electron, or another native shell.
 - Whether office documents remain on NAS storage or are copied into appliance-managed storage.
 - Backup and encryption design.
@@ -182,3 +186,4 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 |---|---|
 | 2026-06-29 | Initial architecture document created from supplied concept and research material. |
 | 2026-06-29 | Updated architecture around Gemma-family model profiles, huge-document processing, summary trees, and claim verification. |
+| 2026-06-30 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |

@@ -36,9 +36,11 @@ Architecture:
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - four-plane system architecture.
 - [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - single-family Gemma model strategy and VRAM profiles.
+- [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - Local 12 and Local 16 performance, context, compaction, and benchmark specification.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, turbovec, retrieval, citations, and verification.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
+- [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
 - [docs/OPEN_SOURCE_BOUNDARY.md](docs/OPEN_SOURCE_BOUNDARY.md) - community and proprietary boundary.
@@ -68,6 +70,7 @@ Architecture decision records:
 - [docs/adr/0006-typescript-node-harness.md](docs/adr/0006-typescript-node-harness.md)
 - [docs/adr/0007-gemma-family-standard.md](docs/adr/0007-gemma-family-standard.md)
 - [docs/adr/0008-huge-document-engine.md](docs/adr/0008-huge-document-engine.md)
+- [docs/adr/0009-12-16gb-gemma-context-standard.md](docs/adr/0009-12-16gb-gemma-context-standard.md)
 
 Research:
 
@@ -77,6 +80,7 @@ Research:
 - [docs/research/local-ai-runtimes.md](docs/research/local-ai-runtimes.md)
 - [docs/research/gemma-2026.md](docs/research/gemma-2026.md)
 - [docs/research/document-tools-2026.md](docs/research/document-tools-2026.md)
+- [docs/research/edge-ai-2026.md](docs/research/edge-ai-2026.md)
 - [docs/research/hardware-platforms.md](docs/research/hardware-platforms.md)
 - [docs/research/vertical-workflows.md](docs/research/vertical-workflows.md)
 
@@ -120,3 +124,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 |---|---|
 | 2026-06-29 | Initial agent instructions created for a documentation-only Vault Desk repository. |
 | 2026-06-29 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
+| 2026-06-30 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |

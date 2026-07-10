@@ -23,6 +23,7 @@ The TypeScript/Node harness should eventually own:
 - Retrieval orchestration.
 - Summary tree orchestration.
 - Claim verification orchestration.
+- Context compaction orchestration.
 - Audit events.
 - Export coordination.
 - Diagnostics.
@@ -84,7 +85,7 @@ Candidate adapter families:
 - vLLM-compatible serving for appliances or stronger local servers.
 - Hosted fallback adapters only when explicitly enabled.
 
-The first certified adapters should be evaluated against the Gemma 4 12B QAT 16 GB profile and the 64 GB Gemma-family profiles documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md).
+The first certified adapters should be evaluated against the Local 12 and Local 16 Gemma 4 12B QAT profiles documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md) and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
 ## Document Pipeline Principle
 
@@ -117,6 +118,22 @@ The harness should coordinate:
 
 The verifier must be a separate workflow stage. It must not rely on a single "please verify" model prompt as proof of correctness.
 
+## Context Compaction Principle
+
+The harness should treat model context as a temporary working set, not durable application memory.
+
+The harness should persist:
+
+- Session summary.
+- Task ledger.
+- Evidence ledger.
+- Artifact ledger.
+- Preference ledger.
+- Warning ledger.
+- Compaction events.
+
+Compaction should be triggered before active context pressure causes quality loss. Compacted state must be structured, inspectable, auditable, and safe to replay. It must not preserve hidden model reasoning.
+
 ## Tool Registry Principle
 
 Every tool should have:
@@ -147,9 +164,12 @@ Future tests should cover:
 - Retrieval reproducibility.
 - Summary tree invalidation.
 - Claim verification.
+- Compaction state preservation.
 - Export correctness.
 - Runtime adapter failure handling.
 - Offline mode.
+
+See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
 ## No-Code Constraint
 
@@ -171,3 +191,4 @@ Those belong to a future implementation phase.
 |---|---|
 | 2026-06-29 | Initial future TypeScript/Node harness direction created. |
 | 2026-06-29 | Added future harness responsibilities for folder manifests, document adapters, retrieval acceleration, summary trees, and claim verification. |
+| 2026-06-30 | Added context compaction ownership and linked Local 12 and Local 16 profile validation to the future harness plan. |

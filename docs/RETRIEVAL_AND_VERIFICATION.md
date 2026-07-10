@@ -97,6 +97,10 @@ An evidence pack contains:
 
 The model must answer using citation IDs. Unsupported statements are verifier failures.
 
+Evidence packs should be reproducible. A later compacted session must be able to reconstruct the same pack or explain why source files, parser outputs, retrieval settings, or indexes changed.
+
+Local 12 and Local 16 should use the same retrieval candidate generation and verification policy. Local 16 may include more evidence tokens in the live prompt because it has a larger certified active context, but it should not use different quality rules.
+
 ## Verification Pipeline
 
 Every high-value answer should pass a verifier:
@@ -150,12 +154,29 @@ The audit log should capture:
 - Final evidence pack.
 - Model profile.
 - Prompt version.
+- Compaction state version.
 - Answer.
 - Claims.
 - Verification result.
 - Export approval.
 
 This makes answers replayable and supportable.
+
+## Compaction And Retrieval
+
+Context compaction must preserve retrieval-critical state:
+
+- Active query intent.
+- User constraints.
+- Evidence pack IDs.
+- Citation IDs.
+- Source anchors.
+- Exact matches used for identifiers, dates, amounts, names, and clauses.
+- Contradictions and low-confidence warnings.
+- Verification outcomes.
+- Pending follow-up searches.
+
+Compaction should not replace source evidence with prose memory. After compacting, the system should still retrieve against canonical chunks and summaries, not against the compacted chat summary alone.
 
 ## Research Links
 
@@ -167,3 +188,4 @@ This makes answers replayable and supportable.
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial retrieval, embedding, vector acceleration, citation, and verification architecture created. |
+| 2026-06-30 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |

@@ -15,6 +15,8 @@ Goals:
 - Define open-source and business boundaries.
 - Identify first vertical workflows.
 - Define future TypeScript/Node harness direction.
+- Define Local 12 and Local 16 Gemma 4 12B QAT performance targets.
+- Define long-session context compaction requirements.
 - Preserve dated concept history.
 - List open validation questions.
 
@@ -31,6 +33,7 @@ Goals:
 - Safe folder access.
 - Single-user offline workflow.
 - Evidence-linked answers.
+- Reliable context compaction during long document sessions.
 - Export action with approval.
 - Private pilot users.
 
@@ -79,8 +82,8 @@ Goals:
 - Exact community and business module boundary.
 - Whether business software is purchased separately or bundled with hardware.
 - Support pricing and SLA levels.
-- Initial model family.
-- Inference runtime strategy.
+- First runtime adapter to certify for Local 12 and Local 16.
+- Final certified active context for Local 12 and Local 16.
 - AMD versus NVIDIA flagship configuration.
 - Office-box user and concurrency targets.
 - NAS storage versus appliance storage.
@@ -96,3 +99,4 @@ Goals:
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial roadmap created from supplied launch sequence and open decisions. |
+| 2026-06-30 | Added Local 12 and Local 16 performance targets and long-session compaction to validation and MVP goals. |
