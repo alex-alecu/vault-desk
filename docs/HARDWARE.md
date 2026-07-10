@@ -47,6 +47,14 @@ Earlier community targets:
 
 The product should degrade by reducing model size, active context, multimodal usage, or concurrency rather than exposing low-level choices to ordinary users.
 
+Current model target:
+
+- Gemma 4 12B QAT as the first 16 GB certified profile.
+- Approximate Q4_0 model-load memory target: 6.7 GB before KV cache and product overhead.
+- Retrieval-first prompting and bounded active context.
+- One foreground reasoning job by default.
+- Background ingestion throttled around available memory.
+
 ## Personal Computer Target
 
 Initial personal systems should be standard Windows desktops or mini-PCs with high memory and validated local runtimes.
@@ -82,6 +90,14 @@ Possible configurations:
 - Larger NVIDIA appliance class for bigger models and concurrency.
 - Later multi-node setups.
 
+Current 64 GB model targets:
+
+- Base: Gemma 4 12B QAT with larger context, wider retrieval, deeper verifier passes, and more concurrency.
+- High-synthesis candidate: Gemma 4 31B dense QAT, with approximate Q4_0 model-load memory of 17.5 GB before KV cache and product overhead.
+- Throughput candidate: Gemma 4 26B A4B QAT, with approximate Q4_0 model-load memory of 14.4 GB before KV cache and product overhead.
+
+The first 64 GB product should benchmark all three options before choosing the default SKU. The operationally conservative default is the same 12B QAT model with more context and verification, because it keeps behavior closest to the 16 GB desktop product.
+
 ## Runtime Implications
 
 Planned first-choice runtime directions:
@@ -91,6 +107,8 @@ Planned first-choice runtime directions:
 - AMD desktop: llama.cpp with HIP or Vulkan first.
 - Shared appliance or Linux server: vLLM-class serving where validated.
 - NVIDIA-specific optimization: later, after exact model support is proven.
+
+Runtime certification must include the model format, quantization type, maximum stable active context, KV-cache behavior, multimodal behavior, and document-worker memory overhead.
 
 ## Benchmark Strategy
 
@@ -106,6 +124,9 @@ Benchmarks should measure:
 - Retrieval recall and citation precision.
 - Tool-loop success rate.
 - Crash and recovery behavior.
+- Claim verification failure rate.
+- Folder-level summary coverage.
+- Large-folder resumability.
 
 Tokens per second alone is not a product benchmark.
 
@@ -128,3 +149,5 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial hardware strategy document created from supplied concept material. |
+| 2026-06-29 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
+| 2026-06-29 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |

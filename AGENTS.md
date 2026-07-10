@@ -35,6 +35,9 @@ Primary orientation:
 Architecture:
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - four-plane system architecture.
+- [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - single-family Gemma model strategy and VRAM profiles.
+- [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
+- [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, turbovec, retrieval, citations, and verification.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -63,6 +66,8 @@ Architecture decision records:
 - [docs/adr/0004-hardware-abstraction.md](docs/adr/0004-hardware-abstraction.md)
 - [docs/adr/0005-agent-sandbox.md](docs/adr/0005-agent-sandbox.md)
 - [docs/adr/0006-typescript-node-harness.md](docs/adr/0006-typescript-node-harness.md)
+- [docs/adr/0007-gemma-family-standard.md](docs/adr/0007-gemma-family-standard.md)
+- [docs/adr/0008-huge-document-engine.md](docs/adr/0008-huge-document-engine.md)
 
 Research:
 
@@ -70,6 +75,8 @@ Research:
 - [docs/research/market-position.md](docs/research/market-position.md)
 - [docs/research/competitive-landscape.md](docs/research/competitive-landscape.md)
 - [docs/research/local-ai-runtimes.md](docs/research/local-ai-runtimes.md)
+- [docs/research/gemma-2026.md](docs/research/gemma-2026.md)
+- [docs/research/document-tools-2026.md](docs/research/document-tools-2026.md)
 - [docs/research/hardware-platforms.md](docs/research/hardware-platforms.md)
 - [docs/research/vertical-workflows.md](docs/research/vertical-workflows.md)
 
@@ -88,6 +95,7 @@ Strategy:
 - Safe, previewable, reversible actions.
 - Evidence-linked answers with citations.
 - Hardware-aware defaults, not user-managed model configuration.
+- One primary model family for generation and retrieval profiles unless a future ADR explicitly changes that boundary.
 - Customer ownership rather than mandatory rental.
 
 ## Architecture Principles To Preserve
@@ -111,3 +119,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial agent instructions created for a documentation-only Vault Desk repository. |
+| 2026-06-29 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
