@@ -8,6 +8,8 @@ The architecture should separate the model, document reader, control plane, and 
 
 The current strategic constraint is stronger than the initial architecture: Vault Desk should standardize on one primary model family, the Gemma family, with first certified profiles for 12 GB and 16 GB VRAM systems. Local 12 and Local 16 should use the same Gemma 4 12B QAT model and differ only by certified active context size.
 
+The first desktop implementation decisions are now recorded in [ADR 0010](adr/0010-electron-and-local-transport.md), [ADR 0011](adr/0011-workspace-state-and-recovery.md), [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md), and [ADR 0013](adr/0013-first-desktop-runtime.md).
+
 ## Architectural Goals
 
 - Run useful workflows locally on Windows and macOS.
@@ -34,12 +36,14 @@ The control plane owns:
 - Sessions.
 - Workspaces.
 - Job queues.
+- Schema-versioned workspace state and migrations.
 - Tool registry.
 - Policy checks.
 - Approval flow.
 - Audit events.
 - Model routing.
 - Health checks.
+- Worker supervision and resource scheduling.
 - Local configuration.
 
 This is the core future TypeScript/Node harness area.
@@ -47,6 +51,8 @@ This is the core future TypeScript/Node harness area.
 ### Inference Plane
 
 The inference plane hosts local Gemma-family model runtimes through adapter boundaries.
+
+The first desktop certification target is node-llama-cpp with the official Gemma 4 QAT GGUF in a supervised worker on both Windows and macOS. MLX-family serving remains a later adapter-backed Apple Silicon optimization rather than a parallel first implementation. See [ADR 0013](adr/0013-first-desktop-runtime.md).
 
 Expected model roles:
 
@@ -92,6 +98,7 @@ Planned services and modules:
 - Local API.
 - Session manager.
 - Workspace manager.
+- Workspace store and migration manager.
 - Document ingestion worker.
 - OCR and layout worker.
 - Indexing and retrieval service.
@@ -108,16 +115,17 @@ Planned services and modules:
 - Backup and restore service.
 - Update manager.
 - Diagnostics service.
+- Worker supervisor and resource scheduler.
 
 These are logical modules. They are not implementation folders yet.
 
 ## Runtime Strategy
 
-The runtime strategy should be hardware-aware:
+The runtime strategy should be hardware-aware without multiplying first-release runtimes:
 
-- Apple Silicon: MLX-family local serving first for supported Gemma profiles.
-- Windows with NVIDIA: llama.cpp-compatible GGUF serving first for 12B QAT, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
-- AMD desktop: llama.cpp through HIP or Vulkan first for 12B QAT.
+- Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF for the first certification; MLX-family serving may be evaluated later behind the same adapter.
+- Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
+- Windows with supported AMD hardware: node-llama-cpp/llama.cpp through HIP or Vulkan first.
 - Shared office appliance or server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
 - Hosted or hybrid escalation: only for explicitly allowed hard tasks.
 
@@ -154,7 +162,7 @@ The same architecture should support:
 
 The difference is deployment and governance, not a completely separate product.
 
-Desktop mode can use local encrypted state and local workspaces. Office mode adds organization management, identity, shared storage, central backup, permission-aware retrieval, and administrative controls.
+For the first desktop MVP, local workspace protection relies on operating-system accounts, per-user permissions, and encrypted system storage. Application-managed encryption requires a later threat model covering keys, recovery, backup, and migration. Office mode adds organization management, identity, shared storage, central backup, permission-aware retrieval, and administrative controls.
 
 ## Key Boundaries
 
@@ -175,9 +183,8 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 - Gemma 4 runtime validation matrix for 12B QAT on 12 GB and 16 GB targets.
 - Exact certified active-context targets after real hardware benchmarks.
 - Whether and when to re-open 64 GB appliance profiles.
-- Whether desktop shell should be Tauri, Electron, or another native shell.
 - Whether office documents remain on NAS storage or are copied into appliance-managed storage.
-- Backup and encryption design.
+- Backup design and future application-managed encryption.
 - Initial accounting integrations.
 - Country-specific compliance needs.
 
@@ -189,3 +196,4 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 | 2026-07-10 | Updated architecture around Gemma-family model profiles, huge-document processing, summary trees, and claim verification. |
 | 2026-07-10 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |
 | 2026-07-11 | Added the MCP position as an open architecture question following competitor research. |
+| 2026-07-11 | Closed the first desktop shell, local transport, runtime, workspace-state, and worker-isolation decisions through ADRs 0010-0013. |

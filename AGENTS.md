@@ -24,7 +24,7 @@ Commits must be authored solely by the repository owner. Never add Claude or any
 
 When implementation begins, the harness and local orchestration code must be TypeScript running under Node.js.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, sandboxed workers), the pnpm monorepo layout, the AI-drivable daemon/CLI test harness, the tiered Gemma 4 E2B/12B test model policy, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
+Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, isolated supervised workers), the pnpm monorepo layout, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -103,6 +103,10 @@ Architecture decision records:
 - [docs/adr/0007-gemma-family-standard.md](docs/adr/0007-gemma-family-standard.md)
 - [docs/adr/0008-huge-document-engine.md](docs/adr/0008-huge-document-engine.md)
 - [docs/adr/0009-12-16gb-gemma-context-standard.md](docs/adr/0009-12-16gb-gemma-context-standard.md)
+- [docs/adr/0010-electron-and-local-transport.md](docs/adr/0010-electron-and-local-transport.md)
+- [docs/adr/0011-workspace-state-and-recovery.md](docs/adr/0011-workspace-state-and-recovery.md)
+- [docs/adr/0012-worker-isolation-and-untrusted-documents.md](docs/adr/0012-worker-isolation-and-untrusted-documents.md)
+- [docs/adr/0013-first-desktop-runtime.md](docs/adr/0013-first-desktop-runtime.md)
 
 Research:
 
@@ -162,3 +166,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |
 | 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |
 | 2026-07-11 | Added the commit authorship rule: no AI co-author trailers or attribution lines in commits or PRs. |
+| 2026-07-11 | Revised the implementation plan after readiness review and added ADRs for Electron/local transport, workspace recovery, worker isolation, and the first desktop runtime. |

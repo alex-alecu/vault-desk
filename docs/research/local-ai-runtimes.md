@@ -29,13 +29,13 @@ The current architecture recommends a Gemma-family local model stack:
 - Multi-Token Prediction as an optional latency optimization after validation.
 - DiffusionGemma, Gemma 4 26B A4B, and Gemma 4 31B dense as later research paths, not first-product requirements.
 
-The exact runtime remains an implementation decision. The product family should stay Gemma-centered unless a future ADR changes that direction.
+The research comparison remains useful for later adapters. Product sequencing is now decided by [ADR 0013](../adr/0013-first-desktop-runtime.md): node-llama-cpp with the pinned official QAT GGUF is the single first Windows/macOS certification target.
 
 ## Runtime Direction By Platform
 
 ### macOS
 
-Apple Silicon should prefer an Apple-native MLX-family runtime path first.
+Research-derived optimization view: Apple Silicon may benefit from an Apple-native MLX-family runtime. MLX is evaluated after the first node-llama-cpp product path and must remain behind the same runtime adapter.
 
 The main product reason is unified memory and platform fit.
 
@@ -101,3 +101,4 @@ Measure:
 | 2026-07-10 | Updated around Gemma 4 QAT 16 GB and 64 GB profiles, EmbeddingGemma, and DiffusionGemma validation. |
 | 2026-07-10 | Recentered runtime validation on Local 12 and Local 16 Gemma 4 12B QAT profiles with context compaction and MTP validation. |
 | 2026-07-11 | Added verified July 2026 runtime support matrix covering Gemma 4, QAT, MTP, and TypeScript/Node integration paths. |
+| 2026-07-11 | Distinguished later MLX optimization research from the first runtime sequencing decision in ADR 0013. |

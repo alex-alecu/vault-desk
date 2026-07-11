@@ -48,6 +48,10 @@ Invoice folder review:
 - Export correctness.
 - False-positive and false-negative exception rate.
 - Time saved compared with manual review.
+- Held-out accuracy across currencies, locales, date formats, layouts, scanned pages, revisions, contradictions, and missing fields.
+- Blinded human review of exception severity and source traceability before pilot readiness.
+
+Development fixtures and held-out acceptance documents must use different templates and values. Prompt, retrieval, and threshold tuning must not use the held-out results as development fixtures.
 
 ## Non-Goals For MVP
 
@@ -62,3 +66,4 @@ Invoice folder review:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial accounting workflow document created. |
+| 2026-07-11 | Added held-out variation and blinded human-review requirements for pilot readiness. |

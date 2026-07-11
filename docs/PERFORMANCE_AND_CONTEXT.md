@@ -225,6 +225,8 @@ Each certified profile must publish an internal benchmark record before being ca
 
 Tokens per second is a runtime metric. It is not a product acceptance criterion by itself.
 
+Certification sequencing is strict: OCR/layout memory handoff, the invoice-review product workflow, summary trees, structured compaction, the long-running session acceptance test, crash recovery, and the packaged offline build must all pass before a Local 12 or Local 16 profile is called certified. A retrieval-only or cited-Q&A benchmark is a technical milestone, not profile certification.
+
 ## Red Lines
 
 Do not:
@@ -255,3 +257,4 @@ Do not:
 |---|---|
 | 2026-07-10 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
 | 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |
+| 2026-07-11 | Made product workflow, compaction, recovery, and packaged offline operation explicit prerequisites for Local 12 and Local 16 certification. |

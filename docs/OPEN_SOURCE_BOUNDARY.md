@@ -66,6 +66,8 @@ Known model-license facts (verified 2026-07-11):
 - EmbeddingGemma remains under the Gemma Terms of Use, not Apache 2.0. Redistribution and bundling terms need explicit review before it ships inside the community installer.
 - Candidate third-party components are permissively licensed: turbovec (MIT), Docling (MIT), MarkItDown (MIT), llama.cpp and node-llama-cpp (MIT).
 
+Implementation consequence: every model and native runtime begins as a development or candidate-to-ship asset. A candidate can be marked as shipping only after redistribution terms, required notices, platform package behavior, hashes, and offline operation are reviewed. Packaging must emit third-party notices plus dependency and model inventories.
+
 ## Intellectual Property Hygiene
 
 This repository should contain:
@@ -93,3 +95,4 @@ Before signing employment or investment agreements, review the repository and co
 |---|---|
 | 2026-07-10 | Initial open-source boundary document created from supplied concept material. |
 | 2026-07-11 | Added verified model and component license facts: Gemma 4 Apache 2.0, EmbeddingGemma Gemma Terms of Use caveat, and permissive licenses for candidate components. |
+| 2026-07-11 | Added the candidate-to-ship review gate and package notice/inventory requirements. |

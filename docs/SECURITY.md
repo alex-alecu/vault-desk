@@ -25,10 +25,15 @@ Vault Desk must treat privacy, permissions, auditability, and reversibility as p
 - Shared offices require workspace and role isolation.
 - Remote support must never become unrestricted access.
 - Local malware risk exists and should be reduced through process and filesystem boundaries where practical.
+- Source documents, archives, parser inputs, OCR inputs, and retrieved text may be malformed or malicious.
+- Document content may contain prompt injection or instructions that attempt to override policy or request tool execution.
+- Native parsers and model runtimes may crash, hang, exhaust resources, or emit malformed output.
 
 ## Agent Security Model
 
 The model may propose an action. It must not execute one directly.
+
+Documents and retrieved evidence are data, never execution instructions. Text found inside a source cannot redefine the system prompt, grant permission, approve an action, or become a tool request without passing the same typed application boundary as every other model proposal.
 
 The application is responsible for:
 
@@ -74,6 +79,14 @@ Examples of unsafe default capabilities:
 - Hidden background uploads.
 - Unreviewed destructive edits.
 
+## Worker Isolation Requirements
+
+Inference, native-document, OCR, and layout workers should run outside Vault Core in supervised processes.
+
+Workers should receive only job-scoped staged inputs or brokered handles. They should have no direct authority to approve actions, write exports, mutate workspace policy, or traverse the general workspace. Outbound network access is denied by default. Each job has limits for time, memory, CPU, input expansion, temporary storage, output size, and concurrency.
+
+Worker output must be schema-validated and size-checked before it can enter authoritative workspace state. Cancellation, crashes, malformed IPC, temporary-file cleanup, and restart recovery must be tested. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+
 ## Filesystem Controls
 
 Vault Desk should enforce:
@@ -82,6 +95,8 @@ Vault Desk should enforce:
 - Path traversal prevention.
 - File extension and MIME validation.
 - Safe temporary storage.
+- Time-of-check/time-of-use replacement prevention for authorized inputs.
+- Size and expansion limits for archives, containers, and parser output.
 - Reversible file operations.
 - Immutable originals where practical.
 - Explicit user or administrator grants for watched folders.
@@ -153,3 +168,4 @@ Remote support must be:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial security document created from supplied architecture and product material. |
+| 2026-07-11 | Added hostile-document, prompt-injection, supervised-worker, resource-limit, and staged-input security requirements. |

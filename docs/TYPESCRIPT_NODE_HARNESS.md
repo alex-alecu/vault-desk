@@ -27,6 +27,8 @@ The TypeScript/Node harness should eventually own:
 - Audit events.
 - Export coordination.
 - Diagnostics.
+- Schema-versioned workspace migrations.
+- Worker supervision and resource scheduling.
 
 The harness should not directly become:
 
@@ -37,6 +39,24 @@ The harness should not directly become:
 - A privileged shell bridge.
 
 Those should be adapters, services, or tools behind typed boundaries.
+
+## Local Process Boundary
+
+Vault Core should run as a separate process from the Electron shell from the first implementation milestone. The versioned local JSON-RPC protocol uses a Unix domain socket on macOS and a named pipe on Windows behind one transport contract. TCP is not part of the desktop boundary.
+
+The protocol must include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, reconnect behavior, version negotiation, and structured errors. Unit tests may call the core API directly, but every milestone must also exercise new backend behavior through the daemon. See [adr/0010-electron-and-local-transport.md](adr/0010-electron-and-local-transport.md).
+
+## Workspace State Principle
+
+Authoritative workspace state, immutable artifacts, and derived indexes must be distinguishable by construction.
+
+- A transactional, schema-versioned catalog owns jobs, manifests, sessions, approvals, evidence references, verification results, and migrations.
+- Canonical documents and evidence artifacts are content-addressed and written atomically.
+- LanceDB indexes, embeddings, summaries, and caches are rebuildable derived state.
+- A single-writer lock, idempotent mutations, durable resume cursors, backup-before-migrate, and explicit cleanup protect recovery.
+- Routine audit records avoid copying raw sensitive content when hashes, structured metadata, redacted previews, and artifact references are sufficient.
+
+See [adr/0011-workspace-state-and-recovery.md](adr/0011-workspace-state-and-recovery.md).
 
 ## Why TypeScript Under Node
 
@@ -79,7 +99,7 @@ The Node harness should call local inference runtimes through stable adapter int
 
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
-- node-llama-cpp (MIT) as the first in-process adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, and speculative decoding, with Metal, CUDA, and Vulkan builds and explicit Electron support.
+- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, and speculative decoding, with Metal, CUDA, and Vulkan builds and explicit Electron support.
 - A supervised llama-server child process as the companion adapter for vision workloads (Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUF), because node-llama-cpp does not yet support image input.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
@@ -88,6 +108,8 @@ Candidate adapter families (support status verified 2026-07-11; see [research/lo
 - Hosted fallback adapters only when explicitly enabled.
 
 ONNX Runtime GenAI has no official Node.js bindings as of July 2026 and is not a candidate primary runtime.
+
+The first Windows and macOS certification uses node-llama-cpp and the pinned official QAT GGUF. MLX-family serving remains a later adapter-backed optimization rather than a parallel first implementation. See [adr/0013-first-desktop-runtime.md](adr/0013-first-desktop-runtime.md).
 
 The first certified adapters should be evaluated against the Local 12 and Local 16 Gemma 4 12B QAT profiles documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md) and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
@@ -106,20 +128,20 @@ The Node harness should coordinate document processing without becoming the pars
 
 Planned adapter categories (tool choices verified 2026-07-11; see [research/document-tools-2026.md](research/document-tools-2026.md)):
 
-- Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in-process and cover most files without heavy tooling.
+- Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in supervised document-worker processes and cover most files without a heavy Python pipeline.
 - Granite-Docling GGUF adapter for layout-aware PDFs and complex documents, served by the same llama.cpp runtime family as Gemma.
 - PaddleOCR-VL adapter for scanned pages and low-confidence extraction, also served under llama.cpp.
 - One sandboxed Python document-worker sidecar hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) behind a single process boundary, packaged with PyInstaller onedir or python-build-standalone and spawned as a managed child process.
 - Native spreadsheet adapter for XLSX, XLS, CSV, formulas, sheets, rows, and cells.
 - Gemma multimodal inspection adapter for ambiguous page regions.
 
-Sidecar rule: at most one Python worker process, sandboxed, with typed IPC. Python dependencies must never leak into the harness's own runtime requirements.
+Worker rule: inference and document parsing run outside Vault Core in supervised, capability-scoped processes with typed IPC, resource limits, cancellation, staged inputs, and no default network access. At most one Python worker process may host later Python parser fallbacks. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 The harness should persist a document-set manifest so huge folder jobs can resume after failure.
 
 ## Agent Loop Principle
 
-The tool loop should be built on a maintained framework rather than fully hand-rolled, provided the framework preserves the approval boundary. Verified 2026-07-11: Vercel AI SDK 6 (Apache 2.0) is the primary candidate — its tool loop supports per-tool approval gating (execution pauses and emits an approval request that the application answers), typed tool schemas, and streaming, which maps directly onto the model-proposes-application-decides security default. The fallback is a thin hand-rolled loop over node-llama-cpp's function-calling and grammar APIs if the framework's provider abstraction fights the local runtime.
+The first accounting workflow should be an explicit, inspectable workflow rather than a generic agent loop. Where bounded iterative read-tool use is needed, prefer a maintained framework only if it preserves the approval boundary and reduces code. Verified 2026-07-11: Vercel AI SDK 6 (Apache 2.0) is the primary candidate because its tool loop supports per-tool approval gating, typed tool schemas, and streaming. The fallback is a thin loop over the runtime adapter.
 
 Framework rule: policy checks, approval decisions, audit events, and rollback stay in Vault Desk code behind the tool registry contract. The framework only drives the propose-approve-execute-observe cycle; it must not own policy.
 
@@ -191,6 +213,9 @@ Future tests should cover:
 - Export correctness.
 - Runtime adapter failure handling.
 - Offline mode.
+- Workspace migration and crash recovery.
+- Cross-platform daemon lifecycle and protocol compatibility.
+- Worker resource limits, network denial, and hostile-document handling.
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
@@ -217,3 +242,4 @@ Those belong to a future implementation phase. The step-by-step plan for that ph
 | 2026-07-10 | Added context compaction ownership and linked Local 12 and Local 16 profile validation to the future harness plan. |
 | 2026-07-11 | Added verified component choices: node-llama-cpp primary runtime adapter with llama-server vision companion, grammar-enforced structured output principle, native-Node-first parser adapters with a single Python sidecar rule, LanceDB as primary embedded index candidate, and the agent-loop principle around Vercel AI SDK 6 with policy kept in Vault Desk code. |
 | 2026-07-11 | Linked the No-Code Constraint to IMPLEMENTATION_PLAN.md, whose milestone M0 formally lifts it. |
+| 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |

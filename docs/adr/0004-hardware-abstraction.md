@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Status: Proposed
+Status: Proposed; initial desktop runtime directions superseded by ADR 0013
 
 ## Context
 
@@ -16,12 +16,14 @@ Vault Desk will use a hardware-aware runtime adapter strategy.
 
 The user-facing product should expose capability tiers and workload guarantees, not low-level model or runtime choices.
 
-Planned initial runtime directions:
+Initial runtime directions were originally proposed as:
 
-- Apple Silicon: MLX-family path first.
+- Apple Silicon: MLX-family path.
 - Windows with NVIDIA: llama.cpp or Ollama-compatible path first.
 - AMD desktop: llama.cpp with HIP or Vulkan first.
 - Office appliance or stronger server: vLLM-class path where validated.
+
+[ADR 0013](0013-first-desktop-runtime.md) supersedes these desktop ordering details. The first Windows and macOS certification now uses node-llama-cpp with the pinned official QAT GGUF. MLX remains a later adapter-backed Apple Silicon optimization. The hardware-abstraction decision itself remains unchanged.
 
 ## Consequences
 
@@ -42,3 +44,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial ADR created. |
+| 2026-07-11 | Marked the initial desktop runtime ordering as superseded by ADR 0013 while preserving the hardware-abstraction boundary. |

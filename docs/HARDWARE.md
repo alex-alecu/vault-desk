@@ -56,6 +56,8 @@ Current model target:
 - Background ingestion throttled around available memory.
 - Local 12 initial active-context target: 32K, with 64K as a stretch target.
 - Local 16 initial active-context target: 64K, with 128K as a stretch target.
+- One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).
+- A hardware capability check that classifies the current machine as Certified, Compatible, or Experimental before the user starts a model-dependent workflow.
 
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
@@ -107,9 +109,9 @@ The first office appliance should benchmark from real workflow demand, not from 
 
 Planned first-choice runtime directions:
 
-- Apple Silicon: MLX-family path first.
-- Windows with NVIDIA: llama.cpp-compatible GGUF path first, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
-- AMD desktop: llama.cpp with HIP or Vulkan first.
+- Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
+- Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
+- Windows with supported AMD hardware: node-llama-cpp/llama.cpp with HIP or Vulkan first.
 - Shared appliance or Linux server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
@@ -160,3 +162,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-10 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
 | 2026-07-10 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
 | 2026-07-10 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |
+| 2026-07-11 | Aligned the first desktop runtime with ADR 0013 and made hardware capability classification an implementation gate. |

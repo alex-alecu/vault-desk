@@ -64,7 +64,7 @@ Use a layered parser strategy rather than one universal converter. Roles below w
 
 | Tool | Recommended role | Notes |
 |---|---|---|
-| Native Node parsers (pdf.js text layer, mammoth, ExcelJS/SheetJS, officeParser, mailparser) | Born-digital PDFs, DOCX, XLSX, CSV, and email, in-process in the Node harness | Permissively licensed; covers most files without the heavy pipeline |
+| Native Node parsers (pdf.js text layer, mammoth, ExcelJS/SheetJS, officeParser, mailparser) | Born-digital PDFs, DOCX, XLSX, CSV, and email in supervised Node document workers | Permissively licensed; covers most files without the heavy Python pipeline while containing parser failures |
 | Granite-Docling-258M (GGUF under llama.cpp) | Layout-aware page-image-to-DocTags conversion for high-value PDFs, tables, and reading order | Apache 2.0; runs through the same llama.cpp runtime family as Gemma, avoiding a Python dependency |
 | Docling (Python sidecar) | Full-pipeline layout-aware conversion when the GGUF path is insufficient | MIT; preferred for the hardest legal and accounting layouts |
 | PaddleOCR-VL (GGUF under llama.cpp) | Primary OCR for scanned pages and image-only PDFs | Apache 2.0; ~3 GB; specialized document VLM, ahead of classical OCR pipelines on business scans |
@@ -72,7 +72,7 @@ Use a layered parser strategy rather than one universal converter. Roles below w
 | Unstructured (Python sidecar) | Partition fallback and parser-disagreement comparison | Strategy levels drive low-confidence warnings |
 | Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation and cross-check path, not primary parsing or transcription |
 
-Delivery rule: prefer parsers that run inside the Node process or under the already-shipped llama.cpp runtime. Python-based parsers run inside one sandboxed document-worker sidecar process, not as scattered dependencies.
+Delivery rule: prefer parsers that run in supervised Node worker processes or under the already-shipped llama.cpp runtime. Python-based parsers run inside one additional sandboxed document-worker sidecar process, not as scattered dependencies. All document workers use capability-scoped inputs, resource limits, cancellation, and no default network access per [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Minimal First Implementation
 
@@ -216,3 +216,4 @@ Every folder job should record enough timing and memory data to support profile 
 | 2026-07-10 | Initial huge-document and folder-scale document engine architecture created. |
 | 2026-07-10 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |
 | 2026-07-11 | Revalidated tooling strategy: native Node parsers for born-digital files, Granite-Docling GGUF as the least-code layout path, PaddleOCR-VL as primary OCR, and a single sandboxed Python sidecar rule for remaining Python parsers. |
+| 2026-07-11 | Moved native parsers into supervised document workers and linked hostile-document isolation requirements. |

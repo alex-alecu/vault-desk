@@ -18,6 +18,8 @@ Use a Gemma-family architecture:
 
 The design goal is one product family with predictable behavior, not a marketplace of unrelated local models.
 
+The first cross-platform desktop runtime is also singular: node-llama-cpp with the pinned official Gemma 4 12B QAT GGUF on Windows and macOS. MLX remains a later adapter-backed Apple Silicon optimization. See [ADR 0013](adr/0013-first-desktop-runtime.md).
+
 ## Certified Profiles
 
 | Profile | Hardware target | Main model | Intended use |
@@ -123,9 +125,9 @@ Open validation item: node-llama-cpp supports generic draft-model speculative de
 
 Use runtime adapters:
 
-- llama.cpp-compatible serving for the first Local 12 and Local 16 desktop path where GGUF support is stable. node-llama-cpp is the strongest verified in-process path for the planned TypeScript/Node harness: it loads Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling, embeddings, and generic speculative decoding, and covers Metal, CUDA, and Vulkan.
+- node-llama-cpp in a supervised inference worker is the first Local 12 and Local 16 desktop path on Windows and macOS. It loads the pinned official Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling and embeddings, and covers Metal, CUDA, and Vulkan while keeping runtime-specific types outside Vault Core.
 - Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
-- MLX-family serving for supported Apple Silicon profiles.
+- MLX-family serving is a later Apple Silicon optimization candidate and must pass the same packaged workflow, citation, verification, compaction, and offline suite before certification.
 - Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.
 - vLLM-class serving for later office appliances and high-throughput profiles after Gemma 4 QAT support is verified.
 - Avoid runtime-specific features in core workflow logic.
@@ -172,3 +174,4 @@ Each certified profile needs:
 | 2026-07-10 | Added Gemma 4 Q4_0 memory numbers, 256K context caveat, and EmbeddingGemma dimensionality guidance. |
 | 2026-07-10 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
 | 2026-07-11 | Revalidated against live sources: Apache 2.0 licensing, EmbeddingGemma license caveat, official QAT GGUF packaging rule, verified MTP runtime support and memory cost, node-llama-cpp and LiteRT-LM runtime guidance, and joint QAT/KV-quant/MTP certification rule. |
+| 2026-07-11 | Selected node-llama-cpp and the official QAT GGUF as the single first Windows/macOS runtime target through ADR 0013. |

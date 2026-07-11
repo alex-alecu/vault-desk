@@ -36,10 +36,12 @@ Goals:
 - Reliable context compaction during long document sessions.
 - Export action with approval.
 - Private pilot users.
+- Cross-platform packaged-build, crash-recovery, and offline first-launch validation.
 
 Recommended first workflow:
 
 - Offline document QA, extraction, comparison, and export for accounting-style document sets.
+- The first product acceptance slice is invoice review against a reference spreadsheet, producing a cited exception queue and approval-gated structured export.
 
 ## Phase 2: Office Appliance Pilot
 
@@ -100,3 +102,4 @@ Goals:
 |---|---|
 | 2026-07-10 | Initial roadmap created from supplied launch sequence and open decisions. |
 | 2026-07-10 | Added Local 12 and Local 16 performance targets and long-session compaction to validation and MVP goals. |
+| 2026-07-11 | Clarified the accounting product slice and added cross-platform package, recovery, and offline validation to the desktop MVP. |

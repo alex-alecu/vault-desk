@@ -2,260 +2,385 @@
 
 Created: 2026-07-11
 
-This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. It is planning material only. The repository remains documentation-only until a future user request explicitly starts implementation; when that happens, work proceeds milestone by milestone from this file.
+This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. It is planning material only. The repository remains documentation-only until a future user request explicitly starts milestone M0. Work then proceeds milestone by milestone from this file.
 
 Component choices follow the verified default stack in [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) and the principles in [TYPESCRIPT_NODE_HARNESS.md](TYPESCRIPT_NODE_HARNESS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DOCUMENT_ENGINE.md](DOCUMENT_ENGINE.md), [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md), [SECURITY.md](SECURITY.md), and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
+## Pre-M0 Decisions
+
+The following architecture decisions are resolved in documentation before implementation begins:
+
+- [ADR 0010](adr/0010-electron-and-local-transport.md): Electron is the desktop shell; Vault Core is a separate process; macOS uses a Unix domain socket and Windows uses a named pipe behind one versioned local-transport contract. Neither platform transport is deferred.
+- [ADR 0011](adr/0011-workspace-state-and-recovery.md): authoritative workspace state is schema-versioned, transactional, single-writer, migration-aware, and separate from rebuildable indexes and caches.
+- [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md): inference and document workers are separate supervised processes with capability-scoped inputs, no default network access, resource budgets, cancellation, and crash containment.
+- [ADR 0013](adr/0013-first-desktop-runtime.md): node-llama-cpp with the pinned official QAT GGUF is the first runtime to certify on both Windows and macOS; MLX and other runtimes remain adapter-backed later candidates.
+
+M0 may validate exact dependency packages behind these boundaries, but it must not reopen the boundaries without a superseding ADR.
+
+M0 is also blocked until the repository owner selects the Community source license and records who is responsible for dependency, model, notice, and redistribution approval. Implementation code must not be published under an implicit or undecided license.
+
 ## Process Architecture
 
-Three layers, from the product decision that shaped this plan:
+Three layers:
 
-1. **Electron frontend** — React and TypeScript. Chat, files, previews, settings, task log. No Node access in the renderer: context isolation on, node integration off, typed IPC only.
-2. **Vault Core backend** — a separate Node.js/TypeScript process. Agent loop, model lifecycle, indexing and embeddings, filesystem policy, tool permissions, audit log. Talks to the frontend over typed IPC / a local socket.
-3. **Sandboxed workers** — llama.cpp-family runtimes and document processors under Vault Core, behind tightly constrained IPC.
+1. **Electron frontend** — React and TypeScript. Chat, files, previews, settings, task log, and approvals. Node integration is off, context isolation is on, and the preload exposes only a typed, schema-validated IPC surface.
+2. **Vault Core backend** — a separate Node.js/TypeScript process. Sessions, jobs, workspace state, policy, audit, indexing, retrieval, verification, tools, approvals, and model scheduling. It is fully operable without Electron.
+3. **Isolated workers** — supervised inference, native-document, OCR, and layout processes. Workers receive job-scoped inputs and cannot directly decide permissions, approvals, exports, or network access.
 
-The backend must be fully operable without the frontend. Every milestone ends in tests an AI agent can run headlessly, and the backend gains a daemon plus CLI so the whole product loop can be driven programmatically.
+The real local process boundary exists from M1. Unit tests may call the programmatic core API directly, but every milestone that adds a backend capability also exercises it through the daemon protocol.
 
-## Confirmed Plan Decisions
+## Confirmed Product Slice
 
-- **Tiered test models**: fast tests run Gemma 4 E2B QAT GGUF (small, same family); each milestone's acceptance gate re-runs against Gemma 4 12B QAT, the real product model. Real files are used at gates — no mocked parsers or mocked models in acceptance tests.
-- **First vertical slice**: cited folder Q&A — ingest a real mixed folder, ask questions, get page-anchored cited answers, pass verification.
-- **Repo layout**: pnpm monorepo in this repository, `packages/` alongside `docs/`. AGENTS.md is updated in milestone M0 to end the documentation-only phase.
-- **Model distribution policy**: during development, both the small Gemma 4 E2B QAT GGUF and the big Gemma 4 12B QAT GGUF are downloaded from Hugging Face by the hash-pinned model fetcher into a local cache. The final build bundles Gemma 4 12B QAT as its only generation model — E2B is a development and test tool and never ships. The installed product must require **no additional downloads**: every model the product needs at runtime (Gemma 4 12B QAT, EmbeddingGemma, and from M9 the OCR and layout GGUFs) is packaged inside the installer, and the product must start and complete the full workflow offline on first launch. This matches the no-mandatory-cloud and offline-update product principles.
+The first technical slice is cited folder Q&A. The first product slice is the accounting invoice-review workflow:
 
-## Monorepo Layout (to be created in M0)
+1. Ingest invoices and a reference spreadsheet.
+2. Extract typed supplier, invoice number, date, total, tax, and line-item fields.
+3. Identify duplicates, missing fields, inconsistent totals, and spreadsheet mismatches.
+4. Produce a cited exception queue with supported, contradicted, low-confidence, and unsupported states.
+5. Preview and approve a structured export.
 
-```
+The product slice, compaction, and recovery gates must pass before Local 12 or Local 16 can be called certified.
+
+## Monorepo Layout (created incrementally from M0)
+
+```text
 packages/
-  shared/   @vault/shared   Zod schemas and types only: canonical document object, source
-                            anchors, chunks, evidence packs, claims, tool contracts,
-                            policy decisions, audit events, JSON-RPC protocol messages.
-                            Depends on nothing; everything depends on it.
-  workers/  @vault/workers  Adapters: node-llama-cpp inference; later a supervised
-                            llama-server child process for vision GGUFs; document parsers
-                            (pdfjs-dist, mammoth, ExcelJS, officeParser, mailparser).
-  core/     @vault/core     Vault Core daemon: policy kernel, audit log, manifest store,
-                            ingestion orchestration, LanceDB index, retrieval, evidence
-                            packs, verifier, tool registry, approvals, agent loop,
-                            vault-cored daemon entry. Exposes a programmatic API
-                            (createVaultCore) used directly by vitest.
-  cli/      @vault/cli      Thin `vault` CLI speaking only JSON-RPC over the socket —
-                            proof the backend is fully drivable without the frontend.
-  desktop/  @vault/desktop  Electron shell (last milestone).
-  eval/     @vault/eval     Model fetcher (hash-pinned GGUFs), fixture corpus generator
-                            plus ground-truth.json, eval assertion library, Local 12 and
-                            Local 16 bench harness.
+  shared/   @vault/shared   Dependency-free schemas and types introduced only when their
+                            consuming milestone begins.
+  workers/  @vault/workers  Worker clients, supervised process entry points, runtime and
+                            parser adapters, resource budgets, and typed worker IPC.
+  core/     @vault/core     Vault Core API and daemon: workspace state, policy, audit,
+                            jobs, ingestion, index, retrieval, verification, workflows,
+                            tools, approvals, and compaction.
+  cli/      @vault/cli      Thin JSON-RPC client used for headless product operation and
+                            process-boundary acceptance tests.
+  desktop/  @vault/desktop  Electron main, preload, and renderer, introduced in M10.
+  eval/     @vault/eval     Model manifest and fetcher, deterministic fixtures, held-out
+                            acceptance corpus, assertions, and hardware bench harness.
 ```
 
-Toolchain: TypeScript strict with NodeNext modules, Biome for lint and format, vitest, tsx for scripts, tsc for build. No CI initially; one local command `pnpm verify` runs typecheck, lint, and unit tests.
+Toolchain: pnpm monorepo, TypeScript strict with NodeNext modules, Biome, vitest, tsx for development commands, and tsc for builds. Package and native dependency versions are locked. Schemas are added just in time rather than designing every future contract in M1.
 
-## How An AI Agent Drives The Backend
+## Workspace State And Recovery
 
-Three access layers over one core:
+Vault Core owns one schema-versioned workspace format:
 
-1. **Programmatic API** — `createVaultCore({ workspaceDir, modelsDir, profile })` returns a typed facade (`ingest`, `ask`, `approvals`, `audit`, `close`). Used by vitest suites from M1 onward; no socket needed for tests.
-2. **Daemon** — `vault-cored --workspace <dir>` serves JSON-RPC 2.0 over a Unix domain socket (`.vault/core.sock`; Windows named pipe deferred), newline-delimited JSON. Server-to-client notifications stream `answer.delta`, `citation`, `approval.request`, `verification.result`, and `ingest.progress`. Methods: `workspace.open`, `ingest.start/status/resume`, `ask`, `approval.respond`, `audit.tail`, `health`.
-3. **CLI** — `vault ingest <dir>`, `vault ask "<q>" --json`, `vault approvals list|respond`, `vault audit tail`, `vault status`. The `--json` flag emits one machine-readable JSON document on stdout so an AI agent can smoke-test the full slice headlessly.
+- A transactional catalog is authoritative for jobs, manifests, document identities, parser records, sessions, approvals, evidence-pack references, verification outcomes, and migrations.
+- Canonical document payloads and evidence artifacts are immutable, content-addressed records written atomically.
+- LanceDB indexes, embeddings, prompt caches, and summaries are derived state and must be reproducible or rebuildable from authoritative records.
+- A per-workspace single-writer lock prevents concurrent mutation; read-only inspection may be concurrent.
+- Every long job has an idempotency key, durable state transitions, cancellation state, resource accounting, and a resume cursor.
+- Migrations are versioned, backup-before-migrate, forward-tested, and fail without partially upgrading a workspace.
+- Cache cleanup, workspace deletion, retention, and orphan recovery are explicit operations.
+- Audit records avoid raw sensitive content by default and record hashes, typed metadata, redacted previews, and artifact references where possible.
 
-The Electron main process (M10) is just another JSON-RPC client. Protocol message schemas live in `@vault/shared` so both sides validate both directions.
+The MVP relies on operating-system account isolation and encrypted storage for data at rest. Application-managed encryption remains a separate future decision and must not be implied by product copy until implemented.
+
+## Local API And Protocol
+
+Three access layers share the same product contracts:
+
+1. **Programmatic API** — `createVaultCore({ workspaceDir, modelsDir, profile })` returns a typed facade used by focused unit tests.
+2. **Daemon** — `vault-cored --workspace <dir>` serves versioned JSON-RPC 2.0 over a Unix domain socket on macOS and a named pipe on Windows. The endpoint is restricted to the current operating-system user. TCP is not enabled for desktop mode.
+3. **CLI** — `vault ingest`, `vault ask`, `vault workflow invoice-review`, `vault approvals`, `vault audit`, `vault compact`, and `vault status` speak only to the daemon.
+
+Protocol contracts include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, structured errors, protocol-version negotiation, reconnect behavior, and server-to-client notifications. `--json` writes exactly one final machine-readable document to stdout; progress and diagnostics use stderr or an explicit event-stream mode.
+
+The daemon skeleton and CLI health command arrive in M1. Every later milestone grows the same protocol instead of delaying serialization, lifecycle, and cross-platform behavior until the UI milestone.
+
+## Model And Asset Distribution
+
+Development models are fetched by a hash-pinned tool into a local cache. The installed product has no downloader or network fallback and bundles every required runtime asset.
+
+The model manifest distinguishes:
+
+- `development`: E2B test model, never shipped.
+- `candidate_to_ship`: asset intended for packaging but blocked on technical and redistribution review.
+- `ships`: asset approved for redistribution, included in the installer, covered by notices, and verified by SHA-256 in the build.
+
+EmbeddingGemma and every OCR or layout model begin as `candidate_to_ship`. They cannot become `ships` until redistribution terms, required notices, installer size, and offline operation are reviewed. M10 produces a third-party notice bundle, dependency and model SBOM, artifact manifest, and signed platform packages.
+
+## Continuous Verification
+
+CI begins in M0:
+
+- macOS and Windows: install, typecheck, lint, unit tests, generated-fixture integration tests, daemon lifecycle, and native dependency load smoke tests.
+- Linux: core unit and integration coverage where dependencies support it; Linux is not an initial desktop certification target.
+- Hardware/model jobs: self-hosted or manually invoked, never silently skipped, with retained machine-readable reports.
+- Packaged-build jobs: platform-native build, asset-manifest checks, protocol smoke, and no-network first-launch smoke.
+
+The local `pnpm verify` command remains the fast developer entry point. CI and local verification must use the same underlying commands.
 
 ## Test Tiers
 
-Vitest projects selected by filename suffix. Missing models fail with an instructive message; tests never silently skip.
-
-| Command | Suffix | Requires |
+| Command | Purpose | Requires |
 |---|---|---|
-| `pnpm test` | `*.test.ts` | Nothing (FakeRuntime/FakeEmbedder behind contracts allowed) |
-| `pnpm test:integration` | `*.int.test.ts` | Generated fixture corpus, real parsers, real LanceDB — no LLM |
-| `pnpm test:llm` | `*.llm.test.ts` | Gemma 4 E2B QAT + EmbeddingGemma GGUFs (`VAULT_MODEL_TIER=e2b`) |
-| `pnpm test:gate` | `*.gate.test.ts` | Gemma 4 12B QAT (`VAULT_MODEL_TIER=12b`) — milestone acceptance only |
+| `pnpm test` | Focused unit and contract tests | No models or native document corpus |
+| `pnpm test:integration` | Real parsers, workspace store, daemon, and LanceDB over deterministic fixtures | Generated development corpus |
+| `pnpm test:llm` | Fast LLM invariants and workflow development | Gemma 4 E2B QAT plus EmbeddingGemma |
+| `pnpm test:gate --milestone <n>` | Product-model acceptance for the LLM-facing milestone | Gemma 4 12B QAT and required shipped-candidate workers |
+| `pnpm test:package` | Packaged application and offline asset verification | Platform build plus all `ships` assets |
+| `pnpm bench --profile local12\|local16` | Hardware certification and soak tests | Certified target hardware |
 
-## Ground-Truth Eval Design
+Missing required models, workers, target hardware, or packages fail with an instructive message. Acceptance tests never silently skip.
 
-No fuzzy text matching anywhere. Every LLM-facing test asserts deterministic properties:
+Every LLM-facing milestone runs a 12B gate before it closes. E2B is a fast development signal, not an acceptance substitute.
 
-- **Schema validity**: output is grammar-enforced at the sampler; the assertion is a Zod parse of the semantic schema. First-attempt validity is tracked as a metric.
-- **Field exact-match**: questions in `ground-truth.json` carry typed expected values (for example `{type: "number", value: 1234.56}`); the answer schema has a typed value field; assert normalized equality (numbers parsed, dates ISO-normalized, strings case- and whitespace-normalized).
-- **Citation anchor existence**: every claim's citation IDs must exist in the evidence pack presented to the model and resolve to a chunk whose source anchor is in the fact's allowed-anchor set.
-- **Trap questions**: facts absent from the corpus must come back `unsupported` from the deterministic verifier — the gate is on the verifier, not on the model choosing to abstain.
-- E2B tier asserts pipeline invariants strictly (schema, citation existence, verifier behavior at 100 percent) and accuracy loosely (at least 70 percent field match). 12B gates assert accuracy strictly.
+## Evaluation Design
+
+Evaluation uses distinct data sets:
+
+1. **Development fixtures** — small, byte-deterministic, generated documents used for fast parser and pipeline iteration.
+2. **Held-out acceptance corpus** — different templates, values, layouts, and document combinations. It is not used to tune prompts, chunking, retrieval weights, or thresholds.
+3. **Pilot corpus protocol** — customer-provided or publicly redistributable documents evaluated locally under explicit data-handling rules. Customer documents are never committed.
+
+The development and held-out corpora cover:
+
+- Multiple currencies, locales, decimal separators, date formats, and invoice layouts.
+- Duplicates, near-duplicates, revisions, contradictions, missing values, negative amounts, and formula errors.
+- Born-digital, scanned, rotated, low-contrast, table-heavy, and mixed PDF pages.
+- Corrupt, password-protected, MIME-spoofed, oversized, deeply nested, and changing-during-ingest files.
+- Document text that attempts prompt injection, requests tool use, or claims to override policy.
+- Unsupported questions and plausible-but-absent facts.
+
+Deterministic assertions cover typed extraction, normalized values, citation-anchor validity, identifier retrieval, calculations, approval behavior, and verifier states. Evaluation reports precision and recall, false-support rate, false-positive and false-negative exception rates, confidence intervals, latency, memory, and recovery behavior.
+
+Exact matching is required for typed identifiers, amounts, dates, and enumerated fields. It is not treated as a complete quality measure for summaries or reports; those receive coverage checklists and blinded human review before pilot readiness.
 
 ## Milestones
 
-Each milestone builds only on previous ones, ends in AI-runnable tests, and keeps the model-proposes/application-decides boundary and the audit trail present from the start.
+Each milestone builds on previous gates, introduces only the contracts it consumes, leaves `pnpm verify` green, and records unresolved risks rather than hiding them.
 
-### M0 — Scaffolding, model fetcher, fixture corpus, phase change
-
-Scope:
-
-- pnpm workspace, `tsconfig.base.json`, Biome, vitest workspace; empty `@vault/shared` and `@vault/eval` packages.
-- Model fetcher (`packages/eval`) with `models.lock.json`: Hugging Face URLs plus SHA-256 pins for the official Gemma 4 E2B QAT Q4_0 GGUF (development and fast tests), Gemma 4 12B QAT Q4_0 GGUF (the product model), and EmbeddingGemma GGUF. `pnpm models:fetch --tier e2b` and `--tier 12b` download the respective tier plus shared models into the cache directory `~/.cache/vault-desk/models`, overridable via `VAULT_MODELS_DIR`. Hash mismatch discards the download and fails loudly. This fetcher is a development tool only; the shipped product never downloads models (see M10).
-- The lock file marks each model as `ships: true` (Gemma 4 12B QAT, EmbeddingGemma, later the OCR and layout GGUFs) or `ships: false` (Gemma 4 E2B QAT — development only). This flag drives the M10 bundling step and its tests.
-- Fixture corpus generator writing to `packages/eval/fixtures/generated/` (gitignored) with a checked-in `ground-truth.json`: three digital invoice PDFs (known invoice numbers, totals, dates), one byte-identical duplicate, a contract DOCX with a known clause, a ledger XLSX with formulas and known sums, a transactions CSV, an email EML, and one image-only scanned invoice PDF (exercised from M9).
-- Update AGENTS.md: replace documentation-only phase rules with implementation-phase rules (commands, test tiers, package map); keep Clean Code rules and security defaults. Update the No-Code Constraint section of TYPESCRIPT_NODE_HARNESS.md.
-
-Tests: fixture generator is byte-deterministic (hash equality across two runs); `models.lock.json` schema-valid; fetcher rejects a SHA-256 mismatch (tested against a small local file, not a live download).
-
-Gate: `pnpm fixtures:generate && pnpm verify` green; every ground-truth fact names its file, expected typed value, and allowed anchors; AGENTS.md reflects the new phase.
-
-### M1 — Shared contracts, audit log, policy kernel
+### M0 — Phase change, minimal scaffold, CI, models, and evaluation corpora
 
 Scope:
 
-- `@vault/shared`: Zod schemas for SourceAnchor, CanonicalDocument (per DOCUMENT_ENGINE.md), Chunk, EvidencePack, Claim/Citation, ToolDefinition (name, version, input/output schemas, permissions, preview, approval, limits), PolicyDecision, AuditEvent (OpenTelemetry GenAI semantic-convention shape, version-pinned), and the JSON-RPC envelope.
-- `@vault/core`: append-only JSONL audit log with a per-record previous-hash chain; policy kernel: `WorkspaceScope` (realpath root plus prefix check, extension/MIME allowlist) and `ScopedFileSystem` — the only filesystem entry point core code may use, enforced by a lint rule banning `node:fs` imports elsewhere in core.
+- Create the pnpm workspace, root TypeScript/Biome/vitest configuration, lockfile, and only the packages needed by M0 and M1.
+- Add cross-platform CI and native dependency load smoke jobs.
+- Add the model manifest and hash-pinned development fetcher. Redistribution status uses `development`, `candidate_to_ship`, and `ships`.
+- Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
+- Record dependency licenses and create the first machine-readable dependency/model inventory.
+- Update AGENTS.md and TYPESCRIPT_NODE_HARNESS.md to end the documentation-only phase only when the gate passes.
 
-Tests: path traversal and symlink escape rejected; out-of-scope absolute paths rejected; audit chain verifies and detects tampering; audit events round-trip through Zod.
+Gate:
 
-Gate: lint enforcement in place; chain verification tests green.
+- Fixture generation is byte-deterministic.
+- Ground truth covers positive, negative, contradiction, locale, corruption, and prompt-injection cases.
+- Hash mismatch and unapproved `ships` transitions fail.
+- macOS and Windows CI run `pnpm verify` successfully.
+- AGENTS.md reflects the implementation phase.
 
-### M2 — Inference runtime adapter (node-llama-cpp, E2B smoke)
-
-Scope:
-
-- `@vault/shared`: RuntimeAdapter contract (loadModel, generate, generateStructured(schema), embed, dispose; typed errors for missing model, out of memory, aborted).
-- `@vault/workers`: node-llama-cpp implementation — GGUF resolution via `models.lock.json`, grammar-enforced structured generation (Zod to JSON Schema to GBNF), EmbeddingGemma embeddings, tier selection via `VAULT_MODEL_TIER`. A deterministic FakeRuntime for the unit tier.
-
-Tests: unit — typed error on missing model file, abort mid-generation. `pnpm test:llm` — E2B loads; structured generation parses first-attempt across five varied prompts; embeddings are 768-dimensional, finite, and deterministic for identical text.
-
-Gate: `pnpm test:llm` green with the real E2B model; no package other than workers imports node-llama-cpp.
-
-### M3 — Document ingestion: manifest, hashing, native parsers
+### M1 — Workspace state, core security primitives, daemon skeleton, and CLI health
 
 Scope:
 
-- `@vault/core`: document-set manifest store (per-file hash, size, MIME, parser route, status, timings per the DOCUMENT_ENGINE performance records); inventory → hash → dedupe → route pipeline; canonical-object store.
-- `@vault/workers`: parser adapters producing CanonicalDocument: pdfjs-dist text layer (pages, paragraph anchors), mammoth (headings, paragraphs, tables), ExcelJS (sheets, cell coordinates, formulas, typed and display values), CSV (dialect, row/column coordinates), mailparser (headers, body, attachment list). A scanned PDF (no text layer) is recorded as `needs_ocr` — never silently dropped.
+- Introduce only the shared schemas needed for workspace identity, jobs, policy decisions, audit events, JSON-RPC envelopes, and typed errors.
+- Implement the schema-versioned workspace catalog, immutable artifact writes, single-writer lock, migration harness, and rebuildable-state boundary.
+- Implement `WorkspaceScope` and `ScopedFileSystem`; direct filesystem access is lint-forbidden outside approved storage and worker-broker adapters.
+- Implement the redaction-aware hash-chained audit log.
+- Implement the daemon lifecycle, macOS socket, Windows named pipe, endpoint permissions, version negotiation, request IDs, cancellation, and `vault status`.
+- Deny outbound network access for worker processes by default and test the policy boundary.
 
-Tests: unit — routing decisions per MIME/extension; manifest resumability (kill mid-ingest, resume parses only the remainder); duplicate hash yields one canonical document with two path references. `pnpm test:integration` on the generated corpus — every born-digital fixture yields a schema-valid CanonicalDocument; the invoice number appears at its ground-truth page anchor; the ledger cell has the ground-truth formula and typed value; EML fields match; the scanned PDF is `needs_ocr` with a manifest warning.
+Gate:
 
-Gate: integration suite green with zero mocked parsers; re-running ingest with unchanged files parses nothing (hash cache).
+- Traversal, symlink escape, MIME confusion, out-of-scope paths, and time-of-check/time-of-use file replacement are rejected.
+- Abrupt termination cannot leave partially committed authoritative state.
+- Audit tampering is detected without requiring raw document content in routine records.
+- Daemon start, health, restart, incompatible-version, and current-user endpoint tests pass on macOS and Windows.
 
-### M4 — Chunking, LanceDB hybrid index, retrieval
-
-Scope:
-
-- Structure-aware chunker (page, heading, paragraph, table, row-window, sheet chunks, each carrying full anchor metadata; chunk text under 2K tokens for EmbeddingGemma).
-- Embedding cache keyed by chunk hash plus encoder version.
-- LanceDB table: canonical text, anchors, full-text index, EmbeddingGemma dense vectors.
-- Retriever contract: hybrid query (full-text plus dense with reciprocal-rank fusion), metadata filters, and an exact-identifier search API (invoice numbers, amounts, dates).
-
-Tests: unit with a fake embedder — every chunk resolves back to its document/page/cell anchor; cache hits on unchanged chunks. `pnpm test:llm` with real EmbeddingGemma — recall gate: for every ground-truth fact, hybrid top-8 contains a chunk from the allowed-anchor set; exact identifier search returns its anchor chunk at rank 1; the index is reproducible and survives a process restart.
-
-Gate: recall 100 percent on born-digital fixture facts at k=8; identifier exact-match 100 percent.
-
-### M5 — Evidence packs and grammar-enforced cited generation
+### M2 — Supervised inference worker and early 12B canary
 
 Scope:
 
-- Evidence-pack assembler: task instruction, output schema description, retrieved chunks with citation IDs, exact matches, parser warnings; token-budgeted per profile; persisted by ID for reproducibility.
-- `answerQuestion(q)` pipeline: retrieve → pack → generateStructured with the cited-answer schema `{ value, value_type, claims: [{ text, citation_ids }] }` → persist answer plus pack reference; audit spans for retrieval and the model call.
+- Add the runtime adapter contract and a separate supervised inference-worker process.
+- Implement node-llama-cpp behind worker IPC with model resolution, grammar-enforced structured output, embeddings, cancellation, timeout, memory-budget reporting, and typed failure states.
+- Add a deterministic fake worker for unit tests.
+- Add a resource scheduler that prevents generation, embeddings, and later vision work from exceeding the active profile budget.
 
-Tests: unit — packs respect the token budget, always include exact identifier matches and warnings, and are reproducible (same corpus and query produce the same pack ID). `pnpm test:llm` on E2B — schema validity, citation existence, and anchor resolution 100 percent strict; field match at least 70 percent advisory; audit log completeness.
+Gate:
 
-Gate: strict invariants at 100 percent on E2B; answers replayable from persisted packs.
+- Worker crash, cancellation, timeout, malformed IPC, missing model, and out-of-memory paths are contained and audited.
+- E2B structured generation and EmbeddingGemma smoke tests pass.
+- Gemma 4 12B loads, produces grammar-valid output, and shuts down cleanly on at least one Local 12-class and one Local 16-class target before later LLM work proceeds.
+- Native runtime loading passes on the initial macOS and Windows paths.
 
-### M6 — Verification pipeline
-
-Scope — a deterministic verifier as an explicit workflow stage:
-
-1. Citation-presence check on structured claims.
-2. Evidence containment: the cited chunk must contain the claimed identifier, number, or date under deterministic normalization.
-3. Exact re-search of identifiers and amounts across the index.
-4. Deterministic arithmetic and spreadsheet recomputation for numeric claims referencing ledger cells (ExcelJS typed values, never model math).
-5. Contradiction search (same identifier, conflicting value elsewhere).
-6. Low-confidence-source flagging.
-
-Per-claim result: supported, unsupported, contradicted, or low_confidence — persisted and audited. `ask` always returns a verification result.
-
-Tests: unit on constructed defects (bogus citation ID, wrong amount, planted contradiction) — 100 percent caught. `pnpm test:llm` — trap questions come back 100 percent unsupported.
-
-Gate: no answer path bypasses verification.
-
-### M7 — Tool registry, policy engine, approvals
+### M3 — Native document ingestion and crash-consistent manifests
 
 Scope:
 
-- Tool registry per the harness principles: typed schemas, permissions, preview, approval behavior, resource limits, audit, rollback.
-- Policy engine mapping tool plus workspace scope plus risk to allow, require_approval, or deny; persisted approval queue resolvable via the API.
-- First tools: `search_documents`, `open_document_region`, `read_table_cells` (read-only, policy-allowed) and `export_answer` (writes a file — preview plus approval required, writes only through ScopedFileSystem, originals immutable).
+- Add SourceAnchor and CanonicalDocument schemas as consumed by ingestion.
+- Implement inventory, hashing, deduplication, routing, canonical artifact storage, and durable resumable manifests.
+- Run native PDF, DOCX, XLSX, CSV, and EML parsers in supervised document workers.
+- Preserve page, heading, paragraph, table, sheet, cell, formula, typed-value, and attachment anchors.
+- Surface unsupported, corrupt, password-protected, excessive-size, and changed-during-ingest states.
 
-Tests: schema-invalid tool calls rejected before policy; out-of-scope export path denied; export without approval never touches disk (filesystem spy); approve writes the file with a full proposal→decision→result audit trail; reject is audited with no side effect.
+Gate:
 
-Gate: a consequential action without approval is impossible by construction; audit replay reconstructs the decision sequence.
+- Real parsers pass on both fixture corpora with no mocked parser at acceptance.
+- Killing workers or Vault Core at every manifest transition resumes without duplicate or missing work.
+- Originals remain immutable; identical content deduplicates while retaining all path references.
+- Zip/decompression bombs, oversized outputs, and parser hangs are stopped by resource limits.
 
-### M8 — Agent loop, daemon, and CLI — first vertical slice
-
-Scope:
-
-- Vercel AI SDK 6 LanguageModel provider over the runtime adapter (streaming, tool calls via Gemma function calling).
-- Agent session: question → tool calls (search/open/read) → cited answer schema → verifier. The SDK's `needsApproval` delegates to the M7 policy engine — the framework drives propose-approve-execute; policy stays in Vault Desk code.
-- `vault-cored` JSON-RPC daemon and the `vault` CLI as specified above.
-
-Tests: unit — provider conformance with FakeRuntime; JSON-RPC schema round-trips; an approval request blocks execution until `approval.respond`. `pnpm test:llm` on E2B — the first-slice test: spawn the real daemon on a temp workspace, drive it via CLI subprocess (`vault ingest`, then `vault ask` for every ground-truth question with `--json`), assert the eval criteria; the export flow pauses on approval and resumes on `vault approvals respond --approve`; `vault audit tail` shows the full span tree.
-
-Gate: the full vertical slice (ingest mixed folder → question → page-anchored cited answer → verification) passes headlessly via CLI on E2B — one command sequence an AI agent can run, no frontend.
-
-### M9 — OCR and vision workers (PaddleOCR-VL, Granite-Docling)
+### M4 — OCR, layout, and low-confidence routing
 
 Scope:
 
-- Supervised llama-server child process (bound to 127.0.0.1, health-checked, killed on dispose, restarted on crash) serving vision GGUFs.
-- PaddleOCR-VL adapter for `needs_ocr` pages, producing OCR regions with confidence and bounding boxes into the CanonicalDocument.
-- Granite-Docling adapter route for table-heavy and layout-complex pages, per the DOCUMENT_ENGINE page classification.
-- Model fetcher extended with hash-pinned OCR and layout GGUFs, marked `ships: true` so the M10 bundle includes them.
+- Add supervised PaddleOCR-VL and Granite-Docling routes for scanned, mixed, table-heavy, and low-confidence pages.
+- Preserve OCR regions, bounding boxes, parser/model versions, confidence, and warnings in CanonicalDocument.
+- Unload or serialize GPU workers according to the profile resource scheduler; document workers must not silently steal the certified generation budget.
 
-Tests: unit — worker supervision (crash, restart, job resumes from the manifest); OCR route chosen only when the text layer is missing or low-confidence. `pnpm test:llm` — the scanned invoice ingests with the ground-truth invoice number in its OCR text; asking a scanned-only question returns the correct value with a citation anchored to the OCR region and a confidence note in verification.
+Gate:
 
-Gate: the first slice passes with the scanned fixture included; killing llama-server mid-ingest leaves a resumable manifest.
+- Scanned and layout-complex held-out fixtures recover ground-truth fields and anchors at defined precision and recall.
+- Worker crashes resume from page-level manifest cursors.
+- Peak memory under OCR-to-generation handoff fits the provisional Local 12 and Local 16 budgets.
+- OCR and layout assets remain `candidate_to_ship` until redistribution review completes.
 
-### M10 — Electron shell (typed IPC, minimal chat UI) and self-contained packaged build
-
-Scope:
-
-- Electron main process spawns or attaches `vault-cored` and relays JSON-RPC.
-- Renderer: React and TypeScript, context isolation on, node integration off; the preload exposes only a typed, schema-validated IPC surface mirroring the shared protocol.
-- Screens: folder picker with ingest progress, chat with streamed answers and clickable citations (opens the source page or cell preview), approval dialog, audit/task log view, settings (workspace; no model selection — the product model is fixed).
-- **Self-contained packaged build**: the installer bundles every runtime asset the product needs — Gemma 4 12B QAT as the only generation model, EmbeddingGemma, the OCR and layout GGUFs from M9, and the native runtime binaries — as Electron extra resources. The bundling step reads `models.lock.json`, includes exactly the `ships: true` models, verifies each bundled file against its pinned SHA-256, and fails the build if any `ships: true` model is missing or any `ships: false` model (E2B) leaks in. The packaged app resolves models only from its bundled resources path; it contains no downloader, and model resolution has no network fallback.
-
-Tests: every renderer-reachable channel validates against the shared schemas; out-of-protocol messages are rejected; window configuration tests assert the isolation flags. A minimal Playwright-for-Electron smoke test (optional-hardware tier): launch, ingest fixtures, ask one question, citation renders. No broad UI snapshots (quality-bar rule). Build-output tests: the packaged app contains all `ships: true` GGUFs with matching hashes and does not contain the E2B model; a first-launch smoke run on the packaged build with networking disabled (no network permission or a blocked-network environment) completes ingest and one cited answer.
-
-Gate: the renderer provably has no Node access; every backend capability used by the UI is also reachable via the CLI — no UI-only endpoints; the packaged build runs the full first slice offline on first launch with zero downloads, with Gemma 4 12B QAT as its only generation model.
-
-### M11 — 12B acceptance gate and Local 12 / Local 16 bench harness
+### M5 — Chunking, hybrid index, and retrieval
 
 Scope:
 
-- Bench harness `pnpm bench --profile local12|local16`: runs the full slice on the fixture corpus with Gemma 4 12B QAT and records the software-measurable PERFORMANCE_AND_CONTEXT.md gate metrics (cold and warm start, first-token latency, tokens per second, ingest time, time to first cited answer, retrieval recall, citation precision, unsupported-claim rate, spreadsheet check accuracy, peak RSS; VRAM where the platform exposes it) into a versioned JSON report.
-- `pnpm test:gate` re-runs the M5, M6, M8, and M9 LLM suites against 12B.
+- Add Chunk and retrieval contracts.
+- Implement structure-aware page, heading, paragraph, table, row-window, sheet, and OCR-region chunks under EmbeddingGemma's token limit.
+- Cache embeddings by chunk hash, encoder version, dimension, and normalization version.
+- Use LanceDB for full-text and dense retrieval with reciprocal-rank fusion and metadata filters.
+- Provide exact identifier, date, amount, name, and clause search.
 
-Thresholds: schema validity at least 95 percent first attempt; citation anchor existence 100 percent; field exact-match at least 90 percent born-digital and 80 percent scanned; trap questions 100 percent unsupported.
+Gate:
 
-Gate: gate suite green plus committed bench reports for local12 (32K active context) and local16 (64K) — the milestone that moves Local 12 and Local 16 claims from research-derived to measured.
+- Every chunk resolves to an immutable source anchor.
+- Index rebuild from authoritative state is deterministic and restart-safe.
+- Held-out recall, citation-candidate precision, and exact-search thresholds are defined before measurement and pass on born-digital and scanned facts.
+- File changes invalidate only affected canonical artifacts, chunks, embeddings, and index rows.
 
-## Explicitly Deferred (post-M11, in likely order)
+### M6 — Evidence packs, cited generation, and deterministic verification
 
-1. Compaction manager (session, task, evidence, artifact, preference, and warning ledgers; 70/85/95 percent triggers; the long-running session acceptance test). State stores from M5 and M7 already live outside the prompt, so nothing blocks it.
-2. Summary tree builder (the first slice is retrieval-only).
-3. MTP and KV-cache-quantization certification as a pinned combination per PERFORMANCE_AND_CONTEXT.md.
-4. Python sidecar (Docling full pipeline, MarkItDown, Unstructured).
-5. turbovec evaluation against the LanceDB baseline.
-6. MCP position ADR.
-7. Accounting workflow pack (builds directly on the M6 verifier and M7 export).
-8. Appliance mode and multi-user governance.
+Scope:
 
-Never written: custom parsers, custom OCR, custom vector database, plugin system, generic agent brain.
+- Add EvidencePack, Claim, Citation, and VerificationResult schemas.
+- Build reproducible, token-budgeted evidence packs containing exact matches, retrieved chunks, contradictions, and parser warnings.
+- Generate task-specific typed answers with claim-level citations.
+- Verify citation presence, evidence containment, normalized identifiers and quantities, exact re-search, spreadsheet arithmetic, contradictions, ambiguity, and low-confidence sources.
+- Treat document content and tool output as untrusted evidence, never as control instructions.
 
-## Overall Verification
+Gate:
 
-- Per milestone: the listed `pnpm test` / `test:integration` / `test:llm` commands green, then the milestone gate criteria.
-- System-level proof at M8: an AI agent runs `pnpm fixtures:generate && pnpm models:fetch --tier e2b`, starts the daemon, and drives `vault ingest` / `vault ask --json` / `vault approvals respond` end to end, with assertions on real model output against checked-in ground truth.
-- Final proof at M11: the same suites on Gemma 4 12B QAT plus bench reports for both certified profiles.
-- One commit per milestone; every commit leaves `pnpm verify` green.
+- Evidence packs replay from persisted inputs and explain invalidation when sources or configuration change.
+- E2B passes strict schema, citation, and verifier invariants.
+- The M6 12B gate passes held-out typed accuracy, citation precision, false-support, contradiction, and unsupported-question thresholds.
+- No user-visible high-value answer path bypasses verification.
+
+### M7 — Accounting invoice-review product workflow
+
+Scope:
+
+- Implement an explicit workflow, not a generic agent brain: ingest invoices and ledger, extract typed fields, detect duplicates and inconsistencies, compare against spreadsheet rows, and create a cited exception queue.
+- Add human-review states for uncertain extraction, missing evidence, contradictions, and low-confidence OCR.
+- Persist workflow state outside model context so it can resume after cancellation or restart.
+
+Gate:
+
+- Held-out field extraction, duplicate detection, ledger matching, exception precision/recall, calculation correctness, and citation precision pass defined thresholds.
+- Every exception traces to source pages, regions, sheets, and cells.
+- The M7 12B gate passes the entire workflow on born-digital and scanned cases.
+- A blinded human-review checklist finds no unreported high-severity discrepancy in the pilot-readiness sample.
+
+### M8 — Typed tools, approvals, export, bounded tool loop, and complete CLI slice
+
+Scope:
+
+- Add just-in-time ToolDefinition, PolicyDecision, Approval, Preview, and ToolResult schemas.
+- Implement read-only search/open/table tools and an approval-gated structured exception export.
+- Export through ScopedFileSystem using preview, destination validation, atomic write, immutable originals, audit, and rollback where applicable.
+- Complete CLI commands for ingest, ask, invoice-review, approvals, export, audit, cancellation, and resume.
+- Evaluate the Vercel AI SDK provider only for bounded iterative read-tool use. Adopt it only if it preserves Vault Desk policy, approval, audit, cancellation, and structured-output contracts and reduces code versus the explicit workflow loop.
+
+Gate:
+
+- Schema-invalid or document-injected tool requests never reach policy or execution.
+- Approval is durable across daemon restart; rejection and expiration cause no side effect.
+- The daemon/CLI drives the full invoice-review and approved export flow on E2B and 12B.
+- Export correctness is checked by parsing the exported artifact and reconciling it to verified workflow state.
+- No worker or model has direct filesystem-write authority.
+
+### M9 — Summary trees, structured compaction, recovery, and long-session acceptance
+
+Scope:
+
+- Build page, section, table, sheet, document, folder, and task summary nodes with source anchors, prompt/model versions, evidence IDs, warnings, and verification state.
+- Implement session, task, evidence, artifact, preference, and warning ledgers.
+- Compact at the documented 70/85/95 percent triggers and after long tools, approvals, and exports.
+- Add manual compact, source-change invalidation, and post-compaction replay.
+
+Gate:
+
+- Run the required 30-minute mixed-folder scenario on Local 12 and Local 16 with at least three forced compactions.
+- Pre-compaction decisions, citations, warnings, pending approvals, and tool results survive or explicitly report invalidation.
+- Compaction loss rate, summary coverage, crash recovery time, and folder-level citation precision pass defined thresholds.
+- The workflow continues after daemon and worker restarts without reloading the folder or restating decisions.
+
+### M10 — Electron shell and self-contained cross-platform package
+
+Scope:
+
+- Implement Electron main, preload, and minimal React renderer over the existing daemon protocol.
+- Provide folder selection, ingest progress, invoice review, chat, citation previews, human-review queue, approval dialog, export preview, audit/task log, cancellation, and settings without exposing model configuration.
+- Build macOS and Windows packages containing the product generation model, embedding model, OCR/layout assets, and native runtimes only after every asset is approved as `ships`.
+- Generate notices, SBOMs, artifact manifests, hashes, signatures, and platform packaging metadata.
+- Add hardware capability detection that maps supported machines to Certified, Compatible, or Experimental without changing verification policy.
+
+Gate:
+
+- Renderer isolation and every IPC channel are schema-tested; no renderer Node access exists.
+- Packaged builds complete first launch, ingestion, invoice review, citations, approval, and export with networking blocked and zero downloads.
+- No development model or unapproved candidate asset leaks into the package.
+- Windows and macOS packages pass install, launch, upgrade, uninstall, workspace-preservation, and crash-recovery smoke tests.
+
+### M11 — Full 12B certification and pilot readiness
+
+Scope:
+
+- Run the complete package and workflow suite with Gemma 4 12B QAT on actual Local 12 and Local 16 target machines.
+- Record cold/warm start, prefill latency by certified context, first-token latency, tokens per second, ingest/OCR throughput, time to first cited result, peak RAM/VRAM, retrieval and citation metrics, workflow accuracy, false-support, exception precision/recall, compaction loss, crash recovery, and export correctness.
+- Run repeated-folder soak tests, forced cancellation, worker crashes, daemon restarts, low-disk conditions, and offline first launch.
+- Execute the local pilot-corpus protocol and blinded human review without committing customer documents.
+
+Thresholds are versioned before the final run. Minimum invariant thresholds remain 100 percent citation-ID validity, 100 percent approval enforcement, and 100 percent detection of constructed unsupported/traversal/policy-bypass cases. Accuracy, precision, recall, latency, and memory thresholds are workflow- and profile-specific and reported with corpus size and confidence intervals.
+
+Gate:
+
+- M0 through M10 gates remain green on the packaged product.
+- Local 12 and Local 16 pass the full workflow, compaction, recovery, and memory suite with the same model, workflow eligibility, retrieval policy, verification policy, and approval policy.
+- Hardware classifications and unsupported configurations are reported honestly.
+- Known limitations, model/component notices, recovery instructions, and pilot support procedures are documented.
+
+This is the first milestone allowed to move Local 12, Local 16, and Community Desktop MVP claims from research-derived to measured or pilot-ready.
+
+## Explicitly Deferred After M11
+
+1. Python sidecar for additional formats when the native/GGUF routes prove insufficient.
+2. MTP and KV-cache-quantization certification as a pinned runtime combination.
+3. turbovec evaluation against the LanceDB baseline.
+4. MCP position ADR.
+5. Additional accounting integrations and direct accounting-system connectors.
+6. Legal workflow pack.
+7. Application-managed workspace encryption, subject to a dedicated threat model and recovery design.
+8. Appliance mode, backup orchestration, identity, multi-user governance, and permission-aware shared retrieval.
+
+Never written in the first implementation: custom parser, custom OCR engine, custom vector database, unrestricted shell tool, broad plugin system, or generic agent brain.
+
+## Change And Commit Policy
+
+- Milestones are acceptance boundaries, not commit-size rules.
+- Use small, reviewable commits that each leave relevant fast checks green.
+- Tag or otherwise record milestone completion only after its full gate passes.
+- Do not combine unrelated refactors with milestone behavior.
+- Commit and pull-request authorship follows AGENTS.md: repository-owner authorship only and no AI attribution trailers or generated-by lines.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
-| 2026-07-11 | Initial milestone plan (M0–M11) created: three-layer process architecture, AI-drivable daemon/CLI test harness, tiered Gemma 4 E2B/12B test model policy, ground-truth eval design, and deferred list. |
-| 2026-07-11 | Added the model distribution policy: E2B and 12B QAT downloaded from Hugging Face for development via the hash-pinned fetcher; the final build bundles only 12B QAT (plus EmbeddingGemma and OCR/layout models) with a ships flag in models.lock.json, an offline first-launch test, and no downloader in the packaged product. |
+| 2026-07-11 | Initial milestone plan (M0-M11) created with the three-layer architecture, AI-drivable daemon/CLI, tiered Gemma test models, and ground-truth evaluation. |
+| 2026-07-11 | Added model distribution policy for development downloads and self-contained offline packages. |
+| 2026-07-11 | Reordered the plan after implementation-readiness review: moved accounting, OCR, summary trees, compaction, recovery, and 12B gates before certification; added cross-platform CI and transport, persistent-state and worker-isolation boundaries, held-out/adversarial evaluation, redistribution and supply-chain gates, hardware detection, and pilot-readiness criteria. |
