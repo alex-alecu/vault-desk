@@ -58,6 +58,25 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture outli
 - [docs/strategy/PARTNERSHIPS.md](docs/strategy/PARTNERSHIPS.md) - AMD, NVIDIA, OEM, and reseller partnership thesis.
 - [docs/RESEARCH_SOURCES.md](docs/RESEARCH_SOURCES.md) - source material and validation notes.
 
+## How Vault Desk Compares To Existing Solutions
+
+Verified against live sources on 2026-07-11. Full research with source links: [docs/research/competitive-landscape.md](docs/research/competitive-landscape.md).
+
+| Capability | AnythingLLM | Open WebUI + Ollama | LM Studio | Jan | GPT4All | Msty | Openwork | Vault Desk (planned) |
+|---|---|---|---|---|---|---|---|---|
+| Local and offline document chat | Yes | Yes (Docker) | Limited (5 files / 30 MB) | Yes (~200 docs) | Yes (dormant since early 2025) | Yes | No (agent app, not documents) | Yes, folder scale |
+| OCR for scanned documents | Basic, buggy | Extra containers required | No | No | No | No | No | Built in, VLM-based |
+| Citations | Page-numbered chunks | Reference links | Minimal | No page numbers | Snippets | Weak | No | Page/region anchors plus claim verification |
+| Answer verification beyond citations | No | No | No | No | No | No | No | Yes: claim checks, recalculation, contradiction search |
+| Approval-gated, previewable, reversible actions | No | No | No | Inline tool approval only | No | Sandboxed execution only | Allow/deny prompts only | Yes: preview, approval, rollback as one loop |
+| Audit trail and replayable traces | Undocumented | Enterprise logging only | No | No | No | No | Basic action logs | Yes, first-class |
+| Hardware-aware defaults, no model configuration | No (user picks everything) | No | Fit checks, user still picks | No | Curated list | No | No | Yes: certified Local 12 / Local 16 profiles, zero model choices |
+| Telemetry | On by default | Self-hosted | None claimed (closed) | Zero, verifiable | Opt-in | Zero claimed (closed) | Unstated | None for customer documents, ever |
+| Vertical workflows (accounting, legal, medical admin) | No | No | No | No | No | No | No | Yes, workflow packs |
+| Small-office appliance with governance | No | No | No | No | No | No | No | Yes, Vault Desk Office |
+
+What this table means: local chat-with-documents with citations is now a commodity, and Vault Desk does not compete on it. The unclaimed space Vault Desk targets is the combination of verification beyond citations, approval-gated reversible actions, first-class audit, folder-scale OCR that works out of the box, invisible hardware-aware defaults, and professional vertical workflows — none of which any incumbent ships today, individually or together.
+
 ## Non-Goals
 
 Vault Desk should not begin as:
@@ -76,3 +95,4 @@ Vault Desk should not begin as:
 | 2026-06-29 | Initial documentation-only repository created from supplied concept and research material. |
 | 2026-06-29 | Added current Gemma-family, huge-document, retrieval, and verification architecture pointers. |
 | 2026-06-30 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
+| 2026-07-11 | Added verified competitor comparison table (AnythingLLM, Open WebUI, LM Studio, Jan, GPT4All, Msty, Openwork) after live-web revalidation of the documentation set. |

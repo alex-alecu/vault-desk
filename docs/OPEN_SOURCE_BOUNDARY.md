@@ -60,6 +60,12 @@ Open decisions:
 - Third-party component notice strategy.
 - Whether business plugins can depend on community extension points.
 
+Known model-license facts (verified 2026-07-11):
+
+- Gemma 4 (including 12B QAT) is Apache 2.0. It can be redistributed inside community packaging with standard notices.
+- EmbeddingGemma remains under the Gemma Terms of Use, not Apache 2.0. Redistribution and bundling terms need explicit review before it ships inside the community installer.
+- Candidate third-party components are permissively licensed: turbovec (MIT), Docling (MIT), MarkItDown (MIT), llama.cpp and node-llama-cpp (MIT).
+
 ## Intellectual Property Hygiene
 
 This repository should contain:
@@ -86,3 +92,4 @@ Before signing employment or investment agreements, review the repository and co
 | Date | Change |
 |---|---|
 | 2026-06-29 | Initial open-source boundary document created from supplied concept material. |
+| 2026-07-11 | Added verified model and component license facts: Gemma 4 Apache 2.0, EmbeddingGemma Gemma Terms of Use caveat, and permissive licenses for candidate components. |

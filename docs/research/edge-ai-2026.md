@@ -4,6 +4,8 @@ Created: 2026-06-30
 
 This document records the June 30, 2026 research review used to challenge the Vault Desk planning docs. Claims here are research-derived until independently validated on Vault Desk hardware and document corpora.
 
+A newer live-web revalidation pass ran on 2026-07-11; see [gemma-2026.md](gemma-2026.md), [document-tools-2026.md](document-tools-2026.md), [local-ai-runtimes.md](local-ai-runtimes.md), and [competitive-landscape.md](competitive-landscape.md) for the current verified baseline. This file is kept as a dated snapshot.
+
 ## Sources Reviewed
 
 Gemma and local inference:

@@ -60,29 +60,30 @@ The canonical object is the source for summaries, embeddings, citations, exports
 
 ## Tooling Strategy
 
-Use a layered parser strategy rather than one universal converter.
+Use a layered parser strategy rather than one universal converter. Roles below were revalidated against live sources on 2026-07-11; see [research/document-tools-2026.md](research/document-tools-2026.md) for licenses and benchmarks.
 
 | Tool | Recommended role | Notes |
 |---|---|---|
-| Microsoft MarkItDown | Fast conversion of common Office, PDF, HTML, image, audio, and archive inputs into Markdown-oriented text | Good first-pass and LLM-friendly conversion layer |
-| Docling | Layout-aware PDF and document conversion, especially tables, reading order, and complex page structure | Preferred for high-value or complex PDFs |
-| Unstructured | Partition fallback and strategy-based extraction for mixed document sets | Useful as a fallback and evaluation comparison path |
-| Native spreadsheet parsers | Excel formulas, sheets, cell coordinates, CSV dialects, typed rows | Required because Markdown conversion alone loses spreadsheet semantics |
-| OCR engine | Scanned pages, image-only PDFs, low-confidence text extraction | Use only when native extraction is missing or low-confidence |
-| Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation path, not primary parsing |
+| Native Node parsers (pdf.js text layer, mammoth, ExcelJS/SheetJS, officeParser, mailparser) | Born-digital PDFs, DOCX, XLSX, CSV, and email, in-process in the Node harness | Permissively licensed; covers most files without the heavy pipeline |
+| Granite-Docling-258M (GGUF under llama.cpp) | Layout-aware page-image-to-DocTags conversion for high-value PDFs, tables, and reading order | Apache 2.0; runs through the same llama.cpp runtime family as Gemma, avoiding a Python dependency |
+| Docling (Python sidecar) | Full-pipeline layout-aware conversion when the GGUF path is insufficient | MIT; preferred for the hardest legal and accounting layouts |
+| PaddleOCR-VL (GGUF under llama.cpp) | Primary OCR for scanned pages and image-only PDFs | Apache 2.0; ~3 GB; specialized document VLM, ahead of classical OCR pipelines on business scans |
+| Microsoft MarkItDown (Python sidecar) | Broad first-pass conversion of remaining formats | Good first-pass layer; never the sole parser for tables or citations |
+| Unstructured (Python sidecar) | Partition fallback and parser-disagreement comparison | Strategy levels drive low-confidence warnings |
+| Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation and cross-check path, not primary parsing or transcription |
 
-The first implementation should treat MarkItDown as a broad ingestion adapter, not the entire document engine.
+Delivery rule: prefer parsers that run inside the Node process or under the already-shipped llama.cpp runtime. Python-based parsers run inside one sandboxed document-worker sidecar process, not as scattered dependencies.
 
 ## Minimal First Implementation
 
 The first implementation should include the smallest parser surface that can prove the accounting-style document workflow:
 
 - File inventory, hashing, and manifest creation.
-- Native text and metadata extraction for common text-like files.
-- MarkItDown adapter for broad first-pass conversion.
-- Docling adapter for high-value PDFs and layout-sensitive files.
+- Native Node extraction for born-digital text-like files, DOCX, spreadsheets, CSV, and email.
+- Granite-Docling GGUF adapter for high-value PDFs and layout-sensitive files, with the Docling Python sidecar as escalation.
 - Native spreadsheet and CSV adapter for formulas, sheets, cells, typed values, and row windows.
-- OCR adapter only when native or layout extraction is missing or low-confidence.
+- PaddleOCR-VL adapter only when native or layout extraction is missing or low-confidence.
+- MarkItDown adapter for broad first-pass conversion of remaining formats.
 - Gemma 4 multimodal inspection only for unresolved page regions.
 
 Do not add a custom parser, custom OCR engine, or custom document database in the first implementation.
@@ -100,7 +101,7 @@ PDF processing should classify pages:
 - Form page.
 - Low-confidence extraction page.
 
-Use native extraction first, layout-aware parsing second, OCR fallback third, and Gemma 4 multimodal inspection only for unresolved page regions.
+Use native extraction first, layout-aware parsing second, OCR fallback third, and Gemma 4 multimodal inspection only for unresolved page regions. For scanned pages, the OCR path is a specialized document VLM (PaddleOCR-VL class), which as of 2026 outperforms classical OCR pipelines on business documents while fitting the Local 12 memory budget.
 
 ### DOCX And Office Documents
 
@@ -214,3 +215,4 @@ Every folder job should record enough timing and memory data to support profile 
 |---|---|
 | 2026-06-29 | Initial huge-document and folder-scale document engine architecture created. |
 | 2026-06-30 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |
+| 2026-07-11 | Revalidated tooling strategy: native Node parsers for born-digital files, Granite-Docling GGUF as the least-code layout path, PaddleOCR-VL as primary OCR, and a single sandboxed Python sidecar rule for remaining Python parsers. |

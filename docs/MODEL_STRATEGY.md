@@ -28,7 +28,11 @@ The design goal is one product family with predictable behavior, not a marketpla
 
 Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Vault Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
 
-Gemma 4's medium models support up to 256K context according to the current docs. Vault Desk should treat that as a maximum capability to validate, not as the default active context for every folder workflow.
+Gemma 4's medium models support up to 256K context according to the current docs. Vault Desk should treat that as a maximum capability to validate, not as the default active context for every folder workflow. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the Local 12 and Local 16 thesis but is still research-derived until measured under full product load.
+
+Licensing (verified 2026-07-11): Gemma 4 is Apache 2.0. EmbeddingGemma remains under the Gemma Terms of Use. The open-source boundary must track that difference.
+
+Packaging rule (verified 2026-07-11): ship or pin the official pre-converted QAT Q4_0 GGUF checkpoints. Self-converting QAT checkpoints to GGUF destroys the QAT quality benefit.
 
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md) and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
@@ -101,25 +105,31 @@ Correctness workflows should remain anchored on Gemma 4 QAT profiles until Diffu
 
 ## Multi-Token Prediction Role
 
-Gemma 4 Multi-Token Prediction may improve latency by predicting multiple tokens per decoding step when a compatible runtime and prediction model are available.
+Gemma 4 Multi-Token Prediction is a first-party feature: each Gemma 4 size ships a paired lightweight drafter model, and draft-and-verify decoding produces output identical to standard decoding. Runtime support was verified on 2026-07-11: llama.cpp merged Gemma 4 MTP on 2026-06-07 (roughly 1.4x to 2.2x decode speedup for dense models), vLLM supports all variants, and Ollama supports it on the MLX backend.
 
 For Vault Desk, MTP should be treated as:
 
 - An optional decode-speed optimization.
-- Not required for correctness.
+- Not required for correctness (draft-and-verify output is provably identical, so the risk is memory and stability, not answer quality).
+- A roughly 2 GB additional memory cost for the drafter, which competes directly with the certified active context target on Local 12.
 - Not allowed to reduce the certified active context target.
 - Not allowed to change citation, extraction, or verification behavior.
+- Validated jointly with KV-cache quantization per pinned runtime build, because q8_0 KV-cache quantization initially broke MTP acceptance in llama.cpp.
 - Disabled by default until it passes the same workflow benchmark suite as baseline decoding.
+
+Open validation item: node-llama-cpp supports generic draft-model speculative decoding, but explicit Gemma 4 MTP drafter support through the Node bindings is unverified.
 
 ## Runtime Policy
 
 Use runtime adapters:
 
-- llama.cpp-compatible serving for the first Local 12 and Local 16 desktop path where GGUF support is stable.
-- Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
+- llama.cpp-compatible serving for the first Local 12 and Local 16 desktop path where GGUF support is stable. node-llama-cpp is the strongest verified in-process path for the planned TypeScript/Node harness: it loads Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling, embeddings, and generic speculative decoding, and covers Metal, CUDA, and Vulkan.
+- Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
 - MLX-family serving for supported Apple Silicon profiles.
+- Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.
 - vLLM-class serving for later office appliances and high-throughput profiles after Gemma 4 QAT support is verified.
 - Avoid runtime-specific features in core workflow logic.
+- Pin runtime builds. QAT, KV-cache quantization, and MTP interact per build and must be certified together.
 
 ## Evaluation Gates
 
@@ -141,13 +151,18 @@ Each certified profile needs:
 
 ## Research Links
 
+- [Gemma releases log](https://ai.google.dev/gemma/docs/releases)
 - [Gemma core docs](https://ai.google.dev/gemma/docs/core)
 - [Gemma 4 model card](https://ai.google.dev/gemma/docs/core/model_card_4)
 - [Gemma 4 QAT announcement](https://blog.google/innovation-and-ai/technology/developers-tools/quantization-aware-training-gemma-4/)
 - [Gemma 4 Multi-Token Prediction](https://ai.google.dev/gemma/docs/mtp/overview)
+- [llama.cpp Gemma 4 MTP PR](https://github.com/ggml-org/llama.cpp/pull/23398)
 - [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma)
 - [Gemma function calling docs](https://ai.google.dev/gemma/docs/core/function-calling)
 - [DiffusionGemma announcement](https://blog.google/innovation-and-ai/technology/developers-tools/diffusion-gemma-faster-text-generation/)
+- [node-llama-cpp](https://node-llama-cpp.withcat.ai)
+- [LiteRT-LM overview](https://ai.google.dev/edge/litert-lm/overview)
+- [research/gemma-2026.md](research/gemma-2026.md) for the full verified July 2026 baseline.
 
 ## Revision History
 
@@ -156,3 +171,4 @@ Each certified profile needs:
 | 2026-06-29 | Initial Gemma-family model strategy created from current research. |
 | 2026-06-29 | Added Gemma 4 Q4_0 memory numbers, 256K context caveat, and EmbeddingGemma dimensionality guidance. |
 | 2026-06-30 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
+| 2026-07-11 | Revalidated against live sources: Apache 2.0 licensing, EmbeddingGemma license caveat, official QAT GGUF packaging rule, verified MTP runtime support and memory cost, node-llama-cpp and LiteRT-LM runtime guidance, and joint QAT/KV-quant/MTP certification rule. |

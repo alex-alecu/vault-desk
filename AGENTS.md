@@ -63,7 +63,7 @@ Architecture:
 - [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - single-family Gemma model strategy and VRAM profiles.
 - [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - Local 12 and Local 16 performance, context, compaction, and benchmark specification.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
-- [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, turbovec, retrieval, citations, and verification.
+- [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
@@ -152,3 +152,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-06-30 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
 | 2026-06-30 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
 | 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
+| 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |

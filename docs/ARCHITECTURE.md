@@ -170,6 +170,7 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 ## Open Architecture Questions
 
 - Exact open-source license.
+- Position on MCP (Model Context Protocol): every major incumbent now speaks MCP; Vault Desk must either adopt it behind the policy and approval layer or deliberately exclude it, with the rationale recorded in an ADR. The typed, policy-gated tool boundary must not be weakened either way.
 - Exact community versus business module boundary.
 - Gemma 4 runtime validation matrix for 12B QAT on 12 GB and 16 GB targets.
 - Exact certified active-context targets after real hardware benchmarks.
@@ -187,3 +188,4 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 | 2026-06-29 | Initial architecture document created from supplied concept and research material. |
 | 2026-06-29 | Updated architecture around Gemma-family model profiles, huge-document processing, summary trees, and claim verification. |
 | 2026-06-30 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |
+| 2026-07-11 | Added the MCP position as an open architecture question following competitor research. |

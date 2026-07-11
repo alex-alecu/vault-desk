@@ -2,7 +2,21 @@
 
 Created: 2026-06-29
 
-This document summarizes the supplied runtime research. Runtime support changes quickly and must be revalidated before implementation.
+This document summarizes the runtime research baseline. Runtime support changes quickly and must be revalidated before implementation. The runtime support matrix below was verified against live sources on 2026-07-11.
+
+## Verified Runtime Support Matrix (July 2026)
+
+| Runtime | Gemma 4 | QAT | MTP / speculative decoding | TypeScript/Node story |
+|---|---|---|---|---|
+| llama.cpp | Yes, day one | Yes, official Q4_0 GGUFs | Most mature: Gemma 4 MTP merged 2026-06-07, plus EAGLE-3, DFlash, and n-gram modes | Via node-llama-cpp |
+| node-llama-cpp | Yes (v3.19+) | Yes, loads QAT GGUFs | Generic speculative decoding since v3.8; explicit Gemma 4 MTP drafter support unverified | Best-in-class: in-process, full typings, JSON-schema-enforced output, function calling, embeddings, Metal/CUDA/Vulkan, Electron support |
+| Ollama | Yes, day one | Yes | MTP on the MLX backend (Apple Silicon) | HTTP API, out-of-process |
+| LM Studio | Yes | Yes | Runtime supports MTP but drafter selection is buggy as of July 2026 | SDK and HTTP API |
+| MLX | Yes, day one | Yes | MTP via mlx-lm and Ollama-MLX | Python-first, no first-class TS |
+| Google LiteRT-LM | Yes, including 12B | Yes, including mobile format | MTP supported (official Google test surface) | JS/WASM API plus OpenAI-compatible local server; MediaPipe LLM Inference is maintenance-only |
+| vLLM | Yes (compressed-tensors QAT) | Yes | MTP for all variants | Server-grade, appliance-tier only |
+
+Implication: for the TypeScript/Node harness on 12 to 16 GB consumer GPUs, llama.cpp via node-llama-cpp is the strongest verified first path, with LiteRT-LM's local server as an emerging Google-first alternative to track.
 
 ## Model Stack Direction
 
@@ -86,3 +100,4 @@ Measure:
 | 2026-06-29 | Initial runtime research summary created from supplied deep research report. |
 | 2026-06-29 | Updated around Gemma 4 QAT 16 GB and 64 GB profiles, EmbeddingGemma, and DiffusionGemma validation. |
 | 2026-06-30 | Recentered runtime validation on Local 12 and Local 16 Gemma 4 12B QAT profiles with context compaction and MTP validation. |
+| 2026-07-11 | Added verified July 2026 runtime support matrix covering Gemma 4, QAT, MTP, and TypeScript/Node integration paths. |

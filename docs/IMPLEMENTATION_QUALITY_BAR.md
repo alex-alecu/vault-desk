@@ -26,6 +26,23 @@ Add code only when it is required to express one of these product responsibiliti
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
 
+## Default Component Stack
+
+To minimize code written and code changed later, the implementation should start from this verified default stack (component research revalidated 2026-07-11; see [research/document-tools-2026.md](research/document-tools-2026.md) and [research/local-ai-runtimes.md](research/local-ai-runtimes.md)). Each row is a default behind an adapter contract, not a hard dependency; replacing a row must not ripple past its adapter.
+
+| Responsibility | Default component | Fallback | Why least code |
+|---|---|---|---|
+| Generation runtime | node-llama-cpp (MIT) | Supervised llama-server child process | In-process TypeScript, typed, loads official Gemma 4 QAT GGUFs, grammar-enforced JSON output, function calling, embeddings |
+| Vision and OCR models | llama-server child process serving Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUFs | node-llama-cpp once image input lands | Same runtime family as generation; no separate ML stack |
+| Born-digital parsing | Native Node parsers: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Python sidecar | In-process, permissive licenses, covers most files |
+| Layout-aware parsing | Granite-Docling-258M GGUF | Docling Python sidecar | Docling-class quality through the already-shipped runtime |
+| Remaining formats and fallback parsing | One sandboxed Python sidecar (Docling, MarkItDown, Unstructured) | — | Single process boundary instead of scattered Python dependencies |
+| Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
+| Embeddings | EmbeddingGemma via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation |
+| Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
+| Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
+| Audit trace shape | OpenTelemetry GenAI semantic conventions, version-pinned, persisted to a local append-only log | — | Standard shape instead of an invented one |
+
 Avoid:
 
 - Custom OCR engines.
@@ -131,3 +148,4 @@ No package manifest or source tree should be created until that plan exists.
 | Date | Change |
 |---|---|
 | 2026-06-30 | Added future minimal-code, minimal-test, and Clean Code quality constraints. |
+| 2026-07-11 | Added the verified default component stack table so implementation starts from proven components behind adapter contracts. |

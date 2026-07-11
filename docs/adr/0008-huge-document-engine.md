@@ -27,7 +27,7 @@ The engine will:
 - Assemble evidence packs.
 - Verify claims, citations, and calculations before export.
 
-MarkItDown, Docling, Unstructured, native spreadsheet parsing, OCR, EmbeddingGemma, and optional turbovec acceleration are candidate tools for the first validated architecture.
+Candidate tools for the first validated architecture (revalidated 2026-07-11; see [research/document-tools-2026.md](../research/document-tools-2026.md)): native Node parsers for born-digital files, Granite-Docling GGUF and the Docling sidecar for layout-aware parsing, PaddleOCR-VL for OCR, MarkItDown and Unstructured as broad-conversion and fallback paths inside one Python sidecar, native spreadsheet parsing, EmbeddingGemma, an embedded hybrid index (LanceDB candidate), and optional TurboQuant-based acceleration.
 
 ## Consequences
 
@@ -50,3 +50,4 @@ Negative:
 |---|---|
 | 2026-06-29 | Initial ADR created. |
 | 2026-06-30 | Updated constrained-hardware language for Local 12 and Local 16. |
+| 2026-07-11 | Updated candidate tool list to the revalidated stack: native Node parsers, Granite-Docling GGUF, PaddleOCR-VL, single Python sidecar, embedded hybrid index, and TurboQuant naming. |

@@ -94,14 +94,16 @@ Required validation areas:
 
 Optimization candidates:
 
-- Quantized weights: required for Local 12 and Local 16.
+- Quantized weights: required for Local 12 and Local 16. Ship official pre-converted QAT Q4_0 GGUFs only; self-conversion destroys the QAT quality benefit.
 - KV-cache quantization: preferred if accuracy and citation precision are unchanged.
 - Prompt or prefix caching: preferred for repeated folder questions and stable system/workflow prompts.
 - Chunked prefill: preferred if it improves long evidence-pack latency without changing outputs.
-- Multi-Token Prediction: allowed only if the matching draft model fits the same profile without reducing the certified context target.
+- Multi-Token Prediction: allowed only if the matching drafter model (roughly 2 GB additional memory, verified 2026-07-11) fits the same profile without reducing the certified context target. Draft-and-verify output is identical to baseline decoding, so the certification risk is memory and stability, not answer quality.
 - CPU or RAM offload: allowed only as a compatibility fallback, not as a certified performance path.
 
 Every optimization must be benchmarked against the same workflow suite before being enabled by default.
+
+Interaction warning: KV-cache quantization and MTP have already interacted badly in llama.cpp (q8_0 KV quantization initially broke MTP acceptance; later fixed). Certify QAT weights, KV-cache quantization, and MTP as a pinned combination per runtime build, never independently.
 
 ## Evidence Pack Budget
 
@@ -252,3 +254,4 @@ Do not:
 | Date | Change |
 |---|---|
 | 2026-06-30 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
+| 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |

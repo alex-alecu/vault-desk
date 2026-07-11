@@ -13,7 +13,7 @@ Use hybrid retrieval:
 1. Permission and workspace filters.
 2. Lexical search for exact names, invoice numbers, clause labels, account IDs, dates, and amounts.
 3. Dense retrieval with EmbeddingGemma.
-4. Optional vector compression and approximate search acceleration with turbovec-like indexing.
+4. Optional vector compression and approximate search acceleration with TurboQuant-based indexing.
 5. Metadata-aware reranking.
 6. Gemma-family evidence verification.
 
@@ -40,16 +40,33 @@ Use three logical stores:
 - Lexical index: exact terms, identifiers, dates, numbers, names, and headings.
 - Dense vector index: EmbeddingGemma vectors, optionally compressed for speed and memory.
 
-turbovec is a candidate acceleration layer because it focuses on memory-efficient vector search. It should be evaluated for:
+### Index Choice (Verified 2026-07-11)
 
-- Recall loss after compression.
+Primary candidate: LanceDB (Apache 2.0). It is the only verified option that is embedded in the Node process (Rust core, disk-native, no server), provides native hybrid search (Tantivy full-text plus dense vectors with reciprocal-rank fusion), and supports binary quantization (RaBitQ, 1 to 8 bit). That covers the canonical store acceleration, the lexical index, and the dense index with one dependency and zero extra processes — the least-code fit for the TypeScript/Node control plane.
+
+Fallback: sqlite-vec plus FTS5 (MIT/Apache dual) when a single SQLite file for all state is preferred and corpora stay small; it is pre-1.0 with a brute-force main path and experimental ANN.
+
+### TurboQuant And turbovec
+
+Naming, verified 2026-07-11: TurboQuant is the underlying algorithm — a Google Research online vector quantization method (arXiv 2504.19874, accepted to ICLR 2026). It is data-oblivious (random rotation plus optimal per-coordinate scalar quantization with a 1-bit residual stage), needs no codebook training or index rebuilds, and quantizes to 2 to 4 bits per coordinate with distortion near the information-theoretic lower bound. That makes it a strong fit for streaming folder ingest.
+
+Two implementations matter to Vault Desk:
+
+- turbovec: an MIT-licensed community Rust vector index built on TurboQuant, with Python bindings only. It reports large memory savings (10M documents from 31 GB to 4 GB) and FAISS-beating filtered search. It has no Node.js bindings and is an index library, not a database.
+- Qdrant 1.18: ships TurboQuant natively, but requires a server process, which does not fit the desktop profile.
+
+turbovec should be evaluated as an acceleration layer behind the retrieval adapter contract, hosted inside the sandboxed Python document worker that the parser layer already requires. Evaluation criteria:
+
+- Recall loss after compression versus LanceDB's RaBitQ quantization on the same corpora.
 - Index build time on tens of huge documents.
 - Query latency.
 - Incremental update behavior.
 - Cross-platform packaging.
-- Fit with a TypeScript/Node control plane.
+- Operational cost of the Python-hosted path versus the in-process LanceDB path.
 
-If turbovec is used, Vault Desk should still keep uncompressed or reproducible embeddings for evaluation and audit.
+Adopt turbovec only if it beats the LanceDB baseline by enough to justify the extra process boundary. Desktop-scale corpora (thousands to hundreds of thousands of chunks) may not need TurboQuant-level compression at all.
+
+Whichever index is used, Vault Desk must keep uncompressed or reproducible embeddings for evaluation and audit. Compression accelerates retrieval; it must not become the only record of evidence.
 
 ## Chunking Strategy
 
@@ -181,7 +198,12 @@ Compaction should not replace source evidence with prose memory. After compactin
 ## Research Links
 
 - [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma)
+- [TurboQuant paper](https://arxiv.org/abs/2504.19874)
+- [Google Research TurboQuant blog](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/)
 - [turbovec repository](https://github.com/RyanCodrai/turbovec)
+- [Qdrant TurboQuant article](https://qdrant.tech/articles/turboquant-quantization/)
+- [LanceDB](https://github.com/lancedb/lancedb)
+- [sqlite-vec](https://github.com/asg017/sqlite-vec)
 
 ## Revision History
 
@@ -189,3 +211,4 @@ Compaction should not replace source evidence with prose memory. After compactin
 |---|---|
 | 2026-06-29 | Initial retrieval, embedding, vector acceleration, citation, and verification architecture created. |
 | 2026-06-30 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |
+| 2026-07-11 | Verified TurboQuant as the Google Research algorithm underlying turbovec, documented the Python-only binding constraint, and named LanceDB as the primary embedded index candidate with sqlite-vec fallback and turbovec as a benchmark-gated acceleration option. |
