@@ -22,6 +22,31 @@ When implementation begins, the harness and local orchestration code must be Typ
 
 The implementation should be planned from [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) before any source files are created. Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
+## Clean Code Rule
+
+Implementation code follows these Clean Code-derived principles. They are based on the major themes of Clean Code by Robert C. Martin and are project guidance rather than quoted source text.
+
+1. Use intention-revealing names for modules, functions, types, and events.
+2. Keep functions small enough to explain one decision or transformation.
+3. Keep one level of abstraction per function.
+4. Give each module one reason to change.
+5. Remove duplication before adding options.
+6. Prefer explicit typed boundaries over implicit shared state.
+7. Make command functions and query functions distinct.
+8. Avoid boolean flag arguments that hide multiple behaviors.
+9. Represent errors deliberately and handle them close to the boundary that can recover.
+10. Keep comments rare and useful; prefer clearer names and smaller functions.
+11. Keep formatting conventional and boring.
+12. Keep tests readable as behavior specifications.
+13. Test behavior and invariants, not private implementation details.
+14. Keep adapters thin around third-party tools.
+15. Keep policy decisions separate from model output.
+16. Keep data structures stable at persistence and audit boundaries.
+17. Avoid speculative generality and unused extension points.
+18. Refactor only to reduce current complexity or protect a proven boundary.
+19. Make dependencies point inward toward product contracts.
+20. Leave the codebase easier to reason about after every change.
+
 ## Documentation Map
 
 Primary orientation:
@@ -125,3 +150,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-06-29 | Initial agent instructions created for a documentation-only Vault Desk repository. |
 | 2026-06-29 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
 | 2026-06-30 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
+| 2026-06-30 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
