@@ -16,6 +16,10 @@ Vault Desk is currently in a documentation-only phase. Do not create application
 - Do not introduce employer-owned, confidential, or third-party proprietary content.
 - If research claims are carried forward from source material, mark them as research-derived until independently validated.
 
+## Commit Authorship Rule
+
+Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
+
 ## Future Implementation Rule
 
 When implementation begins, the harness and local orchestration code must be TypeScript running under Node.js.
@@ -157,3 +161,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
 | 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |
 | 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |
+| 2026-07-11 | Added the commit authorship rule: no AI co-author trailers or attribution lines in commits or PRs. |
