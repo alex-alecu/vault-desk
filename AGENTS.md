@@ -20,7 +20,9 @@ Vault Desk is currently in a documentation-only phase. Do not create application
 
 When implementation begins, the harness and local orchestration code must be TypeScript running under Node.js.
 
-The implementation should be planned from [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) before any source files are created. Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
+Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, sandboxed workers), the pnpm monorepo layout, the AI-drivable daemon/CLI test harness, the tiered Gemma 4 E2B/12B test model policy, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
+
+The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
 ## Clean Code Rule
 
@@ -65,6 +67,7 @@ Architecture:
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -153,3 +156,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-06-30 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
 | 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
 | 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |
+| 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |

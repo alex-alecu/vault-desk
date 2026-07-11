@@ -47,6 +47,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture outli
 - [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - Gemma 4 12B QAT model strategy for 12 GB and 16 GB local profiles.
 - [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - performance, active-context, compaction, and benchmark specification.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan with AI-runnable test gates.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge-document, folder, Office, PDF, CSV, and spreadsheet processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - embedding, indexing, citations, verification, and summary architecture.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, sandboxing, approvals, audit, and remote support principles.
@@ -96,3 +97,4 @@ Vault Desk should not begin as:
 | 2026-06-29 | Added current Gemma-family, huge-document, retrieval, and verification architecture pointers. |
 | 2026-06-30 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
 | 2026-07-11 | Added verified competitor comparison table (AnythingLLM, Open WebUI, LM Studio, Jan, GPT4All, Msty, Openwork) after live-web revalidation of the documentation set. |
+| 2026-07-11 | Added the M0-M11 implementation plan pointer (docs/IMPLEMENTATION_PLAN.md). |
