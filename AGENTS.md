@@ -151,3 +151,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-06-29 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
 | 2026-06-30 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
 | 2026-06-30 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
+| 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
