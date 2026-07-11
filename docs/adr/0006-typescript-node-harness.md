@@ -1,6 +1,6 @@
 # ADR 0006: TypeScript Node Harness
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Status: Accepted as future implementation direction
 
@@ -35,4 +35,4 @@ Negative:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial ADR created. |
+| 2026-07-10 | Initial ADR created. |

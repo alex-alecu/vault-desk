@@ -1,6 +1,6 @@
 # Architecture
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should be an offline-first, cross-vendor desktop and appliance platform for professional document work.
 
@@ -185,7 +185,7 @@ Desktop mode can use local encrypted state and local workspaces. Office mode add
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial architecture document created from supplied concept and research material. |
-| 2026-06-29 | Updated architecture around Gemma-family model profiles, huge-document processing, summary trees, and claim verification. |
-| 2026-06-30 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |
+| 2026-07-10 | Initial architecture document created from supplied concept and research material. |
+| 2026-07-10 | Updated architecture around Gemma-family model profiles, huge-document processing, summary trees, and claim verification. |
+| 2026-07-10 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |
 | 2026-07-11 | Added the MCP position as an open architecture question following competitor research. |

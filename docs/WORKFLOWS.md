@@ -1,6 +1,6 @@
 # Workflows
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should sell professional outcomes, not AI configuration.
 
@@ -127,5 +127,5 @@ A core cross-vertical workflow should be:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial workflow document created from supplied product and market material. |
-| 2026-06-29 | Added folder-scale workflow, summary tree, verification, and evaluation requirements. |
+| 2026-07-10 | Initial workflow document created from supplied product and market material. |
+| 2026-07-10 | Added folder-scale workflow, summary tree, verification, and evaluation requirements. |

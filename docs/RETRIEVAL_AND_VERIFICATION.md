@@ -1,6 +1,6 @@
 # Retrieval And Verification
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk must produce answers, summaries, and exports that can be checked against local source documents.
 
@@ -209,6 +209,6 @@ Compaction should not replace source evidence with prose memory. After compactin
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial retrieval, embedding, vector acceleration, citation, and verification architecture created. |
-| 2026-06-30 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |
+| 2026-07-10 | Initial retrieval, embedding, vector acceleration, citation, and verification architecture created. |
+| 2026-07-10 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |
 | 2026-07-11 | Verified TurboQuant as the Google Research algorithm underlying turbovec, documented the Python-only binding constraint, and named LanceDB as the primary embedded index candidate with sqlite-vec fallback and turbovec as a benchmark-gated acceleration option. |

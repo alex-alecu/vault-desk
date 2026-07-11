@@ -1,6 +1,6 @@
 # ADR 0008: Huge Document Engine
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Status: Proposed
 
@@ -48,6 +48,6 @@ Negative:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial ADR created. |
-| 2026-06-30 | Updated constrained-hardware language for Local 12 and Local 16. |
+| 2026-07-10 | Initial ADR created. |
+| 2026-07-10 | Updated constrained-hardware language for Local 12 and Local 16. |
 | 2026-07-11 | Updated candidate tool list to the revalidated stack: native Node parsers, Granite-Docling GGUF, PaddleOCR-VL, single Python sidecar, embedded hybrid index, and TurboQuant naming. |

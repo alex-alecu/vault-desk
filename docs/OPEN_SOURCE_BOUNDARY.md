@@ -1,6 +1,6 @@
 # Open Source Boundary
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should use a useful open-source community application to create trust, distribution, product feedback, and demand for supported deployments.
 
@@ -91,5 +91,5 @@ Before signing employment or investment agreements, review the repository and co
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial open-source boundary document created from supplied concept material. |
+| 2026-07-10 | Initial open-source boundary document created from supplied concept material. |
 | 2026-07-11 | Added verified model and component license facts: Gemma 4 Apache 2.0, EmbeddingGemma Gemma Terms of Use caveat, and permissive licenses for candidate components. |

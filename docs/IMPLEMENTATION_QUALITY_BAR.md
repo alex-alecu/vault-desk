@@ -1,6 +1,6 @@
 # Implementation Quality Bar
 
-Created: 2026-06-30
+Created: 2026-07-10
 
 This document defines the future implementation quality constraints for Vault Desk. It is planning material only and does not authorize code creation during the documentation-only phase.
 
@@ -147,5 +147,5 @@ No package manifest or source tree should be created until that plan exists.
 
 | Date | Change |
 |---|---|
-| 2026-06-30 | Added future minimal-code, minimal-test, and Clean Code quality constraints. |
+| 2026-07-10 | Added future minimal-code, minimal-test, and Clean Code quality constraints. |
 | 2026-07-11 | Added the verified default component stack table so implementation starts from proven components behind adapter contracts. |

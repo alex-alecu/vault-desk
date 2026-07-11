@@ -1,6 +1,6 @@
 # ADR 0009: Local 12 And Local 16 Gemma Context Standard
 
-Date: 2026-06-30
+Date: 2026-07-10
 
 ## Status
 
@@ -81,4 +81,4 @@ This ADR does not decide:
 
 | Date | Change |
 |---|---|
-| 2026-06-30 | Accepted Local 12 and Local 16 as first Gemma 4 12B QAT certification profiles. |
+| 2026-07-10 | Accepted Local 12 and Local 16 as first Gemma 4 12B QAT certification profiles. |

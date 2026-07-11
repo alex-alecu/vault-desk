@@ -1,6 +1,6 @@
 # Research Sources
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This repository was initialized from supplied local materials rather than live web research.
 
@@ -94,7 +94,7 @@ Before code or public claims:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial research source document created from supplied file references. |
-| 2026-06-29 | Added current Gemma, document tooling, and vector-search web sources and validation backlog. |
-| 2026-06-30 | Added edge-AI, long-context, compaction, and Local 12 and Local 16 validation sources and backlog items. |
+| 2026-07-10 | Initial research source document created from supplied file references. |
+| 2026-07-10 | Added current Gemma, document tooling, and vector-search web sources and validation backlog. |
+| 2026-07-10 | Added edge-AI, long-context, compaction, and Local 12 and Local 16 validation sources and backlog items. |
 | 2026-07-11 | Recorded the full live-web revalidation pass, moved verified claims out of the research-derived list, and updated the validation backlog to the revised component stack. |

@@ -1,6 +1,6 @@
 # Model Strategy
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should standardize on the Gemma family as the primary model family for generation, retrieval, tool routing, safety, and multimodal inspection. The first product should vary active context before it varies model family, model size, retrieval policy, verification policy, or workflow eligibility.
 
@@ -168,7 +168,7 @@ Each certified profile needs:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial Gemma-family model strategy created from current research. |
-| 2026-06-29 | Added Gemma 4 Q4_0 memory numbers, 256K context caveat, and EmbeddingGemma dimensionality guidance. |
-| 2026-06-30 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
+| 2026-07-10 | Initial Gemma-family model strategy created from current research. |
+| 2026-07-10 | Added Gemma 4 Q4_0 memory numbers, 256K context caveat, and EmbeddingGemma dimensionality guidance. |
+| 2026-07-10 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
 | 2026-07-11 | Revalidated against live sources: Apache 2.0 licensing, EmbeddingGemma license caveat, official QAT GGUF packaging rule, verified MTP runtime support and memory cost, node-llama-cpp and LiteRT-LM runtime guidance, and joint QAT/KV-quant/MTP certification rule. |

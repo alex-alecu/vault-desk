@@ -1,6 +1,6 @@
 # Business Model
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should create trust and distribution through a useful free community product, then sell certainty through support, hardware, business controls, installation, and professional workflow deployment.
 
@@ -97,4 +97,4 @@ Do not sell "local AI" as the complete value proposition. Sell:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial business model document created from supplied concept material. |
+| 2026-07-10 | Initial business model document created from supplied concept material. |

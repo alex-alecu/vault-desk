@@ -1,6 +1,6 @@
 # ADR 0005: Agent Sandbox
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Status: Accepted as security direction
 
@@ -37,4 +37,4 @@ Negative:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial ADR created. |
+| 2026-07-10 | Initial ADR created. |

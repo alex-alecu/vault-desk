@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
@@ -150,10 +150,10 @@ Models may propose actions. The application validates, authorizes, previews, exe
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial agent instructions created for a documentation-only Vault Desk repository. |
-| 2026-06-29 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
-| 2026-06-30 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
-| 2026-06-30 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
+| 2026-07-10 | Initial agent instructions created for a documentation-only Vault Desk repository. |
+| 2026-07-10 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
+| 2026-07-10 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
+| 2026-07-10 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
 | 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
 | 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |
 | 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |

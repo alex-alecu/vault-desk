@@ -21,6 +21,7 @@ The backend must be fully operable without the frontend. Every milestone ends in
 - **Tiered test models**: fast tests run Gemma 4 E2B QAT GGUF (small, same family); each milestone's acceptance gate re-runs against Gemma 4 12B QAT, the real product model. Real files are used at gates — no mocked parsers or mocked models in acceptance tests.
 - **First vertical slice**: cited folder Q&A — ingest a real mixed folder, ask questions, get page-anchored cited answers, pass verification.
 - **Repo layout**: pnpm monorepo in this repository, `packages/` alongside `docs/`. AGENTS.md is updated in milestone M0 to end the documentation-only phase.
+- **Model distribution policy**: during development, both the small Gemma 4 E2B QAT GGUF and the big Gemma 4 12B QAT GGUF are downloaded from Hugging Face by the hash-pinned model fetcher into a local cache. The final build bundles Gemma 4 12B QAT as its only generation model — E2B is a development and test tool and never ships. The installed product must require **no additional downloads**: every model the product needs at runtime (Gemma 4 12B QAT, EmbeddingGemma, and from M9 the OCR and layout GGUFs) is packaged inside the installer, and the product must start and complete the full workflow offline on first launch. This matches the no-mandatory-cloud and offline-update product principles.
 
 ## Monorepo Layout (to be created in M0)
 
@@ -88,7 +89,8 @@ Each milestone builds only on previous ones, ends in AI-runnable tests, and keep
 Scope:
 
 - pnpm workspace, `tsconfig.base.json`, Biome, vitest workspace; empty `@vault/shared` and `@vault/eval` packages.
-- Model fetcher (`packages/eval`) with `models.lock.json`: Hugging Face URLs plus SHA-256 pins for the official Gemma 4 E2B QAT Q4_0 GGUF, Gemma 4 12B QAT Q4_0 GGUF, and EmbeddingGemma GGUF. Cache directory `~/.cache/vault-desk/models`, overridable via `VAULT_MODELS_DIR`. Hash mismatch discards the download and fails loudly.
+- Model fetcher (`packages/eval`) with `models.lock.json`: Hugging Face URLs plus SHA-256 pins for the official Gemma 4 E2B QAT Q4_0 GGUF (development and fast tests), Gemma 4 12B QAT Q4_0 GGUF (the product model), and EmbeddingGemma GGUF. `pnpm models:fetch --tier e2b` and `--tier 12b` download the respective tier plus shared models into the cache directory `~/.cache/vault-desk/models`, overridable via `VAULT_MODELS_DIR`. Hash mismatch discards the download and fails loudly. This fetcher is a development tool only; the shipped product never downloads models (see M10).
+- The lock file marks each model as `ships: true` (Gemma 4 12B QAT, EmbeddingGemma, later the OCR and layout GGUFs) or `ships: false` (Gemma 4 E2B QAT — development only). This flag drives the M10 bundling step and its tests.
 - Fixture corpus generator writing to `packages/eval/fixtures/generated/` (gitignored) with a checked-in `ground-truth.json`: three digital invoice PDFs (known invoice numbers, totals, dates), one byte-identical duplicate, a contract DOCX with a known clause, a ledger XLSX with formulas and known sums, a transactions CSV, an email EML, and one image-only scanned invoice PDF (exercised from M9).
 - Update AGENTS.md: replace documentation-only phase rules with implementation-phase rules (commands, test tiers, package map); keep Clean Code rules and security defaults. Update the No-Code Constraint section of TYPESCRIPT_NODE_HARNESS.md.
 
@@ -201,23 +203,24 @@ Scope:
 - Supervised llama-server child process (bound to 127.0.0.1, health-checked, killed on dispose, restarted on crash) serving vision GGUFs.
 - PaddleOCR-VL adapter for `needs_ocr` pages, producing OCR regions with confidence and bounding boxes into the CanonicalDocument.
 - Granite-Docling adapter route for table-heavy and layout-complex pages, per the DOCUMENT_ENGINE page classification.
-- Model fetcher extended with hash-pinned OCR and layout GGUFs.
+- Model fetcher extended with hash-pinned OCR and layout GGUFs, marked `ships: true` so the M10 bundle includes them.
 
 Tests: unit — worker supervision (crash, restart, job resumes from the manifest); OCR route chosen only when the text layer is missing or low-confidence. `pnpm test:llm` — the scanned invoice ingests with the ground-truth invoice number in its OCR text; asking a scanned-only question returns the correct value with a citation anchored to the OCR region and a confidence note in verification.
 
 Gate: the first slice passes with the scanned fixture included; killing llama-server mid-ingest leaves a resumable manifest.
 
-### M10 — Electron shell (typed IPC, minimal chat UI)
+### M10 — Electron shell (typed IPC, minimal chat UI) and self-contained packaged build
 
 Scope:
 
 - Electron main process spawns or attaches `vault-cored` and relays JSON-RPC.
 - Renderer: React and TypeScript, context isolation on, node integration off; the preload exposes only a typed, schema-validated IPC surface mirroring the shared protocol.
-- Screens: folder picker with ingest progress, chat with streamed answers and clickable citations (opens the source page or cell preview), approval dialog, audit/task log view, settings (model tier, workspace).
+- Screens: folder picker with ingest progress, chat with streamed answers and clickable citations (opens the source page or cell preview), approval dialog, audit/task log view, settings (workspace; no model selection — the product model is fixed).
+- **Self-contained packaged build**: the installer bundles every runtime asset the product needs — Gemma 4 12B QAT as the only generation model, EmbeddingGemma, the OCR and layout GGUFs from M9, and the native runtime binaries — as Electron extra resources. The bundling step reads `models.lock.json`, includes exactly the `ships: true` models, verifies each bundled file against its pinned SHA-256, and fails the build if any `ships: true` model is missing or any `ships: false` model (E2B) leaks in. The packaged app resolves models only from its bundled resources path; it contains no downloader, and model resolution has no network fallback.
 
-Tests: every renderer-reachable channel validates against the shared schemas; out-of-protocol messages are rejected; window configuration tests assert the isolation flags. A minimal Playwright-for-Electron smoke test (optional-hardware tier): launch, ingest fixtures, ask one question, citation renders. No broad UI snapshots (quality-bar rule).
+Tests: every renderer-reachable channel validates against the shared schemas; out-of-protocol messages are rejected; window configuration tests assert the isolation flags. A minimal Playwright-for-Electron smoke test (optional-hardware tier): launch, ingest fixtures, ask one question, citation renders. No broad UI snapshots (quality-bar rule). Build-output tests: the packaged app contains all `ships: true` GGUFs with matching hashes and does not contain the E2B model; a first-launch smoke run on the packaged build with networking disabled (no network permission or a blocked-network environment) completes ingest and one cited answer.
 
-Gate: the renderer provably has no Node access; every backend capability used by the UI is also reachable via the CLI — no UI-only endpoints.
+Gate: the renderer provably has no Node access; every backend capability used by the UI is also reachable via the CLI — no UI-only endpoints; the packaged build runs the full first slice offline on first launch with zero downloads, with Gemma 4 12B QAT as its only generation model.
 
 ### M11 — 12B acceptance gate and Local 12 / Local 16 bench harness
 
@@ -255,3 +258,4 @@ Never written: custom parsers, custom OCR, custom vector database, plugin system
 | Date | Change |
 |---|---|
 | 2026-07-11 | Initial milestone plan (M0–M11) created: three-layer process architecture, AI-drivable daemon/CLI test harness, tiered Gemma 4 E2B/12B test model policy, ground-truth eval design, and deferred list. |
+| 2026-07-11 | Added the model distribution policy: E2B and 12B QAT downloaded from Hugging Face for development via the hash-pinned fetcher; the final build bundles only 12B QAT (plus EmbeddingGemma and OCR/layout models) with a ships flag in models.lock.json, an offline first-launch test, and no downloader in the packaged product. |

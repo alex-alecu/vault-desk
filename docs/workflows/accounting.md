@@ -1,6 +1,6 @@
 # Accounting Workflow
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Accounting is the recommended first vertical for Vault Desk.
 
@@ -61,4 +61,4 @@ Invoice folder review:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial accounting workflow document created. |
+| 2026-07-10 | Initial accounting workflow document created. |

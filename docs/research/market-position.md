@@ -1,6 +1,6 @@
 # Market Position
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should occupy the space above local model runners and generic RAG tools.
 
@@ -53,4 +53,4 @@ Unlike configurable local-AI tools, Vault Desk sells certainty: known hardware, 
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial market position summary created from supplied concept material. |
+| 2026-07-10 | Initial market position summary created from supplied concept material. |

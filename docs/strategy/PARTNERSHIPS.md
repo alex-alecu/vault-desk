@@ -1,6 +1,6 @@
 # Partnerships
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should treat partnerships as a way to validate hardware, reduce operational burden, and reach customers. Partnerships should not define the product identity.
 
@@ -74,4 +74,4 @@ Resellers become useful once:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial partnership strategy document created from supplied concept material. |
+| 2026-07-10 | Initial partnership strategy document created from supplied concept material. |

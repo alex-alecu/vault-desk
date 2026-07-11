@@ -1,6 +1,6 @@
 # Vault Desk
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk is a private, local-first AI coworker for individuals and small professional offices that need reliable document work without sending sensitive information to cloud services.
 
@@ -93,8 +93,8 @@ Vault Desk should not begin as:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial documentation-only repository created from supplied concept and research material. |
-| 2026-06-29 | Added current Gemma-family, huge-document, retrieval, and verification architecture pointers. |
-| 2026-06-30 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
+| 2026-07-10 | Initial documentation-only repository created from supplied concept and research material. |
+| 2026-07-10 | Added current Gemma-family, huge-document, retrieval, and verification architecture pointers. |
+| 2026-07-10 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
 | 2026-07-11 | Added verified competitor comparison table (AnythingLLM, Open WebUI, LM Studio, Jan, GPT4All, Msty, Openwork) after live-web revalidation of the documentation set. |
 | 2026-07-11 | Added the M0-M11 implementation plan pointer (docs/IMPLEMENTATION_PLAN.md). |

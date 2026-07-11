@@ -1,6 +1,6 @@
 # Glossary
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This glossary defines product language for Vault Desk documentation.
 
@@ -52,4 +52,4 @@ An action that requires preview, policy acceptance, and explicit human approval 
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial glossary created. |
+| 2026-07-10 | Initial glossary created. |

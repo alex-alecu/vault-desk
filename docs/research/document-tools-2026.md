@@ -1,6 +1,6 @@
 # Document Tools Research 2026
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This document captures the current document tooling baseline for Vault Desk. It was revalidated against live web sources on 2026-07-11. These tools should still be benchmarked on actual accounting, legal, spreadsheet, and scanned document corpora before implementation.
 
@@ -146,7 +146,7 @@ Create private benchmark folders containing:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial document tooling research note created. |
-| 2026-06-29 | Added concrete MarkItDown security, Docling, Unstructured, and turbovec research implications. |
-| 2026-06-30 | Added Local 12 and Local 16 parser-routing and minimal benchmark guidance. |
+| 2026-07-10 | Initial document tooling research note created. |
+| 2026-07-10 | Added concrete MarkItDown security, Docling, Unstructured, and turbovec research implications. |
+| 2026-07-10 | Added Local 12 and Local 16 parser-routing and minimal benchmark guidance. |
 | 2026-07-11 | Revalidated against live sources: added license posture table, Granite-Docling GGUF path, PaddleOCR-VL as primary OCR, native Node parsers for born-digital files, VLM-versus-pipeline OCR verdict, and LanceDB/sqlite-vec vector store findings. |

@@ -1,6 +1,6 @@
 # Product
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk is a private AI coworker for document-heavy professional work. It should help individuals and small offices complete useful work while keeping sensitive documents local by default.
 
@@ -156,4 +156,4 @@ Medical administration is a later target. Initial medical scope should avoid aut
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial product document created from supplied concept material. |
+| 2026-07-10 | Initial product document created from supplied concept material. |

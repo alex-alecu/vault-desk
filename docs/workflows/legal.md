@@ -1,6 +1,6 @@
 # Legal Workflow
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Legal is a strong follow-on vertical after the document engine, citation layer, and approval-gated editing model are reliable.
 
@@ -46,4 +46,4 @@ Legal is a strong follow-on vertical after the document engine, citation layer, 
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial legal workflow document created. |
+| 2026-07-10 | Initial legal workflow document created. |

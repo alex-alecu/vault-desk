@@ -1,6 +1,6 @@
 # Security
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk must treat privacy, permissions, auditability, and reversibility as product features, not implementation details.
 
@@ -152,4 +152,4 @@ Remote support must be:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial security document created from supplied architecture and product material. |
+| 2026-07-10 | Initial security document created from supplied architecture and product material. |

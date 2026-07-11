@@ -1,6 +1,6 @@
 # Document Engine
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk must work on folders containing tens of huge documents, including PDFs, Word documents, Excel workbooks, CSVs, images, emails, and mixed client folders.
 
@@ -213,6 +213,6 @@ Every folder job should record enough timing and memory data to support profile 
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial huge-document and folder-scale document engine architecture created. |
-| 2026-06-30 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |
+| 2026-07-10 | Initial huge-document and folder-scale document engine architecture created. |
+| 2026-07-10 | Added Local 12 and Local 16 performance implications, minimal parser surface, and folder-job performance records. |
 | 2026-07-11 | Revalidated tooling strategy: native Node parsers for born-digital files, Granite-Docling GGUF as the least-code layout path, PaddleOCR-VL as primary OCR, and a single sandboxed Python sidecar rule for remaining Python parsers. |

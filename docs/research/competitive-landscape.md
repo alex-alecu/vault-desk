@@ -1,6 +1,6 @@
 # Competitive Landscape
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This document was originally a summary of supplied competitor notes. It was rewritten on 2026-07-11 from live web research with source links. Claims should still be revalidated before external marketing use.
 
@@ -114,5 +114,5 @@ The defensible proposition is certainty, time saving, business control, professi
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial competitive landscape summary created from supplied concept material. |
+| 2026-07-10 | Initial competitive landscape summary created from supplied concept material. |
 | 2026-07-11 | Rewritten from live web research: verified twelve incumbents and six newcomers with sources, added comparison table, replaced assumed claims with verified license, telemetry, OCR, approval, and audit findings, and added the differentiation assessment and bar-setting feature list. |

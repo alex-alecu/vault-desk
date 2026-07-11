@@ -1,6 +1,6 @@
 # ADR 0007: Gemma Family Standard
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Status: Accepted, amended by [ADR 0009](0009-12-16gb-gemma-context-standard.md)
 
@@ -45,5 +45,5 @@ Negative:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial ADR created. |
-| 2026-06-30 | Accepted Gemma-family standard and amended first certified profiles through ADR 0009. |
+| 2026-07-10 | Initial ADR created. |
+| 2026-07-10 | Accepted Gemma-family standard and amended first certified profiles through ADR 0009. |

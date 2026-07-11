@@ -1,6 +1,6 @@
 # ADR 0004: Hardware Abstraction
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Status: Proposed
 
@@ -41,4 +41,4 @@ Negative:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial ADR created. |
+| 2026-07-10 | Initial ADR created. |

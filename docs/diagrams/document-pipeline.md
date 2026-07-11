@@ -1,6 +1,6 @@
 # Document Pipeline Diagram
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 ```mermaid
 flowchart TD
@@ -43,6 +43,6 @@ flowchart TD
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial document pipeline diagram created. |
-| 2026-06-29 | Updated pipeline for folder manifests, MarkItDown, Docling, native spreadsheet parsing, EmbeddingGemma, turbovec, summary trees, and verification. |
+| 2026-07-10 | Initial document pipeline diagram created. |
+| 2026-07-10 | Updated pipeline for folder manifests, MarkItDown, Docling, native spreadsheet parsing, EmbeddingGemma, turbovec, summary trees, and verification. |
 | 2026-07-11 | Updated parser routing to native-Node-first with Granite-Docling GGUF, PaddleOCR-VL OCR, a single Python sidecar, and an embedded hybrid index with optional TurboQuant acceleration. |

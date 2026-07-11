@@ -1,6 +1,6 @@
 # TypeScript Node Harness
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This document prepares for future implementation. It is not implementation scaffolding.
 
@@ -212,8 +212,8 @@ Those belong to a future implementation phase. The step-by-step plan for that ph
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial future TypeScript/Node harness direction created. |
-| 2026-06-29 | Added future harness responsibilities for folder manifests, document adapters, retrieval acceleration, summary trees, and claim verification. |
-| 2026-06-30 | Added context compaction ownership and linked Local 12 and Local 16 profile validation to the future harness plan. |
+| 2026-07-10 | Initial future TypeScript/Node harness direction created. |
+| 2026-07-10 | Added future harness responsibilities for folder manifests, document adapters, retrieval acceleration, summary trees, and claim verification. |
+| 2026-07-10 | Added context compaction ownership and linked Local 12 and Local 16 profile validation to the future harness plan. |
 | 2026-07-11 | Added verified component choices: node-llama-cpp primary runtime adapter with llama-server vision companion, grammar-enforced structured output principle, native-Node-first parser adapters with a single Python sidecar rule, LanceDB as primary embedded index candidate, and the agent-loop principle around Vercel AI SDK 6 with policy kept in Vault Desk code. |
 | 2026-07-11 | Linked the No-Code Constraint to IMPLEMENTATION_PLAN.md, whose milestone M0 formally lifts it. |

@@ -1,6 +1,6 @@
 # Roadmap
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This roadmap reflects the supplied concept material and should be treated as a planning baseline, not a committed release plan.
 
@@ -98,5 +98,5 @@ Goals:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial roadmap created from supplied launch sequence and open decisions. |
-| 2026-06-30 | Added Local 12 and Local 16 performance targets and long-session compaction to validation and MVP goals. |
+| 2026-07-10 | Initial roadmap created from supplied launch sequence and open decisions. |
+| 2026-07-10 | Added Local 12 and Local 16 performance targets and long-session compaction to validation and MVP goals. |

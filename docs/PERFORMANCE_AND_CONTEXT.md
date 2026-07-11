@@ -1,6 +1,6 @@
 # Performance And Context
 
-Created: 2026-06-30
+Created: 2026-07-10
 
 This document is the performance and context-management specification for the first Vault Desk implementation phase. It is planning material only and does not create implementation scaffolding.
 
@@ -253,5 +253,5 @@ Do not:
 
 | Date | Change |
 |---|---|
-| 2026-06-30 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
+| 2026-07-10 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
 | 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |

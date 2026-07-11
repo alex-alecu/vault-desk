@@ -1,6 +1,6 @@
 # Gemma Research 2026
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This document captures the current research baseline for the Gemma-family strategy. It was revalidated against live web sources on 2026-07-11. Claims marked research-derived should still be revalidated before public marketing, packaging, or hardware certification.
 
@@ -130,7 +130,7 @@ Use:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial Gemma 2026 research note created. |
-| 2026-06-29 | Added official Gemma 4 Q4_0 memory estimates, 256K-context caveat, and EmbeddingGemma profile details. |
-| 2026-06-30 | Updated policy for Local 12 and Local 16, context compaction, Multi-Token Prediction, and deferred larger-model research. |
+| 2026-07-10 | Initial Gemma 2026 research note created. |
+| 2026-07-10 | Added official Gemma 4 Q4_0 memory estimates, 256K-context caveat, and EmbeddingGemma profile details. |
+| 2026-07-10 | Updated policy for Local 12 and Local 16, context compaction, Multi-Token Prediction, and deferred larger-model research. |
 | 2026-07-11 | Revalidated against live sources: verified Gemma 4 release timeline, Apache 2.0 license, QAT checkpoint status and GGUF conversion warning, MTP runtime support matrix, EmbeddingGemma license caveat, and community performance baselines. |

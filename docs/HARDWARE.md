@@ -1,6 +1,6 @@
 # Hardware
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should avoid manufacturing hardware initially. The product should own the software, workflows, customer experience, validation process, and support relationship while using OEMs or specialist builders for assembly, warranty, shipping, and replacement.
 
@@ -156,7 +156,7 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial hardware strategy document created from supplied concept material. |
-| 2026-06-29 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
-| 2026-06-29 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
-| 2026-06-30 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |
+| 2026-07-10 | Initial hardware strategy document created from supplied concept material. |
+| 2026-07-10 | Added Gemma 4 12B QAT 16 GB target and 64 GB Gemma-family validation profiles. |
+| 2026-07-10 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
+| 2026-07-10 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |

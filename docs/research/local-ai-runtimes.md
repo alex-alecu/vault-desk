@@ -1,6 +1,6 @@
 # Local AI Runtimes
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 This document summarizes the runtime research baseline. Runtime support changes quickly and must be revalidated before implementation. The runtime support matrix below was verified against live sources on 2026-07-11.
 
@@ -97,7 +97,7 @@ Measure:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial runtime research summary created from supplied deep research report. |
-| 2026-06-29 | Updated around Gemma 4 QAT 16 GB and 64 GB profiles, EmbeddingGemma, and DiffusionGemma validation. |
-| 2026-06-30 | Recentered runtime validation on Local 12 and Local 16 Gemma 4 12B QAT profiles with context compaction and MTP validation. |
+| 2026-07-10 | Initial runtime research summary created from supplied deep research report. |
+| 2026-07-10 | Updated around Gemma 4 QAT 16 GB and 64 GB profiles, EmbeddingGemma, and DiffusionGemma validation. |
+| 2026-07-10 | Recentered runtime validation on Local 12 and Local 16 Gemma 4 12B QAT profiles with context compaction and MTP validation. |
 | 2026-07-11 | Added verified July 2026 runtime support matrix covering Gemma 4, QAT, MTP, and TypeScript/Node integration paths. |

@@ -1,6 +1,6 @@
 # Vertical Workflows Research
 
-Created: 2026-06-29
+Created: 2026-07-10
 
 Vault Desk should start with professional workflows where document volume, sensitivity, repetition, and ROI are clear.
 
@@ -62,4 +62,4 @@ Choose workflows with:
 
 | Date | Change |
 |---|---|
-| 2026-06-29 | Initial vertical workflow research summary created. |
+| 2026-07-10 | Initial vertical workflow research summary created. |
