@@ -24,7 +24,7 @@ Commits must be authored solely by the repository owner. Never add Claude or any
 
 When implementation begins, the harness and local orchestration code must be TypeScript running under Node.js.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, isolated supervised workers), the pnpm monorepo layout, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
+Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the pnpm monorepo layout, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -143,7 +143,9 @@ Strategy:
 - Treat model, document reader, tool loop, and UI as separate subsystems.
 - Prefer parsing, OCR, layout extraction, retrieval, and citations before model-only reasoning.
 - Keep destructive or consequential actions approval-gated.
-- Keep filesystem and network access scoped by policy.
+- Keep filesystem access scoped through typed, policy-controlled adapters.
+- Run hostile document processing and executable tools in a certified no-NIC microVM; do not treat command, URL, domain, address, or protocol matching as network isolation.
+- Route approved external connections through a separate typed, policy-controlled, audited broker.
 - Make audit records and replayable traces first-class product features.
 - Keep the community platform hardware-agnostic.
 - Keep business controls modular so the same platform can support desktop and office appliance modes.
@@ -153,6 +155,8 @@ Strategy:
 Future code must assume the model is untrusted for execution decisions.
 
 Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive direct shell or unrestricted filesystem access.
+
+The certified hostile-work sandbox is a disposable microVM with no virtual network device and only typed host/guest socket IPC. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Revision History
 
@@ -167,3 +171,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 | 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |
 | 2026-07-11 | Added the commit authorship rule: no AI co-author trailers or attribution lines in commits or PRs. |
 | 2026-07-11 | Revised the implementation plan after readiness review and added ADRs for Electron/local transport, workspace recovery, worker isolation, and the first desktop runtime. |
+| 2026-07-12 | Replaced command-level network policy with a certified no-NIC microVM requirement for hostile document and executable-tool work. |

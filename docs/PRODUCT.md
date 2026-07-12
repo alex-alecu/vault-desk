@@ -138,7 +138,8 @@ Vault Desk should provide stronger guarantees than "local by default":
 
 - No mandatory cloud dependency.
 - No silent cloud fallback.
-- Network-isolated inference and agent workers where practical.
+- No-NIC microVM isolation for hostile document processing and executable agent tools on certified platforms.
+- No command, URL, domain, address, or protocol matching presented as a network-isolation guarantee.
 - No customer-document telemetry.
 - Clear network activity controls.
 - Auditable external connections.

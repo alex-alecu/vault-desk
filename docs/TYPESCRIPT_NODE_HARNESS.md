@@ -29,6 +29,8 @@ The TypeScript/Node harness should eventually own:
 - Diagnostics.
 - Schema-versioned workspace migrations.
 - Worker supervision and resource scheduling.
+- MicroVM lifecycle and guest-image verification.
+- Typed external-connection brokering.
 
 The harness should not directly become:
 
@@ -39,6 +41,25 @@ The harness should not directly become:
 - A privileged shell bridge.
 
 Those should be adapters, services, or tools behind typed boundaries.
+
+## Sandbox Boundary
+
+The harness coordinates a platform sandbox launcher behind one contract. Hostile document parsing and future executable tools run in disposable, job-scoped microVMs with no virtual network device. The launcher must not approximate network isolation by matching commands, executables, URLs, domains, addresses, or protocols.
+
+The common microVM contract provides:
+
+- A verified immutable guest image.
+- Job-scoped read-only input storage or bounded byte streams.
+- Bounded ephemeral scratch storage.
+- Versioned typed IPC over virtio-socket, Hyper-V socket, or the platform-equivalent host/guest channel.
+- CPU, memory, time, storage, output-size, concurrency, cancellation, and termination controls.
+- Configuration evidence that no virtual network adapter or general host-network proxy exists.
+
+Research-derived platform targets are Apple Containerization or Virtualization.framework on macOS 26 Apple silicon, HCS/Hyper-V on supported Windows editions, and Firecracker/KVM when Linux desktop certification opens. M0 must validate exact APIs, packaging, edition requirements, licensing, and lifecycle behavior before implementation choices are locked.
+
+Vault Core exposes no generic network service to the guest. Explicit external integrations use a separate typed broker that owns credentials, policy, approval, destination validation, limits, and audit. The broker cannot be invoked as an arbitrary fetch or forwarding service.
+
+Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Local Process Boundary
 
@@ -128,14 +149,14 @@ The Node harness should coordinate document processing without becoming the pars
 
 Planned adapter categories (tool choices verified 2026-07-11; see [research/document-tools-2026.md](research/document-tools-2026.md)):
 
-- Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in supervised document-worker processes and cover most files without a heavy Python pipeline.
+- Native Node adapters for born-digital files: pdf.js text layer, mammoth for DOCX, ExcelJS or SheetJS for spreadsheets, officeParser, and mailparser. These run in microVM document workers and cover most files without a heavy Python pipeline.
 - Granite-Docling GGUF adapter for layout-aware PDFs and complex documents, served by the same llama.cpp runtime family as Gemma.
 - PaddleOCR-VL adapter for scanned pages and low-confidence extraction, also served under llama.cpp.
-- One sandboxed Python document-worker sidecar hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) behind a single process boundary, packaged with PyInstaller onedir or python-build-standalone and spawned as a managed child process.
+- One Python document-worker image hosting the remaining Python parsers (Docling full pipeline, MarkItDown, Unstructured) inside the same no-NIC microVM boundary, packaged without exposing Python dependencies to Vault Core.
 - Native spreadsheet adapter for XLSX, XLS, CSV, formulas, sheets, rows, and cells.
 - Gemma multimodal inspection adapter for ambiguous page regions.
 
-Worker rule: inference and document parsing run outside Vault Core in supervised, capability-scoped processes with typed IPC, resource limits, cancellation, staged inputs, and no default network access. At most one Python worker process may host later Python parser fallbacks. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+Worker rule: document parsing and executable tools run inside the no-NIC microVM boundary with typed host/guest IPC, resource limits, cancellation, and staged inputs. Host-native GPU workers use the narrower OS-enforced accelerator exception and cannot execute tools or access networks. At most one Python worker image may host later Python parser fallbacks. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 The harness should persist a document-set manifest so huge folder jobs can resume after failure.
 
@@ -215,7 +236,8 @@ Future tests should cover:
 - Offline mode.
 - Workspace migration and crash recovery.
 - Cross-platform daemon lifecycle and protocol compatibility.
-- Worker resource limits, network denial, and hostile-document handling.
+- MicroVM lifecycle, zero-network-device configuration, typed socket confinement, resource limits, and hostile-document handling.
+- Native accelerator OS-sandbox and network-capability denial.
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
@@ -243,3 +265,4 @@ Those belong to a future implementation phase. The step-by-step plan for that ph
 | 2026-07-11 | Added verified component choices: node-llama-cpp primary runtime adapter with llama-server vision companion, grammar-enforced structured output principle, native-Node-first parser adapters with a single Python sidecar rule, LanceDB as primary embedded index candidate, and the agent-loop principle around Vercel AI SDK 6 with policy kept in Vault Desk code. |
 | 2026-07-11 | Linked the No-Code Constraint to IMPLEMENTATION_PLAN.md, whose milestone M0 formally lifts it. |
 | 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |
+| 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |

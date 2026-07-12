@@ -40,7 +40,7 @@ The application is responsible for:
 - Validating the proposed action schema.
 - Checking workspace permissions.
 - Checking file path scope.
-- Checking network permissions.
+- Routing an external-connection request through the typed network broker and checking its permission, approval, and destination policy.
 - Showing previews and diffs.
 - Requesting explicit approval when required.
 - Executing through a restricted tool boundary.
@@ -81,11 +81,11 @@ Examples of unsafe default capabilities:
 
 ## Worker Isolation Requirements
 
-Inference, native-document, OCR, and layout workers should run outside Vault Core in supervised processes.
+Hostile document parsing and future model-requested executable tools must run in disposable, job-scoped microVMs. A certified microVM has no virtual network device. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
 
-Workers should receive only job-scoped staged inputs or brokered handles. They should have no direct authority to approve actions, write exports, mutate workspace policy, or traverse the general workspace. Outbound network access is denied by default. Each job has limits for time, memory, CPU, input expansion, temporary storage, output size, and concurrency.
+MicroVM workers receive only job-scoped staged inputs, read-only storage, or brokered handles and communicate over a versioned typed host/guest socket. Their root filesystem is immutable and their bounded writable scratch storage is disposable. They have no direct authority to approve actions, write exports, mutate workspace policy, traverse the general workspace, use credentials, or reach local or external networks. Each job has limits for time, memory, CPU, input expansion, temporary storage, output size, and concurrency.
 
-Worker output must be schema-validated and size-checked before it can enter authoritative workspace state. Cancellation, crashes, malformed IPC, temporary-file cleanup, and restart recovery must be tested. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+GPU-backed inference may remain in a host-native supervised process so Metal, CUDA, HIP, or Vulkan remains available. That process is not a tool-execution environment: it receives no shell, credentials, approval authority, arbitrary workspace access, or network capability. Its network denial must be enforced by the operating system rather than application command matching. Worker output must be schema-validated and size-checked before it can enter authoritative workspace state. Cancellation, crashes, malformed IPC, temporary-file cleanup, and restart recovery must be tested. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Filesystem Controls
 
@@ -107,6 +107,9 @@ Network access should be explicit and inspectable.
 
 Defaults:
 
+- MicroVM workers have no virtual network device.
+- No worker receives a general network proxy or arbitrary fetch capability.
+- Approved external integrations execute through a separate typed Vault Core broker that owns policy, credentials, destination validation, approval, and audit.
 - Local inference should work without internet.
 - Document processing should not require outbound connections.
 - No customer-document telemetry.
@@ -169,3 +172,4 @@ Remote support must be:
 |---|---|
 | 2026-07-10 | Initial security document created from supplied architecture and product material. |
 | 2026-07-11 | Added hostile-document, prompt-injection, supervised-worker, resource-limit, and staged-input security requirements. |
+| 2026-07-12 | Made a no-NIC microVM the certified hostile-work boundary and prohibited command-matching as the network-isolation mechanism. |

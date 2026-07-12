@@ -9,7 +9,8 @@ sequenceDiagram
     participant Model as Model runtime
     participant Policy as Policy engine
     participant Approval as Approval flow
-    participant Sandbox as Tool sandbox
+    participant Sandbox as No-NIC microVM
+    participant Broker as External-connection broker
     participant Audit as Audit log
 
     UI->>CP: Request with selected workspace
@@ -22,7 +23,7 @@ sequenceDiagram
         Approval-->>CP: Approved or rejected
     end
     alt approved action
-        CP->>Sandbox: Execute scoped tool
+        CP->>Sandbox: Execute hostile scoped work over typed IPC
         Sandbox-->>CP: Tool result
         CP->>Audit: Record request, decision, and result
         CP->>Model: Continue with tool result
@@ -31,6 +32,10 @@ sequenceDiagram
         CP->>Audit: Record denial or rejection
         CP-->>UI: Explain blocked action
     end
+    opt approved external integration
+        CP->>Broker: Execute typed policy-approved request
+        Broker-->>CP: Audited bounded result
+    end
 ```
 
 ## Notes
@@ -38,9 +43,11 @@ sequenceDiagram
 - The model never executes tools directly.
 - Policy and approval are separate from model reasoning.
 - Audit records are created for both successful and blocked actions.
+- The microVM has no virtual network device; only the separate broker can perform an approved external request.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial security boundaries diagram created. |
+| 2026-07-12 | Replaced the generic sandbox with a no-NIC microVM and separate external-connection broker. |

@@ -18,13 +18,17 @@ flowchart LR
     ApplianceAPI --> Backup["Backup and restore"]
     ApplianceAPI --> Scheduler["Workflow scheduler"]
 
-    Scheduler --> DocumentWorkers["Document workers"]
+    Scheduler --> DocumentWorkers["No-NIC microVM document workers"]
     Scheduler --> Inference["Central local inference"]
-    Scheduler --> ToolSandbox["Tool sandbox"]
+    Scheduler --> ToolSandbox["No-NIC microVM tool sandbox"]
+    Scheduler --> NetworkBroker["Typed external-connection broker"]
 
-    DocumentWorkers --> Storage["Appliance or NAS storage"]
-    ToolSandbox --> Storage
-    Inference --> Storage
+    Storage["Appliance or NAS storage"] --> Staging["Job-scoped read-only staging"]
+    Staging --> DocumentWorkers
+    DocumentWorkers --> Scheduler
+    ToolSandbox --> Scheduler
+    Scheduler --> ScopedWrites["Scoped approved writes"]
+    ScopedWrites --> Storage
 ```
 
 ## Notes
@@ -32,9 +36,11 @@ flowchart LR
 - Employees keep their existing computers.
 - Central local inference and policy controls are the commercial core.
 - Storage strategy remains an open decision: documents may remain on NAS or be copied into appliance-managed storage.
+- MicroVM workers have no virtual NIC; approved network activity is isolated in the broker.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial office appliance diagram created. |
+| 2026-07-12 | Added no-NIC microVM workers and a separate external-connection broker. |

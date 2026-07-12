@@ -12,7 +12,7 @@ The following architecture decisions are resolved in documentation before implem
 
 - [ADR 0010](adr/0010-electron-and-local-transport.md): Electron is the desktop shell; Vault Core is a separate process; macOS uses a Unix domain socket and Windows uses a named pipe behind one versioned local-transport contract. Neither platform transport is deferred.
 - [ADR 0011](adr/0011-workspace-state-and-recovery.md): authoritative workspace state is schema-versioned, transactional, single-writer, migration-aware, and separate from rebuildable indexes and caches.
-- [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md): inference and document workers are separate supervised processes with capability-scoped inputs, no default network access, resource budgets, cancellation, and crash containment.
+- [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md): hostile document and executable-tool work uses a disposable no-NIC microVM with typed host/guest IPC; native GPU inference retains a narrower OS-sandboxed accelerator exception.
 - [ADR 0013](adr/0013-first-desktop-runtime.md): node-llama-cpp with the pinned official QAT GGUF is the first runtime to certify on both Windows and macOS; MLX and other runtimes remain adapter-backed later candidates.
 
 M0 may validate exact dependency packages behind these boundaries, but it must not reopen the boundaries without a superseding ADR.
@@ -25,9 +25,23 @@ Three layers:
 
 1. **Electron frontend** — React and TypeScript. Chat, files, previews, settings, task log, and approvals. Node integration is off, context isolation is on, and the preload exposes only a typed, schema-validated IPC surface.
 2. **Vault Core backend** — a separate Node.js/TypeScript process. Sessions, jobs, workspace state, policy, audit, indexing, retrieval, verification, tools, approvals, and model scheduling. It is fully operable without Electron.
-3. **Isolated workers** — supervised inference, native-document, OCR, and layout processes. Workers receive job-scoped inputs and cannot directly decide permissions, approvals, exports, or network access.
+3. **Isolated workers** — no-NIC microVM workers for hostile document and executable-tool work, plus narrowly constrained host-native GPU workers where acceleration requires them. Workers receive job-scoped inputs and cannot directly decide permissions, approvals, exports, or network access.
 
 The real local process boundary exists from M1. Unit tests may call the programmatic core API directly, but every milestone that adds a backend capability also exercises it through the daemon protocol.
+
+## Sandbox Architecture
+
+The certified hostile-work sandbox is a disposable microVM with an immutable guest image, job-scoped read-only inputs, bounded ephemeral scratch storage, and versioned typed host/guest socket IPC. The VM configuration contains no virtual network adapter and exposes no general host-network proxy. Network isolation must not depend on matching commands, executables, domains, URLs, addresses, or protocols.
+
+The first platform launchers to validate are research-derived until M0 confirms them:
+
+- macOS 26 on Apple silicon: Apple Containerization or Virtualization.framework without a network device.
+- Windows Pro or Enterprise: HCS/Hyper-V without a virtual network adapter.
+- Linux after desktop support opens: Firecracker/KVM without `virtio-net`.
+
+Process-only fallbacks are compatibility modes and cannot satisfy certification gates. A separate Vault Core broker owns any approved external integration, including credentials, destination policy, approval, limits, and audit; neither the model nor the microVM receives a generic socket or fetch primitive.
+
+The first node-llama-cpp inference worker remains host-native for Metal, CUDA, HIP, and Vulkan acceleration. It is supervised and OS-sandboxed and has no shell, executable tools, credentials, approval authority, arbitrary workspace access, or network capability. OCR and layout workers may use this exception only when required acceleration cannot be preserved inside the microVM and the exception passes the native-worker gates.
 
 ## Confirmed Product Slice
 
@@ -47,8 +61,8 @@ The product slice, compaction, and recovery gates must pass before Local 12 or L
 packages/
   shared/   @vault/shared   Dependency-free schemas and types introduced only when their
                             consuming milestone begins.
-  workers/  @vault/workers  Worker clients, supervised process entry points, runtime and
-                            parser adapters, resource budgets, and typed worker IPC.
+  workers/  @vault/workers  MicroVM launchers and guest protocol, native accelerator
+                            clients, parser/runtime adapters, resource budgets, and typed IPC.
   core/     @vault/core     Vault Core API and daemon: workspace state, policy, audit,
                             jobs, ingestion, index, retrieval, verification, workflows,
                             tools, approvals, and compaction.
@@ -157,6 +171,7 @@ Scope:
 
 - Create the pnpm workspace, root TypeScript/Biome/vitest configuration, lockfile, and only the packages needed by M0 and M1.
 - Add cross-platform CI and native dependency load smoke jobs.
+- Validate the macOS and Windows microVM APIs, no-NIC configuration, host/guest socket, packaging, edition requirements, and guest-image lifecycle; record findings before choosing exact launcher dependencies.
 - Add the model manifest and hash-pinned development fetcher. Redistribution status uses `development`, `candidate_to_ship`, and `ships`.
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
@@ -168,6 +183,7 @@ Gate:
 - Ground truth covers positive, negative, contradiction, locale, corruption, and prompt-injection cases.
 - Hash mismatch and unapproved `ships` transitions fail.
 - macOS and Windows CI run `pnpm verify` successfully.
+- The selected macOS and Windows sandbox backends demonstrate a booted minimal guest with typed socket round-trip and zero virtual network adapters; unsupported editions or hardware fail with an explicit compatibility classification.
 - AGENTS.md reflects the implementation phase.
 
 ### M1 — Workspace state, core security primitives, daemon skeleton, and CLI health
@@ -179,7 +195,8 @@ Scope:
 - Implement `WorkspaceScope` and `ScopedFileSystem`; direct filesystem access is lint-forbidden outside approved storage and worker-broker adapters.
 - Implement the redaction-aware hash-chained audit log.
 - Implement the daemon lifecycle, macOS socket, Windows named pipe, endpoint permissions, version negotiation, request IDs, cancellation, and `vault status`.
-- Deny outbound network access for worker processes by default and test the policy boundary.
+- Implement the common microVM launcher contract, verified immutable guest image, job-scoped read-only input attachment, bounded ephemeral scratch storage, typed host/guest socket, resource limits, cancellation, termination, and cleanup.
+- Implement the macOS and Windows no-NIC backends selected in M0. Do not create a virtual network adapter or expose a general host-network proxy.
 
 Gate:
 
@@ -187,12 +204,15 @@ Gate:
 - Abrupt termination cannot leave partially committed authoritative state.
 - Audit tampering is detected without requiring raw document content in routine records.
 - Daemon start, health, restart, incompatible-version, and current-user endpoint tests pass on macOS and Windows.
+- Sandbox configuration inspection proves zero virtual network adapters, and guest probes for DNS, IPv4, IPv6, LAN, multicast, and host-network reachability fail without command or destination matching.
+- The host/guest socket accepts only the versioned worker protocol and cannot forward arbitrary traffic; process-only compatibility mode cannot report a certified result.
 
 ### M2 — Supervised inference worker and early 12B canary
 
 Scope:
 
 - Add the runtime adapter contract and a separate supervised inference-worker process.
+- Apply the native accelerator boundary: OS-enforced network denial, no shell or executable tools, no credentials or approval authority, and only brokered model/evidence inputs.
 - Implement node-llama-cpp behind worker IPC with model resolution, grammar-enforced structured output, embeddings, cancellation, timeout, memory-budget reporting, and typed failure states.
 - Add a deterministic fake worker for unit tests.
 - Add a resource scheduler that prevents generation, embeddings, and later vision work from exceeding the active profile budget.
@@ -203,6 +223,7 @@ Gate:
 - E2B structured generation and EmbeddingGemma smoke tests pass.
 - Gemma 4 12B loads, produces grammar-valid output, and shuts down cleanly on at least one Local 12-class and one Local 16-class target before later LLM work proceeds.
 - Native runtime loading passes on the initial macOS and Windows paths.
+- Native-worker probes prove network denial and absence of arbitrary workspace, credential, shell, and tool authority.
 
 ### M3 — Native document ingestion and crash-consistent manifests
 
@@ -210,13 +231,14 @@ Scope:
 
 - Add SourceAnchor and CanonicalDocument schemas as consumed by ingestion.
 - Implement inventory, hashing, deduplication, routing, canonical artifact storage, and durable resumable manifests.
-- Run native PDF, DOCX, XLSX, CSV, and EML parsers in supervised document workers.
+- Run native PDF, DOCX, XLSX, CSV, and EML parsers inside the no-NIC microVM boundary.
 - Preserve page, heading, paragraph, table, sheet, cell, formula, typed-value, and attachment anchors.
 - Surface unsupported, corrupt, password-protected, excessive-size, and changed-during-ingest states.
 
 Gate:
 
 - Real parsers pass on both fixture corpora with no mocked parser at acceptance.
+- Parser acceptance records the certified microVM backend and rejects process-only compatibility mode.
 - Killing workers or Vault Core at every manifest transition resumes without duplicate or missing work.
 - Originals remain immutable; identical content deduplicates while retaining all path references.
 - Zip/decompression bombs, oversized outputs, and parser hangs are stopped by resource limits.
@@ -228,6 +250,7 @@ Scope:
 - Add supervised PaddleOCR-VL and Granite-Docling routes for scanned, mixed, table-heavy, and low-confidence pages.
 - Preserve OCR regions, bounding boxes, parser/model versions, confidence, and warnings in CanonicalDocument.
 - Unload or serialize GPU workers according to the profile resource scheduler; document workers must not silently steal the certified generation budget.
+- Keep CPU parsing inside the microVM. Any GPU-backed OCR or layout worker that uses the native accelerator exception must pass the same OS-enforced network and authority-denial probes as inference.
 
 Gate:
 
@@ -290,7 +313,8 @@ Gate:
 Scope:
 
 - Add just-in-time ToolDefinition, PolicyDecision, Approval, Preview, and ToolResult schemas.
-- Implement read-only search/open/table tools and an approval-gated structured exception export.
+- Implement read-only search/open/table tools as typed Vault Core queries through scoped adapters, not shell commands, and add an approval-gated structured exception export.
+- Route any later executable tool through the no-NIC microVM contract; do not add an executable-tool exception inside Vault Core.
 - Export through ScopedFileSystem using preview, destination validation, atomic write, immutable originals, audit, and rollback where applicable.
 - Complete CLI commands for ingest, ask, invoice-review, approvals, export, audit, cancellation, and resume.
 - Evaluate the Vercel AI SDK provider only for bounded iterative read-tool use. Adopt it only if it preserves Vault Desk policy, approval, audit, cancellation, and structured-output contracts and reduces code versus the explicit workflow loop.
@@ -302,6 +326,7 @@ Gate:
 - The daemon/CLI drives the full invoice-review and approved export flow on E2B and 12B.
 - Export correctness is checked by parsing the exported artifact and reconciling it to verified workflow state.
 - No worker or model has direct filesystem-write authority.
+- No executable tool worker has a virtual NIC or a generic network broker; an external integration, when later introduced, must cross the separate typed Vault Core broker.
 
 ### M9 — Summary trees, structured compaction, recovery, and long-session acceptance
 
@@ -332,7 +357,8 @@ Scope:
 Gate:
 
 - Renderer isolation and every IPC channel are schema-tested; no renderer Node access exists.
-- Packaged builds complete first launch, ingestion, invoice review, citations, approval, and export with networking blocked and zero downloads.
+- Packaged builds complete first launch, microVM boot, ingestion, invoice review, citations, approval, and export with zero downloads.
+- Packaged sandbox evidence proves that hostile parsing used the platform no-NIC microVM, not a process-only fallback, and that native accelerator workers had OS-enforced network denial.
 - No development model or unapproved candidate asset leaks into the package.
 - Windows and macOS packages pass install, launch, upgrade, uninstall, workspace-preservation, and crash-recovery smoke tests.
 
@@ -343,6 +369,7 @@ Scope:
 - Run the complete package and workflow suite with Gemma 4 12B QAT on actual Local 12 and Local 16 target machines.
 - Record cold/warm start, prefill latency by certified context, first-token latency, tokens per second, ingest/OCR throughput, time to first cited result, peak RAM/VRAM, retrieval and citation metrics, workflow accuracy, false-support, exception precision/recall, compaction loss, crash recovery, and export correctness.
 - Run repeated-folder soak tests, forced cancellation, worker crashes, daemon restarts, low-disk conditions, and offline first launch.
+- Run microVM escape, malformed guest IPC, guest crash, forced termination, scratch exhaustion, zero-NIC, and native-accelerator capability-denial tests on every certified platform.
 - Execute the local pilot-corpus protocol and blinded human review without committing customer documents.
 
 Thresholds are versioned before the final run. Minimum invariant thresholds remain 100 percent citation-ID validity, 100 percent approval enforcement, and 100 percent detection of constructed unsupported/traversal/policy-bypass cases. Accuracy, precision, recall, latency, and memory thresholds are workflow- and profile-specific and reported with corpus size and confidence intervals.
@@ -384,3 +411,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-11 | Initial milestone plan (M0-M11) created with the three-layer architecture, AI-drivable daemon/CLI, tiered Gemma test models, and ground-truth evaluation. |
 | 2026-07-11 | Added model distribution policy for development downloads and self-contained offline packages. |
 | 2026-07-11 | Reordered the plan after implementation-readiness review: moved accounting, OCR, summary trees, compaction, recovery, and 12B gates before certification; added cross-platform CI and transport, persistent-state and worker-isolation boundaries, held-out/adversarial evaluation, redistribution and supply-chain gates, hardware detection, and pilot-readiness criteria. |
+| 2026-07-12 | Replaced command-level worker network policy with a certified no-NIC microVM, added platform launcher gates and typed socket confinement, and retained a narrow OS-sandboxed native GPU exception. |

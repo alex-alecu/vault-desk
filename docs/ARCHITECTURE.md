@@ -44,6 +44,8 @@ The control plane owns:
 - Model routing.
 - Health checks.
 - Worker supervision and resource scheduling.
+- MicroVM lifecycle and guest-image verification.
+- Typed external-connection brokering.
 - Local configuration.
 
 This is the core future TypeScript/Node harness area.
@@ -91,6 +93,14 @@ The document reader is not the model. The model reasons over selected evidence a
 
 See [DOCUMENT_ENGINE.md](DOCUMENT_ENGINE.md) and [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 
+### Hostile-Work Sandbox
+
+Hostile document parsing and any future model-requested executable tool run inside a disposable microVM. The microVM has no virtual network device and receives only job-scoped read-only inputs, bounded ephemeral scratch storage, and a typed host/guest socket. It has no general proxy into the host network. This boundary is enforced by VM configuration rather than command, executable, destination, or protocol matching.
+
+Vault Core owns a separate typed network broker for explicitly approved external integrations. The broker holds credentials, applies policy, validates destinations, and audits requests and results; it never exposes a general socket or fetch primitive to the model or microVM.
+
+Hardware-accelerated inference remains a separate host-native supervised process for the first desktop runtime. It has no shell, tool execution, credentials, arbitrary workspace access, or network capability. See [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md) and [ADR 0013](adr/0013-first-desktop-runtime.md).
+
 ## Core Services
 
 Planned services and modules:
@@ -116,6 +126,8 @@ Planned services and modules:
 - Update manager.
 - Diagnostics service.
 - Worker supervisor and resource scheduler.
+- MicroVM sandbox launcher.
+- External-connection broker.
 
 These are logical modules. They are not implementation folders yet.
 
@@ -138,19 +150,20 @@ High-level flow:
 1. User selects files, folders, or a workflow.
 2. Control plane creates a job and applies workspace policy.
 3. Document plane inventories files, records hashes, and creates a resumable processing manifest.
-4. Document plane extracts text, structure, tables, cells, regions, and OCR where needed.
-5. Chunk metadata is stored with document, page, section, table, cell, region, parser, and confidence information.
-6. Summary tree builder creates page, section, document, and folder summaries with source anchors.
-7. Retrieval selects evidence using dense vectors, lexical search, filters, and optional compressed-vector acceleration.
-8. Model router selects the appropriate Gemma profile for hardware and task risk.
-9. Context manager compacts session, task, evidence, artifact, preference, and warning state when active context approaches the certified limit.
-10. Prompt builder sends selected evidence, task instructions, current state, and output schema.
-11. Model returns an answer, structured extraction, summary, or proposed tool call.
-12. Verifier checks claims, citations, calculations, table references, and unsupported statements.
-13. Policy engine validates tool requests and may ask for approval.
-14. Tool sandbox executes approved actions.
-15. Audit log records request, evidence, verification results, compaction records, tools, timings, and outputs.
-16. UI streams answer, citations, previews, diffs, verification warnings, and exports.
+4. Vault Core stages authorized inputs and dispatches hostile parsing to a no-NIC microVM over typed host/guest IPC.
+5. Document plane extracts text, structure, tables, cells, regions, and OCR where needed.
+6. Chunk metadata is stored with document, page, section, table, cell, region, parser, and confidence information.
+7. Summary tree builder creates page, section, document, and folder summaries with source anchors.
+8. Retrieval selects evidence using dense vectors, lexical search, filters, and optional compressed-vector acceleration.
+9. Model router selects the appropriate Gemma profile for hardware and task risk.
+10. Context manager compacts session, task, evidence, artifact, preference, and warning state when active context approaches the certified limit.
+11. Prompt builder sends selected evidence, task instructions, current state, and output schema.
+12. Model returns an answer, structured extraction, summary, or proposed tool call.
+13. Verifier checks claims, citations, calculations, table references, and unsupported statements.
+14. Policy engine validates tool requests and may ask for approval.
+15. Tool sandbox executes approved hostile work in a no-NIC microVM; approved external integrations go through the separate broker.
+16. Audit log records request, evidence, verification results, compaction records, tools, timings, and outputs.
+17. UI streams answer, citations, previews, diffs, verification warnings, and exports.
 
 ## Desktop And Appliance Compatibility
 
@@ -170,6 +183,8 @@ For the first desktop MVP, local workspace protection relies on operating-system
 - The document plane extracts and cites; the model synthesizes.
 - The verifier checks; the model does not certify itself.
 - Tools are typed and policy-gated.
+- Hostile parsing and executable tools cross a no-NIC microVM boundary.
+- External connectivity exists only behind a typed Vault Core broker.
 - Business controls are modular.
 - Runtime adapters are replaceable.
 - The live model context is a working set, not durable product memory.
@@ -197,3 +212,4 @@ For the first desktop MVP, local workspace protection relies on operating-system
 | 2026-07-10 | Recentered first architecture target on Local 12 and Local 16 Gemma 4 12B QAT profiles and added context compaction as a core service. |
 | 2026-07-11 | Added the MCP position as an open architecture question following competitor research. |
 | 2026-07-11 | Closed the first desktop shell, local transport, runtime, workspace-state, and worker-isolation decisions through ADRs 0010-0013. |
+| 2026-07-12 | Replaced process-only hostile-work isolation with a no-NIC microVM and separated approved external connectivity into a typed broker. |

@@ -25,6 +25,7 @@ Add code only when it is required to express one of these product responsibiliti
 - Export approval and rollback.
 - Schema-versioned workspace recovery.
 - Worker supervision and resource limits.
+- MicroVM lifecycle, immutable guest images, and no-NIC verification.
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
 
@@ -36,9 +37,10 @@ To minimize code written and code changed later, the implementation should start
 |---|---|---|---|
 | Generation runtime | node-llama-cpp (MIT) in a supervised inference worker | Supervised llama-server child process | Typed Node integration, official Gemma 4 QAT GGUFs, grammar-enforced JSON output, function calling, embeddings, and crash containment |
 | Vision and OCR models | llama-server child process serving Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUFs | node-llama-cpp once image input lands | Same runtime family as generation; no separate ML stack |
-| Born-digital parsing | Native Node parsers in supervised document workers: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Python sidecar | Permissive licenses, covers most files, contains parser crashes without a heavy Python pipeline |
+| Born-digital parsing | Native Node parsers in a no-NIC microVM: pdf.js, mammoth, ExcelJS/SheetJS, officeParser, mailparser | Process-only compatibility mode, not certified | Permissive licenses, covers most files, and places hostile inputs behind a VM boundary |
 | Layout-aware parsing | Granite-Docling-258M GGUF | Docling Python sidecar | Docling-class quality through the already-shipped runtime |
-| Remaining formats and fallback parsing | One sandboxed Python sidecar (Docling, MarkItDown, Unstructured) | — | Single process boundary instead of scattered Python dependencies |
+| Remaining formats and fallback parsing | One Python worker image in the no-NIC microVM (Docling, MarkItDown, Unstructured) | — | One isolated dependency image instead of scattered host processes |
+| Hostile-work isolation | Platform microVM launcher with no virtual NIC and typed host/guest socket | Process-only sandbox, explicitly non-certified | Structural network denial and a separate guest kernel without command matching |
 | Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
 | Embeddings | EmbeddingGemma via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation |
 | Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
@@ -75,7 +77,10 @@ Required first tests:
 - Offline/no-cloud behavior.
 - Cross-platform daemon lifecycle and protocol compatibility.
 - Workspace migration, atomicity, idempotency, and crash recovery.
-- Hostile-document, prompt-injection, worker-limit, and network-denial behavior.
+- Hostile-document, prompt-injection, worker-limit, and microVM escape behavior.
+- Zero virtual network adapters and failed DNS, IPv4, IPv6, LAN, multicast, and host-network probes.
+- Proof that typed host/guest IPC cannot become a general network proxy.
+- Native accelerator OS-sandbox and network-capability denial.
 
 Do not add broad snapshot tests, brittle UI tests, or duplicated mock-heavy tests before the underlying behavior is stable.
 
@@ -134,6 +139,8 @@ When deciding whether to add a test, ask:
 - Can this failure make Local 12 and Local 16 behave differently beyond context size?
 - Can this failure make authoritative workspace state unrecoverable or derived state impossible to rebuild?
 - Can untrusted document content or a worker escape its data-only role?
+- Can a certified microVM acquire a network device or turn typed host/guest IPC into a general proxy?
+- Can a native accelerator gain network, shell, credential, tool, approval, or arbitrary workspace authority?
 
 If the answer is yes, add a focused test. If the answer is no, prefer a simpler implementation and defer the test.
 
@@ -157,3 +164,4 @@ No package manifest or source tree should be created until that plan exists.
 | 2026-07-10 | Added future minimal-code, minimal-test, and Clean Code quality constraints. |
 | 2026-07-11 | Added the verified default component stack table so implementation starts from proven components behind adapter contracts. |
 | 2026-07-11 | Added persistence recovery, cross-platform process, hostile-document, and worker-isolation invariants to the first implementation quality gates. |
+| 2026-07-12 | Required a no-NIC microVM for certified hostile work and made process-only sandboxing a non-equivalent fallback. |

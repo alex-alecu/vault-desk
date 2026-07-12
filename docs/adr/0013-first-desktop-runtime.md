@@ -16,6 +16,8 @@ Vault Desk also needs the same grammar-enforced structured-output and function-c
 
 The first Windows and macOS desktop certification target is node-llama-cpp running the pinned official Gemma 4 12B QAT Q4_0 GGUF inside a supervised inference worker.
 
+This host-native worker uses the accelerator exception defined by [ADR 0012](0012-worker-isolation-and-untrusted-documents.md): GPU access remains available, but an operating-system sandbox denies networking and the worker receives no shell, executable tools, credentials, approval authority, or arbitrary workspace access. It is not the hostile-document or executable-tool sandbox.
+
 The first retrieval path uses EmbeddingGemma through the same runtime family when redistribution and packaging review permits it.
 
 The runtime adapter exposes model loading, structured generation, embeddings, cancellation, resource reporting, health, and disposal without exposing node-llama-cpp types to Vault Core.
@@ -42,6 +44,7 @@ Negative:
 ## Required Validation
 
 - Native load and structured-generation smoke tests on initial Windows and macOS targets in M2.
+- OS-sandbox tests proving network-capability denial and absence of shell, executable-tool, credential, approval, and arbitrary-workspace authority.
 - Local 12 and Local 16 memory, context, cancellation, crash, and soak tests.
 - Packaged offline first-launch tests with the exact pinned runtime and model artifacts.
 - A superseding ADR before any second runtime is called certified.
@@ -51,3 +54,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-11 | Accepted node-llama-cpp and the official QAT GGUF as the first cross-platform desktop runtime target. |
+| 2026-07-12 | Bound the host-native runtime to the narrow OS-sandboxed accelerator exception in ADR 0012. |

@@ -1,4 +1,4 @@
-# ADR 0012: Worker Isolation And Untrusted Documents
+# ADR 0012: MicroVM Isolation And Untrusted Documents
 
 Date: 2026-07-11
 
@@ -8,20 +8,32 @@ Accepted as security direction
 
 ## Context
 
-Vault Desk treats model output as untrusted, but document parsers, OCR models, inference runtimes, and document contents are also attack and failure surfaces. The earlier plan described sandboxed workers while leaving native parsers and node-llama-cpp process placement ambiguous and introducing supervision only with later vision workers.
+Vault Desk treats model output as untrusted, but document parsers, OCR models, inference runtimes, tool implementations, and document contents are also attack and failure surfaces. The earlier plan described supervised workers and network policy without defining a security boundary that remains effective after a worker is compromised.
 
-A package boundary is not a security or crash-containment boundary. Malformed documents, decompression bombs, parser hangs, runaway generation, prompt injection inside source text, or worker crashes must not gain Vault Core permissions or corrupt authoritative workspace state.
+A package or process boundary is not a sufficient hostile-code boundary. Command matching, URL matching, destination allowlists inside a worker, and application-level requests to avoid networking are policy conveniences, not proof of network isolation. Malformed documents, decompression bombs, parser exploits, runaway generation, prompt injection inside source text, or worker compromise must not gain Vault Core permissions, reach a network, or corrupt authoritative workspace state.
 
 ## Decision
 
-Inference, native-document parsing, OCR, and layout processing run in separate supervised worker processes from Vault Core.
+The certified hostile-work boundary is a disposable microVM. Document parsing and any future model-requested executable tool run inside a job-scoped microVM with no virtual network device attached. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
+
+The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Inputs arrive as job-scoped bytes, read-only staged storage, or explicit brokered handles. The guest root is immutable, writable scratch storage is ephemeral and bounded, and the whole microVM is terminated and discarded at job completion or forced cancellation.
+
+The first platform backends to validate are research-derived until M0 proves their packaging and lifecycle behavior:
+
+- macOS 26 on Apple silicon: Apple Containerization or Virtualization.framework, configured without a virtual network device and with virtio-socket IPC.
+- Windows Pro or Enterprise: an HCS/Hyper-V utility VM configured without a virtual network adapter and with Hyper-V socket IPC.
+- Linux, when desktop certification is opened: a Firecracker/KVM microVM configured without `virtio-net` and with `virtio-vsock` IPC.
+
+Process-only sandboxes, Windows AppContainer, and Linux namespace/seccomp/Landlock combinations may be evaluated as compatibility fallbacks. They must be labeled as weaker than the certified microVM boundary and cannot silently satisfy a microVM acceptance gate.
+
+Hardware-accelerated inference is a separate trust class. The pinned node-llama-cpp inference worker may remain a host-native supervised process so Metal, CUDA, HIP, or Vulkan acceleration remains available. It receives no arbitrary workspace paths, shell, tool implementation, credentials, or approval authority, and outbound networking is denied by an operating-system capability boundary rather than command matching. Model output crosses typed IPC into Vault Core, which alone can propose policy-controlled tool use. OCR or layout acceleration may use the same exception only when measured product requirements make microVM execution impractical; each exception must be documented and pass the native-worker isolation gates.
 
 Workers follow a capability-scoped job protocol:
 
 - Vault Core inventories and authorizes inputs before dispatch.
 - Workers receive job-scoped bytes, staged read-only files, or explicit brokered handles rather than arbitrary user paths.
 - Workers cannot approve actions, mutate workspace policy, write exports, or access the general workspace filesystem.
-- Outbound network access is denied by default and verified at the worker boundary.
+- MicroVM workers have no virtual network device; native accelerator workers have networking denied by an operating-system sandbox or capability boundary.
 - Each job has limits for wall time, CPU, memory, temporary storage, input expansion, output size, and concurrency.
 - Cancellation is cooperative first and process termination is the fallback.
 - Worker output is schema-validated and size-checked before Vault Core commits it.
@@ -30,33 +42,40 @@ Workers follow a capability-scoped job protocol:
 
 Source documents and retrieved chunks are always data. Text inside them cannot redefine system policy, grant permissions, request approval, or become a tool call. Prompts and tool-loop adapters preserve an explicit separation between trusted workflow instructions and untrusted evidence.
 
-Process isolation is mandatory. Stronger platform sandbox controls are added and certified where the operating system and packaged runtime permit them. Product documentation must distinguish isolated worker processes from stronger OS sandbox guarantees until those guarantees are measured.
+Authorized external integrations run in a dedicated Vault Core network broker outside the microVM. The broker accepts only typed, policy-approved operations, owns credentials, records destinations and results, and never exposes a general socket, HTTP proxy, DNS proxy, or arbitrary fetch primitive to a model or worker. Updates and model acquisition use a separate user-initiated updater and are not worker capabilities.
 
 ## Consequences
 
 Positive:
 
 - Contains native crashes and parser failures.
-- Narrows filesystem and network authority around untrusted processing.
+- Removes general network reachability from hostile document and executable-tool processing.
 - Makes memory arbitration, cancellation, and recovery testable.
 - Prevents document instructions from becoming execution authority.
 
 Negative:
 
-- Adds typed IPC and supervision code.
+- Adds a microVM launcher, guest image, typed socket IPC, and supervision code.
 - Requires copying or staging some inputs and outputs.
-- Platform sandbox enforcement differs between Windows and macOS and needs separate certification evidence.
+- Platform launchers and packaging differ and need separate certification evidence.
+- Hyper-V availability may require a supported Windows edition; weaker fallbacks cannot be marketed as equivalent.
+- GPU acceleration inside the microVM is not assumed, so native accelerator workers retain a narrower secondary boundary.
 
 ## Required Validation
 
 - Traversal, symlink, MIME confusion, time-of-check/time-of-use replacement, and staged-input mutation tests.
 - Prompt-injection documents that attempt tool calls or policy override.
 - Zip/decompression bombs, oversized files, parser hangs, worker crashes, malformed IPC, cancellation, timeout, and low-disk tests.
-- Network-denial tests for every worker class.
+- Configuration inspection proving that every certified microVM has zero virtual network adapters.
+- Runtime probes proving failure for DNS, IPv4, IPv6, LAN, multicast, and host-network access, without relying on command or destination matching.
+- Proof that host/guest socket ports are fixed and typed and cannot act as a generic network proxy.
+- Native accelerator tests proving OS-enforced network denial and absence of arbitrary filesystem, credential, shell, and tool authority.
 - Proof that workers cannot write exports or authoritative workspace state directly.
+- Packaging tests proving that process-only compatibility mode cannot be reported as microVM-certified.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
 | 2026-07-11 | Accepted supervised, capability-scoped worker isolation and untrusted-document handling requirements. |
+| 2026-07-12 | Replaced process-only network policy with a certified no-NIC microVM boundary, typed host/guest socket IPC, explicit platform targets, and a narrower native accelerator exception. |

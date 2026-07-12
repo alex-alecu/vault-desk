@@ -18,6 +18,8 @@ Models may propose tool calls. The control plane validates schema, checks policy
 
 The model must never receive direct shell access or unrestricted filesystem access.
 
+Any future executable tool that processes untrusted input runs in the no-NIC microVM boundary defined by [ADR 0012](0012-worker-isolation-and-untrusted-documents.md). Network isolation is established by attaching no virtual network device, not by matching commands, URLs, domains, addresses, or protocols. A tool that needs an approved external integration submits a typed request to a separate Vault Core broker; it never receives a general network socket or proxy.
+
 ## Consequences
 
 Positive:
@@ -38,3 +40,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial ADR created. |
+| 2026-07-12 | Bound executable tools to the no-NIC microVM and separated approved external connections into a typed broker. |
