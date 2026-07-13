@@ -18,6 +18,9 @@ Goals:
 - Define Local 12 and Local 16 Gemma 4 12B QAT performance targets.
 - Define long-session context compaction requirements.
 - Preserve dated concept history.
+- Define the offline Knowledge Bundle boundary, trust model, rights records, and domain-composition rules.
+- Select Tauri v2 as the desktop shell and validate its sidecar, capability, packaging, and platform-webview boundaries.
+- Define deterministic document operations and the isolated code-interpreter fallback.
 - List open validation questions.
 
 No application code should be written in this phase.
@@ -30,6 +33,7 @@ Goals:
 - One supported model/runtime stack.
 - Hardware compatibility test.
 - Strong local document reading.
+- Deterministic folder-wide spreadsheet search, including exact cell anchors.
 - Safe folder access.
 - Single-user offline workflow.
 - Evidence-linked answers.
@@ -37,6 +41,9 @@ Goals:
 - Export action with approval.
 - Private pilot users.
 - Cross-platform packaged-build, crash-recovery, and offline first-launch validation.
+- Tauri desktop layout with a full-window session/model header, chats and folders in the sidebar below it, and a bottom composer in the conversation pane.
+- Bounded no-NIC code interpreter for approved long-tail transformations after deterministic tools are proven.
+- One small, signed accounting Knowledge Bundle prototype with local index rebuild, exact-version citations, offline-media import, and rollback validation.
 
 Recommended first workflow:
 
@@ -95,6 +102,7 @@ Goals:
 - EU and country-specific compliance requirements.
 - Reseller margin and warranty structure.
 - Initial launch geography.
+- First Knowledge Bundle jurisdiction, source-rights strategy, publisher trust roots, and update cadence.
 
 ## Revision History
 
@@ -103,3 +111,5 @@ Goals:
 | 2026-07-10 | Initial roadmap created from supplied launch sequence and open decisions. |
 | 2026-07-10 | Added Local 12 and Local 16 performance targets and long-session compaction to validation and MVP goals. |
 | 2026-07-11 | Clarified the accounting product slice and added cross-platform package, recovery, and offline validation to the desktop MVP. |
+| 2026-07-12 | Added the Knowledge Bundle design work and a narrow signed accounting-library prototype to the roadmap. |
+| 2026-07-13 | Selected Tauri v2 and added deterministic document operations plus an isolated code-interpreter fallback to the MVP path. |

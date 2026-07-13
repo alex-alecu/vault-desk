@@ -24,6 +24,10 @@ The value Vault Desk sells: validated hardware, installed software, curated mode
 
 A set of task flows, prompts, tools, validation checks, exports, and evaluations for a professional domain such as accounting or legal work.
 
+## Knowledge Bundle
+
+A passive, immutable, versioned offline library of domain source evidence, metadata, provenance, rights records, normalized representations, and optional rebuildable retrieval accelerators. A Knowledge Bundle provides evidence but cannot add tools, prompts, workflows, approvals, or execution authority.
+
 ## Document Plane
 
 The subsystem that extracts, parses, OCRs, chunks, indexes, retrieves, and cites document evidence.
@@ -35,6 +39,14 @@ The local orchestration subsystem that manages sessions, jobs, tools, policy, ap
 ## Inference Plane
 
 The subsystem that hosts or connects to local and optionally remote model runtimes.
+
+## Deterministic Document Tool
+
+A typed, versioned operation over canonical document data, such as search, filter, sort, join, compare, aggregate, calculate, extract, or export. It is preferred over model-generated code for supported operations.
+
+## Code Interpreter
+
+A fallback worker that generates and executes short-lived code for unsupported transformations inside a disposable no-NIC microVM with read-only inputs, pinned offline libraries, resource limits, audit, verification, and no direct export authority.
 
 ## Business Control Layer
 
@@ -53,3 +65,5 @@ An action that requires preview, policy acceptance, and explicit human approval 
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial glossary created. |
+| 2026-07-12 | Distinguished passive Knowledge Bundles from behavioral Workflow Packs. |
+| 2026-07-13 | Added deterministic document tool and bounded code interpreter terminology. |

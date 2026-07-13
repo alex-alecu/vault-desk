@@ -18,6 +18,13 @@ flowchart TD
     Sidecar --> Canonical
     Multimodal --> Canonical
 
+    Canonical --> Deterministic["Typed search, filter, join, compare, calculate, and export"]
+    Deterministic --> Supported{"Supported transformation?"}
+    Supported -->|Yes| Verify
+    Supported -->|No| Policy["Policy-selected fallback"]
+    Policy --> Code["Fresh no-NIC code-interpreter microVM"]
+    Code --> Verify
+
     Canonical --> Chunk["Structure-aware chunking"]
     Chunk --> Summary["Page, section, table, sheet, document, folder summaries"]
     Chunk --> Dense["EmbeddingGemma vectors"]
@@ -38,6 +45,8 @@ flowchart TD
 - Chunk metadata should preserve document, page, section, table, sheet, cell, row, region, parser, and confidence information.
 - Multimodal inspection should be reserved for difficult pages, not used as the default reader.
 - Final outputs should pass verification before export.
+- Supported document operations must not invoke generated code.
+- Code-interpreter output is untrusted and returns through the same verifier.
 
 ## Revision History
 
@@ -46,3 +55,4 @@ flowchart TD
 | 2026-07-10 | Initial document pipeline diagram created. |
 | 2026-07-10 | Updated pipeline for folder manifests, MarkItDown, Docling, native spreadsheet parsing, EmbeddingGemma, turbovec, summary trees, and verification. |
 | 2026-07-11 | Updated parser routing to native-Node-first with Granite-Docling GGUF, PaddleOCR-VL OCR, a single Python sidecar, and an embedded hybrid index with optional TurboQuant acceleration. |
+| 2026-07-13 | Added deterministic canonical-document operations and the policy-selected no-NIC code-interpreter fallback. |

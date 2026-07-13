@@ -4,7 +4,8 @@ Created: 2026-07-10
 
 ```mermaid
 flowchart TD
-    UI["Desktop shell"] --> API["Local API"]
+    UI["Tauri webview: React and TypeScript"] --> Host["Minimal Tauri Rust host"]
+    Host --> API["Vault Core local API"]
     API --> Session["Session manager"]
     API --> Workspace["Workspace manager"]
     API --> Jobs["Job queue"]
@@ -19,6 +20,8 @@ flowchart TD
     MicroVM --> Extract["Native extraction"]
     MicroVM --> Layout["Layout parser"]
     MicroVM --> OCR["OCR fallback"]
+    MicroVM --> Code["Bounded code interpreter"]
+    Docs --> Deterministic["Deterministic document tools"]
     Docs --> Index["Hybrid index"]
 
     Index --> Retrieval["Retriever and reranker"]
@@ -40,7 +43,9 @@ flowchart TD
 
 - This is a logical architecture, not an implementation folder map.
 - The future orchestration harness should be TypeScript under Node.
+- Rust is limited to the thin Tauri host; product behavior remains in Vault Core.
 - The microVM has no virtual NIC; authorized external access cannot pass through it.
+- Deterministic tools handle supported document operations before the code-interpreter fallback is considered.
 
 ## Revision History
 
@@ -48,3 +53,4 @@ flowchart TD
 |---|---|
 | 2026-07-10 | Initial desktop architecture diagram created. |
 | 2026-07-12 | Added the no-NIC microVM and separate external-connection broker boundaries. |
+| 2026-07-13 | Replaced the generic desktop shell with Tauri and added deterministic document tools plus the bounded code interpreter. |

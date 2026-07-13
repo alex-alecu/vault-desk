@@ -4,7 +4,9 @@ Date: 2026-07-11
 
 ## Status
 
-Accepted
+Partially superseded
+
+The Electron shell decision is superseded by [ADR 0014](0014-tauri-desktop-shell.md). The separate Vault Core process, local transport, and early daemon-validation decisions remain accepted.
 
 ## Context
 
@@ -56,3 +58,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-11 | Accepted Electron and a non-deferred cross-platform local transport boundary. |
+| 2026-07-13 | Superseded the Electron portion with ADR 0014 while retaining the local daemon transport decision. |

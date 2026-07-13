@@ -26,6 +26,9 @@ Add code only when it is required to express one of these product responsibiliti
 - Schema-versioned workspace recovery.
 - Worker supervision and resource limits.
 - MicroVM lifecycle, immutable guest images, and no-NIC verification.
+- Deterministic canonical-document operations.
+- Bounded code-interpreter routing, result verification, and audit.
+- The minimal Tauri sidecar and capability boundary.
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
 
@@ -41,11 +44,14 @@ To minimize code written and code changed later, the implementation should start
 | Layout-aware parsing | Granite-Docling-258M GGUF | Docling Python sidecar | Docling-class quality through the already-shipped runtime |
 | Remaining formats and fallback parsing | One Python worker image in the no-NIC microVM (Docling, MarkItDown, Unstructured) | — | One isolated dependency image instead of scattered host processes |
 | Hostile-work isolation | Platform microVM launcher with no virtual NIC and typed host/guest socket | Process-only sandbox, explicitly non-certified | Structural network denial and a separate guest kernel without command matching |
+| Deterministic document operations | Typed Vault Core queries over canonical documents | Format adapter escalation | Common search, filter, join, compare, calculate, and extraction behavior without model-generated scripts |
+| Long-tail transformation | Minimal Vault Desk-owned code-interpreter guest loop in a fresh no-NIC microVM | OpenCode only if it passes identical offline, security, footprint, and audit gates and reduces code | Keeps uncommon transformations possible without making a coding agent the product backend |
 | Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
 | Embeddings | EmbeddingGemma via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation |
 | Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
 | Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
 | Audit trace shape | OpenTelemetry GenAI semantic conventions, version-pinned, persisted to a local append-only log | — | Standard shape instead of an invented one |
+| Desktop shell | Tauri v2 with React/TypeScript and a minimal Rust host | — | Operating-system webview, capability-scoped native surface, sidecar packaging, and no product logic in the shell |
 
 Avoid:
 
@@ -56,6 +62,8 @@ Avoid:
 - Broad plugin systems before one workflow is proven.
 - Generic agent frameworks that obscure policy and audit boundaries.
 - Generated boilerplate that is not exercised by a workflow.
+- Generated code for common supported document operations.
+- A persistent or networked coding workspace.
 
 ## Minimal Test Rule
 
@@ -81,6 +89,10 @@ Required first tests:
 - Zero virtual network adapters and failed DNS, IPv4, IPv6, LAN, multicast, and host-network probes.
 - Proof that typed host/guest IPC cannot become a general network proxy.
 - Native accelerator OS-sandbox and network-capability denial.
+- Exact folder-wide XLSX search with source cell anchors and no model or code-interpreter invocation.
+- Deterministic-versus-code routing policy.
+- Generated-code no-NIC isolation, typed inference mediation, resource limits, result verification, and replayable audit.
+- Tauri command denial, sidecar identity, local-protocol bootstrap, and platform-webview lifecycle.
 
 Do not add broad snapshot tests, brittle UI tests, or duplicated mock-heavy tests before the underlying behavior is stable.
 
@@ -141,6 +153,9 @@ When deciding whether to add a test, ask:
 - Can untrusted document content or a worker escape its data-only role?
 - Can a certified microVM acquire a network device or turn typed host/guest IPC into a general proxy?
 - Can a native accelerator gain network, shell, credential, tool, approval, or arbitrary workspace authority?
+- Can a supported deterministic operation be routed unnecessarily to generated code?
+- Can generated code reach a network, host path, credential, package manager, approval, export, or generic model endpoint?
+- Can the Tauri webview invoke an arbitrary command, process, path, URL, endpoint, or model file?
 
 If the answer is yes, add a focused test. If the answer is no, prefer a simpler implementation and defer the test.
 
@@ -165,3 +180,4 @@ No package manifest or source tree should be created until that plan exists.
 | 2026-07-11 | Added the verified default component stack table so implementation starts from proven components behind adapter contracts. |
 | 2026-07-11 | Added persistence recovery, cross-platform process, hostile-document, and worker-isolation invariants to the first implementation quality gates. |
 | 2026-07-12 | Required a no-NIC microVM for certified hostile work and made process-only sandboxing a non-equivalent fallback. |
+| 2026-07-13 | Added Tauri, deterministic document operations, and the bounded code-interpreter fallback to the minimal component and test bar. |

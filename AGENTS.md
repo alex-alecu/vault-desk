@@ -22,9 +22,9 @@ Commits must be authored solely by the repository owner. Never add Claude or any
 
 ## Future Implementation Rule
 
-When implementation begins, the harness and local orchestration code must be TypeScript running under Node.js.
+When implementation begins, Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Product workflows and policy must not move into Rust.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Electron frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the pnpm monorepo layout, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
+Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -70,6 +70,8 @@ Architecture:
 - [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - Local 12 and Local 16 performance, context, compaction, and benchmark specification.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
+- [docs/KNOWLEDGE_BUNDLES.md](docs/KNOWLEDGE_BUNDLES.md) - passive, signed, domain-scoped offline reference libraries, provenance, storage, retrieval, and updates.
+- [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - first Tauri desktop layout, folder/session navigation, model presentation, and UI security rules.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
@@ -107,6 +109,8 @@ Architecture decision records:
 - [docs/adr/0011-workspace-state-and-recovery.md](docs/adr/0011-workspace-state-and-recovery.md)
 - [docs/adr/0012-worker-isolation-and-untrusted-documents.md](docs/adr/0012-worker-isolation-and-untrusted-documents.md)
 - [docs/adr/0013-first-desktop-runtime.md](docs/adr/0013-first-desktop-runtime.md)
+- [docs/adr/0014-tauri-desktop-shell.md](docs/adr/0014-tauri-desktop-shell.md)
+- [docs/adr/0015-deterministic-document-tools-and-code-fallback.md](docs/adr/0015-deterministic-document-tools-and-code-fallback.md)
 
 Research:
 
@@ -119,6 +123,7 @@ Research:
 - [docs/research/edge-ai-2026.md](docs/research/edge-ai-2026.md)
 - [docs/research/hardware-platforms.md](docs/research/hardware-platforms.md)
 - [docs/research/vertical-workflows.md](docs/research/vertical-workflows.md)
+- [docs/research/offline-knowledge-bundles-2026.md](docs/research/offline-knowledge-bundles-2026.md)
 
 Strategy:
 
@@ -142,6 +147,7 @@ Strategy:
 
 - Treat model, document reader, tool loop, and UI as separate subsystems.
 - Prefer parsing, OCR, layout extraction, retrieval, and citations before model-only reasoning.
+- Implement common document operations as typed deterministic tools; use generated code only as a policy-selected fallback in a disposable no-NIC microVM.
 - Keep destructive or consequential actions approval-gated.
 - Keep filesystem access scoped through typed, policy-controlled adapters.
 - Run hostile document processing and executable tools in a certified no-NIC microVM; do not treat command, URL, domain, address, or protocol matching as network isolation.
@@ -172,3 +178,5 @@ The certified hostile-work sandbox is a disposable microVM with no virtual netwo
 | 2026-07-11 | Added the commit authorship rule: no AI co-author trailers or attribution lines in commits or PRs. |
 | 2026-07-11 | Revised the implementation plan after readiness review and added ADRs for Electron/local transport, workspace recovery, worker isolation, and the first desktop runtime. |
 | 2026-07-12 | Replaced command-level network policy with a certified no-NIC microVM requirement for hostile document and executable-tool work. |
+| 2026-07-12 | Added the offline Knowledge Bundle architecture and research documents to the required documentation map. |
+| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and adopted deterministic document tools with an isolated code-interpreter fallback. |

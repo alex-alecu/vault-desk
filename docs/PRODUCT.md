@@ -48,6 +48,7 @@ Expected characteristics:
 - Windows and macOS initially.
 - Supported Apple, AMD, and NVIDIA hardware paths.
 - Core document reading and agent functionality.
+- Fast deterministic search and calculations across supported document and spreadsheet formats.
 - No artificial document, message, or usage limits.
 - Community documentation and support.
 - Optional paid professional support.
@@ -66,7 +67,7 @@ It should:
 - Include Vault Desk and validated models.
 - Arrive encrypted, configured, tested, and recoverable.
 - Provide defined performance guarantees.
-- Require no model or runtime selection.
+- Require no runtime configuration. A single-model system shows its validated model as static text; a multi-model system exposes only installed approved choices.
 - Include onboarding and support.
 
 Initial hardware should focus on desktops and mini-PCs. Laptops add warranty, keyboard layout, battery, thermal, and component variation complexity.
@@ -83,6 +84,7 @@ Expected capabilities:
 - Role-based document access.
 - Permission-aware retrieval.
 - Shared organizational knowledge.
+- Installable domain and jurisdiction libraries that continue working offline and expose their source, edition, effective dates, trust status, and citations.
 - Approval rules for agent actions.
 - Audit history.
 - Central backup and recovery.
@@ -111,6 +113,8 @@ Ordinary users should not need to encounter:
 
 The system should automatically decide which strategy a task needs.
 
+The active model name may appear in the desktop header because the user requested that visibility. Single-model builds show it as static text. Multi-model builds expose only installed, product-approved choices; they do not expose providers, runtime endpoints, quantization, or raw model-file configuration.
+
 ### Outcome-First Interaction
 
 Users should ask for outcomes:
@@ -120,6 +124,12 @@ Users should ask for outcomes:
 - Find all unsigned documents.
 - Prepare a cited summary of this folder.
 - Extract all invoice items and create an Excel file.
+
+Supported searches, filtering, calculations, comparisons, and exports should use deterministic document tools. Generated code is reserved for uncommon transformations that cannot be expressed through those tools and runs only in a disposable no-NIC microVM.
+
+### Desktop Interaction
+
+The first desktop application uses Tauri v2 and React. Its stable layout has a full-window header with session name and active model, chats and working folders in a left sidebar below it, a conversation workspace, and a chat composer anchored at the bottom of the conversation pane. See [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
 
 ### Safe Actions
 
@@ -145,6 +155,12 @@ Vault Desk should provide stronger guarantees than "local by default":
 - Auditable external connections.
 - Offline update packages for controlled environments.
 
+### Offline Knowledge
+
+Vault Desk should support passive Knowledge Bundles for domain reference material. A bundle carries immutable sources, provenance, rights, applicability metadata, and optional rebuildable retrieval accelerators. It remains separate from Workflow Packs: installed reference content can inform an answer but cannot add tools, prompts, approvals, or execution authority.
+
+Users should see understandable library concepts such as domain, jurisdiction, edition, effective period, publisher, and update status. They should not need to manage embeddings or vector databases. See [KNOWLEDGE_BUNDLES.md](KNOWLEDGE_BUNDLES.md).
+
 ## Initial Customer Segments
 
 Accounting firms are the strongest first vertical because they have high document volume, sensitive financial data, repeated workflows, measurable ROI, and lower regulatory risk than medical decision support.
@@ -158,3 +174,5 @@ Medical administration is a later target. Initial medical scope should avoid aut
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial product document created from supplied concept material. |
+| 2026-07-12 | Added passive, versioned offline domain libraries as a product capability distinct from Workflow Packs. |
+| 2026-07-13 | Added the Tauri desktop interaction contract, curated model presentation, deterministic document operations, and isolated generated-code fallback. |

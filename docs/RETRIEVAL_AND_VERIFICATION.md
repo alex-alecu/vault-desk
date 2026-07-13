@@ -11,11 +11,14 @@ The retrieval and verification architecture should make correctness observable.
 Use hybrid retrieval:
 
 1. Permission and workspace filters.
-2. Lexical search for exact names, invoice numbers, clause labels, account IDs, dates, and amounts.
-3. Dense retrieval with EmbeddingGemma.
-4. Optional vector compression and approximate search acceleration with TurboQuant-based indexing.
-5. Metadata-aware reranking.
-6. Gemma-family evidence verification.
+2. Evidence-scope filters separating customer documents, installed Knowledge Bundles, and deterministic tool results.
+3. For Knowledge Bundles, applicability filters for bundle digest, domain, jurisdiction, language, validity interval, source status, and authority class.
+4. Lexical search for exact names, invoice numbers, clause labels, account IDs, dates, and amounts.
+5. Dense retrieval with EmbeddingGemma.
+6. Optional vector compression and approximate search acceleration with TurboQuant-based indexing.
+7. Metadata-aware reranking.
+8. Contradiction and supersession search.
+9. Gemma-family evidence verification.
 
 Dense search alone is not enough for professional documents because exact identifiers and numeric values matter.
 
@@ -96,6 +99,9 @@ Each chunk should store:
 - Parser confidence.
 - OCR confidence where applicable.
 - Parent summary node.
+- Evidence scope.
+- Knowledge Bundle ID and installed bundle digest when applicable.
+- Source authority, jurisdiction, validity interval, and supersession status when applicable.
 
 ## Evidence Packs
 
@@ -111,6 +117,7 @@ An evidence pack contains:
 - Conflicting evidence if found.
 - Known extraction warnings.
 - Citation IDs.
+- Exact Knowledge Bundle digests and applicability filters used.
 
 The model must answer using citation IDs. Unsupported statements are verifier failures.
 
@@ -176,6 +183,7 @@ The audit log should capture:
 - Claims.
 - Verification result.
 - Export approval.
+- Installed Knowledge Bundle versions, digests, trust status, and applicability filters used.
 
 This makes answers replayable and supportable.
 
@@ -204,6 +212,7 @@ Compaction should not replace source evidence with prose memory. After compactin
 - [Qdrant TurboQuant article](https://qdrant.tech/articles/turboquant-quantization/)
 - [LanceDB](https://github.com/lancedb/lancedb)
 - [sqlite-vec](https://github.com/asg017/sqlite-vec)
+- [Offline Knowledge Bundles](KNOWLEDGE_BUNDLES.md)
 
 ## Revision History
 
@@ -212,3 +221,4 @@ Compaction should not replace source evidence with prose memory. After compactin
 | 2026-07-10 | Initial retrieval, embedding, vector acceleration, citation, and verification architecture created. |
 | 2026-07-10 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |
 | 2026-07-11 | Verified TurboQuant as the Google Research algorithm underlying turbovec, documented the Python-only binding constraint, and named LanceDB as the primary embedded index candidate with sqlite-vec fallback and turbovec as a benchmark-gated acceleration option. |
+| 2026-07-12 | Added separate Knowledge Bundle evidence scope, applicability and authority filters, supersession checks, and bundle-digest replay requirements. |

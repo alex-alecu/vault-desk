@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 This document prepares for future implementation. It is not implementation scaffolding.
 
-When Vault Desk moves from documentation to code, the harness and local orchestration layer should be TypeScript running on Node.js.
+When Vault Desk moves from documentation to code, Vault Core and the local orchestration layer should be TypeScript running on Node.js. The Tauri v2 desktop host is the narrow exception: it contains only the minimum Rust needed for the native shell and sidecar boundary.
 
 ## Scope Of The Harness
 
@@ -31,6 +31,8 @@ The TypeScript/Node harness should eventually own:
 - Worker supervision and resource scheduling.
 - MicroVM lifecycle and guest-image verification.
 - Typed external-connection brokering.
+- Deterministic document query and transformation routing.
+- Bounded code-interpreter job orchestration and audit.
 
 The harness should not directly become:
 
@@ -39,6 +41,7 @@ The harness should not directly become:
 - A vector database implementation.
 - A UI framework.
 - A privileged shell bridge.
+- A general-purpose coding environment.
 
 Those should be adapters, services, or tools behind typed boundaries.
 
@@ -61,11 +64,15 @@ Vault Core exposes no generic network service to the guest. Explicit external in
 
 Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
+Generated code uses a separate immutable guest role under the same no-NIC microVM contract. Each job receives explicit read-only inputs, pinned offline interpreters and libraries, bounded scratch space, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records the code and execution trace, validates results, and destroys the guest after the job. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
+
 ## Local Process Boundary
 
-Vault Core should run as a separate process from the Electron shell from the first implementation milestone. The versioned local JSON-RPC protocol uses a Unix domain socket on macOS and a named pipe on Windows behind one transport contract. TCP is not part of the desktop boundary.
+Vault Core should run as a separate packaged sidecar process from the Tauri shell from the first implementation milestone. The versioned local JSON-RPC protocol uses a Unix domain socket on macOS and a named pipe on Windows behind one transport contract. TCP is not part of the desktop boundary.
 
-The protocol must include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, reconnect behavior, version negotiation, and structured errors. Unit tests may call the core API directly, but every milestone must also exercise new backend behavior through the daemon. See [adr/0010-electron-and-local-transport.md](adr/0010-electron-and-local-transport.md).
+The React webview calls only narrow typed Tauri commands. The minimal Rust host owns native window/dialog integration, validates its command surface, starts and verifies the exact Vault Core sidecar, and bootstraps the local connection. It owns no product workflow or policy.
+
+The protocol must include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, reconnect behavior, version negotiation, and structured errors. Unit tests may call the core API directly, but every milestone must also exercise new backend behavior through the daemon. See [adr/0010-electron-and-local-transport.md](adr/0010-electron-and-local-transport.md) and [adr/0014-tauri-desktop-shell.md](adr/0014-tauri-desktop-shell.md).
 
 ## Workspace State Principle
 
@@ -84,7 +91,7 @@ See [adr/0011-workspace-state-and-recovery.md](adr/0011-workspace-state-and-reco
 TypeScript under Node is the planned baseline because it gives:
 
 - Strong typing for tool schemas and policy decisions.
-- Good desktop integration options.
+- A product backend that remains independent from the Tauri webview and thin Rust host.
 - Mature local API patterns.
 - Straightforward streaming support.
 - Broad ecosystem support for document, filesystem, worker, and observability integration.
@@ -96,7 +103,7 @@ Do not create packages yet.
 
 When code begins, likely logical package boundaries include:
 
-- Desktop shell.
+- Tauri desktop shell: React/TypeScript frontend plus minimal Rust host.
 - Local API.
 - Orchestrator.
 - Tool registry.
@@ -120,7 +127,7 @@ The Node harness should call local inference runtimes through stable adapter int
 
 Candidate adapter families (support status verified 2026-07-11; see [research/local-ai-runtimes.md](research/local-ai-runtimes.md)):
 
-- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, and speculative decoding, with Metal, CUDA, and Vulkan builds and explicit Electron support.
+- node-llama-cpp (MIT) as the first supervised inference-worker adapter: loads Gemma 4 QAT GGUFs, enforces JSON-schema output via grammar-constrained sampling, and supports function calling, embeddings, reranking, and speculative decoding, with Metal, CUDA, and Vulkan builds. It runs behind Vault Core rather than inside the Tauri webview or Rust host.
 - A supervised llama-server child process as the companion adapter for vision workloads (Gemma 4 multimodal, PaddleOCR-VL, Granite-Docling GGUF), because node-llama-cpp does not yet support image input.
 - MLX-family local serving on macOS.
 - Ollama-compatible serving.
@@ -160,9 +167,17 @@ Worker rule: document parsing and executable tools run inside the no-NIC microVM
 
 The harness should persist a document-set manifest so huge folder jobs can resume after failure.
 
+## Hybrid Execution Principle
+
+Do not use model-generated scripts for common supported document work. Vault Core should expose typed deterministic operations over canonical documents for exact search, filtering, sorting, joins, comparisons, aggregation, arithmetic, extraction, and export. A folder-wide XLSX search must operate over preserved sheet/cell data and return exact anchors without invoking the model or code interpreter.
+
+Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
+
+OpenCode may be benchmarked against a minimal Vault Desk-owned guest loop. It is adopted only if it passes the same offline, no-NIC, typed-inference, cancellation, audit, result-schema, footprint, and packaging gates while reducing maintained code.
+
 ## Agent Loop Principle
 
-The first accounting workflow should be an explicit, inspectable workflow rather than a generic agent loop. Where bounded iterative read-tool use is needed, prefer a maintained framework only if it preserves the approval boundary and reduces code. Verified 2026-07-11: Vercel AI SDK 6 (Apache 2.0) is the primary candidate because its tool loop supports per-tool approval gating, typed tool schemas, and streaming. The fallback is a thin loop over the runtime adapter.
+The first accounting workflow should be an explicit, inspectable workflow rather than a generic agent loop. Deterministic document tools precede iterative model/tool use. Where bounded iterative read-tool use is needed, prefer a maintained framework only if it preserves the approval boundary and reduces code. Verified 2026-07-11: Vercel AI SDK 6 (Apache 2.0) is the primary candidate because its tool loop supports per-tool approval gating, typed tool schemas, and streaming. The fallback is a thin loop over the runtime adapter.
 
 Framework rule: policy checks, approval decisions, audit events, and rollback stay in Vault Desk code behind the tool registry contract. The framework only drives the propose-approve-execute-observe cycle; it must not own policy.
 
@@ -238,6 +253,9 @@ Future tests should cover:
 - Cross-platform daemon lifecycle and protocol compatibility.
 - MicroVM lifecycle, zero-network-device configuration, typed socket confinement, resource limits, and hostile-document handling.
 - Native accelerator OS-sandbox and network-capability denial.
+- Tauri capability denial, sidecar identity, local-protocol bootstrap, platform-webview behavior, and packaged lifecycle.
+- Deterministic-operation routing and exact folder-wide spreadsheet search without model use.
+- Generated-code isolation, typed inference mediation, resource exhaustion, result verification, and audit replay.
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
@@ -266,3 +284,4 @@ Those belong to a future implementation phase. The step-by-step plan for that ph
 | 2026-07-11 | Linked the No-Code Constraint to IMPLEMENTATION_PLAN.md, whose milestone M0 formally lifts it. |
 | 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |
 | 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
+| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |

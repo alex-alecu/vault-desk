@@ -10,6 +10,7 @@ The workflow layer is where the product becomes more than local chat with files.
 
 - Users ask for work outcomes.
 - The system chooses the document strategy.
+- Supported operations use deterministic typed tools before model reasoning or generated code.
 - Evidence is visible.
 - Actions are previewable.
 - File changes are reversible.
@@ -31,6 +32,9 @@ The workflow engine should decide based on:
 - Workspace policy.
 - Hardware capability.
 - Required output.
+- Availability of a verified deterministic operation.
+
+Generated code is selected only when no supported typed operation can express the requested transformation. It runs in a disposable no-NIC microVM and its result remains subject to verification and approval.
 
 ## First Workflow Family
 
@@ -63,6 +67,7 @@ Candidate workflows:
 - Generate exception queues.
 - Export structured data.
 - Search historical files with source citations.
+- Search every sheet and cell across a folder of workbooks for names or transaction text without model-generated code.
 
 See [workflows/accounting.md](workflows/accounting.md).
 
@@ -115,6 +120,8 @@ Every workflow pack should have an evaluation suite:
 - A development corpus and a separate held-out acceptance corpus.
 - False-positive and false-negative rates for exception workflows.
 - Prompt-injection and malformed-document cases.
+- Assertions that supported operations do not invoke the code interpreter.
+- Adversarial and incorrect generated-code cases for workflows that legitimately use the fallback.
 - Confidence intervals and corpus-size reporting for measured rates.
 
 ## Folder Report Workflow
@@ -123,11 +130,12 @@ A core cross-vertical workflow should be:
 
 1. User selects a folder with PDFs, Office files, spreadsheets, CSVs, and images.
 2. Vault Desk creates a file manifest and identifies duplicates, unsupported files, password-protected files, and extraction warnings.
-3. Vault Desk builds document, table, sheet, and folder summaries.
-4. User asks for a report, extraction, comparison, or exception queue.
-5. Vault Desk retrieves evidence packs, generates the result, and verifies claims.
-6. Vault Desk shows citations, warnings, and unsupported claims before export.
-7. User approves export or sends uncertain items to review.
+3. Vault Desk builds canonical document views, deterministic query indexes, and document, table, sheet, and folder summaries.
+4. User asks for a report, search, extraction, comparison, or exception queue.
+5. Vault Desk uses typed deterministic tools for supported operations and retrieval plus model reasoning where synthesis is required.
+6. Only an unsupported transformation may be routed to the bounded code interpreter.
+7. Vault Desk verifies the result and shows citations, warnings, generated-code provenance when applicable, and unsupported claims before export.
+8. User approves export or sends uncertain items to review.
 
 ## Revision History
 
@@ -136,3 +144,4 @@ A core cross-vertical workflow should be:
 | 2026-07-10 | Initial workflow document created from supplied product and market material. |
 | 2026-07-10 | Added folder-scale workflow, summary tree, verification, and evaluation requirements. |
 | 2026-07-11 | Distinguished the cited-Q&A technical slice from the invoice-review product slice and strengthened held-out evaluation requirements. |
+| 2026-07-13 | Added deterministic-operation-first workflow routing and the bounded generated-code fallback. |

@@ -13,10 +13,13 @@ Likely open-source:
 - Desktop application shell.
 - Local single-user workspace.
 - Local document ingestion.
+- Deterministic canonical-document search, filtering, comparison, calculation, and extraction.
+- Bounded no-NIC code-interpreter fallback and its audit surface.
 - Local search and retrieval.
 - Local model/runtime adapter interface.
 - Safe folder access.
 - Basic tool registry.
+- Local Knowledge Bundle reader, verifier, catalog, and rebuildable indexing.
 - Approval UI for local actions.
 - Export workflows.
 - Hardware compatibility check.
@@ -36,6 +39,7 @@ Likely proprietary:
 - Backup orchestration.
 - Appliance and fleet management.
 - Long-term supported release channels.
+- Curated and supported professional Knowledge Bundle channels, delegated publisher roots, and organization-local bundle governance.
 - Business integrations.
 - Administration dashboard.
 - Diagnostics and support tooling.
@@ -68,6 +72,8 @@ Known model-license facts (verified 2026-07-11):
 
 Implementation consequence: every model and native runtime begins as a development or candidate-to-ship asset. A candidate can be marked as shipping only after redistribution terms, required notices, platform package behavior, hashes, and offline operation are reviewed. Packaging must emit third-party notices plus dependency and model inventories.
 
+The same gate applies resource by resource to Knowledge Bundles. Public access does not establish copyright, database-rights, modification, or commercial redistribution permission. Each distributed bundle needs declared and concluded licenses, attribution, provenance, intended-use, review ownership, and a recorded redistribution decision. Locally built private bundles may reference lawfully obtained materials that Vault Desk itself is not permitted to redistribute.
+
 ## Intellectual Property Hygiene
 
 This repository should contain:
@@ -96,3 +102,5 @@ Before signing employment or investment agreements, review the repository and co
 | 2026-07-10 | Initial open-source boundary document created from supplied concept material. |
 | 2026-07-11 | Added verified model and component license facts: Gemma 4 Apache 2.0, EmbeddingGemma Gemma Terms of Use caveat, and permissive licenses for candidate components. |
 | 2026-07-11 | Added the candidate-to-ship review gate and package notice/inventory requirements. |
+| 2026-07-12 | Added community and business Knowledge Bundle boundaries plus resource-level content-rights review. |
+| 2026-07-13 | Added deterministic document operations and the bounded code-interpreter fallback to the community candidate surface. |

@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 Vault Desk must work on folders containing tens of huge documents, including PDFs, Word documents, Excel workbooks, CSVs, images, emails, and mixed client folders.
 
-The document engine should be deterministic, resumable, evidence-preserving, and independent from the model runtime.
+The document engine should be deterministic, resumable, evidence-preserving, and independent from the model runtime. Generated code is a bounded fallback for novel transformations, not the normal way to read supported formats.
 
 ## Core Principle
 
@@ -23,11 +23,13 @@ This is especially important for Local 12 and Local 16. Gemma 4 12B QAT should r
 5. Route files through the best extraction path.
 6. Normalize outputs into canonical document objects.
 7. Record parser, confidence, page, table, sheet, row, cell, and region metadata.
-8. Build summaries and indexes.
-9. Run task-specific retrieval.
-10. Generate structured outputs.
-11. Verify claims, calculations, and citations.
-12. Export only after approval.
+8. Build deterministic query views, summaries, and indexes.
+9. Execute supported searches, filters, joins, comparisons, and calculations through typed tools.
+10. Run task-specific retrieval.
+11. Route only unsupported transformations to the bounded code interpreter.
+12. Generate structured outputs.
+13. Verify claims, calculations, code-produced results, and citations.
+14. Export only after approval.
 
 Every job should be resumable after crash, restart, or low-memory failure.
 
@@ -73,6 +75,14 @@ Use a layered parser strategy rather than one universal converter. Roles below w
 | Gemma 4 multimodal inspection | Ambiguous page regions, charts, forms, handwriting, or extraction conflicts | Escalation and cross-check path, not primary parsing or transcription |
 
 Delivery rule: native Node and Python parsers run inside the same certified no-NIC microVM boundary, using separate minimal worker images only where their dependencies require it. The guest receives capability-scoped read-only inputs, bounded scratch storage, typed host/guest IPC, resource limits, and cancellation. It has no virtual network adapter or general proxy, and network denial is never implemented by matching commands or destinations. GPU-backed OCR and layout runtimes may use the documented native accelerator exception when microVM execution would lose required acceleration. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
+
+## Deterministic Operations And Code Fallback
+
+Canonical documents expose typed product operations for exact search, filter, sort, join, comparison, aggregation, arithmetic, extraction, and export. These operations are the default for supported formats because they are faster, reproducible, source-anchored, and independently testable.
+
+For example, a case-insensitive search for `avans` across a folder of workbooks must scan canonical cell text and displayed values across every sheet and return file, workbook, sheet, cell, value, and source hash. It must not require the model to discover a parser or write a script.
+
+If a requested transformation cannot be expressed through the supported typed operations, policy may start a fresh code-interpreter microVM. The interpreter receives only explicit read-only inputs, pinned offline libraries, bounded scratch space, typed model mediation, and a structured result contract. Generated code and outputs are audited and verified before presentation or export. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
 
 ## Minimal First Implementation
 
@@ -136,6 +146,8 @@ Preserve:
 - CSV dialect.
 
 Model summaries can describe spreadsheet content, but calculations and reconciliation must be done by deterministic tools.
+
+Exact text search must consider sheet names, cell coordinates, typed and displayed values, formulas where requested, Unicode normalization, case sensitivity, hidden-sheet policy, and merged-cell anchors. Results must identify the precise source cell and workbook hash.
 
 ### Huge Documents
 
@@ -218,3 +230,4 @@ Every folder job should record enough timing and memory data to support profile 
 | 2026-07-11 | Revalidated tooling strategy: native Node parsers for born-digital files, Granite-Docling GGUF as the least-code layout path, PaddleOCR-VL as primary OCR, and a single sandboxed Python sidecar rule for remaining Python parsers. |
 | 2026-07-11 | Moved native parsers into supervised document workers and linked hostile-document isolation requirements. |
 | 2026-07-12 | Moved hostile document parsing to the certified no-NIC microVM boundary and documented the narrow GPU accelerator exception. |
+| 2026-07-13 | Made typed deterministic document operations the default and added the audited no-NIC code-interpreter fallback for novel transformations. |

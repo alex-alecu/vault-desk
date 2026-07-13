@@ -14,7 +14,7 @@ Certainty means validated hardware, installed models, predictable performance, s
 
 This repository is documentation-only. It intentionally contains no application code, no package manifest, no generated assets, and no implementation scaffolding.
 
-When implementation begins, the harness and orchestration code should be written in TypeScript running on Node.js. The planned TypeScript/Node direction is documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md).
+When implementation begins, Vault Core and orchestration should be TypeScript running on Node.js. The desktop application uses a thin Tauri v2 host with React/TypeScript; Rust is limited to the native shell and sidecar boundary. The planned direction is documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md).
 
 ## Product Shape
 
@@ -35,7 +35,7 @@ Vault Desk should be built as a modular offline-first system with four planes:
 3. Inference plane
 4. Document plane
 
-The model should not be treated as the document reader. The product should parse and structure documents first, retrieve evidence second, and use local models for reasoning over selected evidence and approved tool calls.
+The model should not be treated as the document reader. The product should parse and structure documents first, execute common searches and calculations through deterministic typed tools, retrieve evidence second, and use local models for reasoning over selected evidence and approved tool calls. Novel transformations may use generated code only inside a disposable no-NIC microVM.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture outline.
 
@@ -50,6 +50,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture outli
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan with AI-runnable test gates.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge-document, folder, Office, PDF, CSV, and spreadsheet processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - embedding, indexing, citations, verification, and summary architecture.
+- [docs/KNOWLEDGE_BUNDLES.md](docs/KNOWLEDGE_BUNDLES.md) - passive, signed, domain-scoped offline reference libraries and update architecture.
+- [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - Tauri desktop layout and interaction contract.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, sandboxing, approvals, audit, and remote support principles.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - hardware strategy and runtime implications.
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - target professional workflows.
@@ -71,7 +73,7 @@ Verified against live sources on 2026-07-11. Full research with source links: [d
 | Answer verification beyond citations | No | No | No | No | No | No | No | Yes: claim checks, recalculation, contradiction search |
 | Approval-gated, previewable, reversible actions | No | No | No | Inline tool approval only | No | Sandboxed execution only | Allow/deny prompts only | Yes: preview, approval, rollback as one loop |
 | Audit trail and replayable traces | Undocumented | Enterprise logging only | No | No | No | No | Basic action logs | Yes, first-class |
-| Hardware-aware defaults, no model configuration | No (user picks everything) | No | Fit checks, user still picks | No | Curated list | No | No | Yes: certified Local 12 / Local 16 profiles, zero model choices |
+| Hardware-aware defaults, no runtime configuration | No (user picks everything) | No | Fit checks, user still picks | No | Curated list | No | No | Yes: certified Local 12 / Local 16 profiles and only installed approved model choices |
 | Telemetry | On by default | Self-hosted | None claimed (closed) | Zero, verifiable | Opt-in | Zero claimed (closed) | Unstated | None for customer documents, ever |
 | Vertical workflows (accounting, legal, medical admin) | No | No | No | No | No | No | No | Yes, workflow packs |
 | Small-office appliance with governance | No | No | No | No | No | No | No | Yes, Vault Desk Office |
@@ -98,3 +100,5 @@ Vault Desk should not begin as:
 | 2026-07-10 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
 | 2026-07-11 | Added verified competitor comparison table (AnythingLLM, Open WebUI, LM Studio, Jan, GPT4All, Msty, Openwork) after live-web revalidation of the documentation set. |
 | 2026-07-11 | Added the M0-M11 implementation plan pointer (docs/IMPLEMENTATION_PLAN.md). |
+| 2026-07-12 | Added the offline Knowledge Bundle architecture and current standards research. |
+| 2026-07-13 | Selected Tauri v2 for the desktop shell and added the deterministic-tools plus isolated-code-fallback architecture. |

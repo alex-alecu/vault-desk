@@ -18,6 +18,8 @@ The certified hostile-work boundary is a disposable microVM. Document parsing an
 
 The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Inputs arrive as job-scoped bytes, read-only staged storage, or explicit brokered handles. The guest root is immutable, writable scratch storage is ephemeral and bounded, and the whole microVM is terminated and discarded at job completion or forced cancellation.
 
+The bounded code interpreter defined by [ADR 0015](0015-deterministic-document-tools-and-code-fallback.md) is an executable-tool guest role under this boundary. Every code job starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. The guest may request only schema-bounded model completions through typed Vault Core mediation to the host-native inference worker. It receives no generic model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
+
 The first platform backends to validate are research-derived until M0 proves their packaging and lifecycle behavior:
 
 - macOS 26 on Apple silicon: Apple Containerization or Virtualization.framework, configured without a virtual network device and with virtio-socket IPC.
@@ -35,6 +37,7 @@ Workers follow a capability-scoped job protocol:
 - Workers cannot approve actions, mutate workspace policy, write exports, or access the general workspace filesystem.
 - MicroVM workers have no virtual network device; native accelerator workers have networking denied by an operating-system sandbox or capability boundary.
 - Each job has limits for wall time, CPU, memory, temporary storage, input expansion, output size, and concurrency.
+- Code jobs additionally limit process count, generated artifact count, stdout/stderr size, and total instruction/tool iterations.
 - Cancellation is cooperative first and process termination is the fallback.
 - Worker output is schema-validated and size-checked before Vault Core commits it.
 - Worker crashes and malformed messages become typed job failures with durable resume points.
@@ -72,6 +75,7 @@ Negative:
 - Native accelerator tests proving OS-enforced network denial and absence of arbitrary filesystem, credential, shell, and tool authority.
 - Proof that workers cannot write exports or authoritative workspace state directly.
 - Packaging tests proving that process-only compatibility mode cannot be reported as microVM-certified.
+- Generated-code tests covering dependency-install attempts, network and host-path access, process storms, infinite loops, resource exhaustion, oversized output, malformed result IPC, generic model-endpoint access, and approval/export attempts.
 
 ## Revision History
 
@@ -79,3 +83,4 @@ Negative:
 |---|---|
 | 2026-07-11 | Accepted supervised, capability-scoped worker isolation and untrusted-document handling requirements. |
 | 2026-07-12 | Replaced process-only network policy with a certified no-NIC microVM boundary, typed host/guest socket IPC, explicit platform targets, and a narrower native accelerator exception. |
+| 2026-07-13 | Applied the same boundary to the generated-code fallback and added typed host-mediated inference plus code-specific limits. |

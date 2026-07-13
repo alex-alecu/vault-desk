@@ -26,8 +26,11 @@ Vault Desk must treat privacy, permissions, auditability, and reversibility as p
 - Remote support must never become unrestricted access.
 - Local malware risk exists and should be reduced through process and filesystem boundaries where practical.
 - Source documents, archives, parser inputs, OCR inputs, and retrieved text may be malformed or malicious.
+- Signed or unsigned Knowledge Bundles may contain malicious archives, documents, metadata, prompt injection, or deceptive authority claims.
 - Document content may contain prompt injection or instructions that attempt to override policy or request tool execution.
 - Native parsers and model runtimes may crash, hang, exhaust resources, or emit malformed output.
+- Generated code and interpreter libraries may be malicious, incorrect, nondeterministic, resource-exhausting, or crafted to escape their boundary.
+- The Tauri webview and its rendered model or document content may be exposed to injection attempts and must remain unprivileged.
 
 ## Agent Security Model
 
@@ -87,6 +90,20 @@ MicroVM workers receive only job-scoped staged inputs, read-only storage, or bro
 
 GPU-backed inference may remain in a host-native supervised process so Metal, CUDA, HIP, or Vulkan remains available. That process is not a tool-execution environment: it receives no shell, credentials, approval authority, arbitrary workspace access, or network capability. Its network denial must be enforced by the operating system rather than application command matching. Worker output must be schema-validated and size-checked before it can enter authoritative workspace state. Cancellation, crashes, malformed IPC, temporary-file cleanup, and restart recovery must be tested. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
+## Generated-Code Controls
+
+Generated code is a fallback capability, not a trusted extension mechanism. Each code job runs in a fresh no-NIC microVM with explicit read-only inputs, bounded scratch storage, pinned offline interpreters and libraries, and limits for processes, CPU, memory, time, storage, output count, and output size.
+
+The guest receives no user home, credentials, arbitrary workspace path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or general model endpoint. Model completions are mediated through a narrow typed host/guest protocol. Code and dependencies cannot be installed during a job.
+
+Vault Core records the generated source, interpreter and library manifest, input hashes, logs, structured result, artifacts, resource use, and termination reason. Results remain untrusted until schema validation, source-anchor checks, deterministic recalculation where applicable, policy checks, and any required export approval complete. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
+
+## Desktop Shell Controls
+
+The Tauri webview has no generic shell, process, environment, network, or unrestricted filesystem capability. React uses a narrow typed command surface. The Rust host may open native dialogs and supervise the exact packaged Vault Core sidecar, but it cannot accept arbitrary executable names, arguments, paths, URLs, or endpoints from the webview.
+
+Tauri capabilities are defense in depth, not the product authorization layer. Vault Core still validates workspace scope, model selection, policy, approval, audit, and export destinations. Sidecar identity, hashes, signatures, endpoint permissions, protocol versions, upgrades, and crash recovery must be verified independently. See [adr/0014-tauri-desktop-shell.md](adr/0014-tauri-desktop-shell.md).
+
 ## Filesystem Controls
 
 Vault Desk should enforce:
@@ -100,6 +117,14 @@ Vault Desk should enforce:
 - Reversible file operations.
 - Immutable originals where practical.
 - Explicit user or administrator grants for watched folders.
+
+## Knowledge Bundle Controls
+
+Knowledge Bundles are passive evidence packages, never plugins. Import, archive inspection, checksum validation, and document normalization run inside the certified no-NIC microVM boundary with bounded expansion, file count, nesting, CPU, memory, time, scratch space, and output size.
+
+Before activation, Vault Core must verify the complete payload inventory, cryptographic digests, schema, signature policy, update metadata, dependencies, resource roles, and rights metadata. It must reject absolute or traversing paths, duplicate normalized paths, special files, unsafe links, ambiguous names, and undeclared payloads. Activation is an atomic authoritative-catalog transaction.
+
+A bundle signature grants no execution or policy authority. Bundle content cannot add tools, prompts, workflows, macros, network access, approvals, or workspace policy. Official and organization-managed update channels should use a provisioned TUF-style root of trust; community sideloading remains visibly untrusted and may be disabled by organization policy. See [KNOWLEDGE_BUNDLES.md](KNOWLEDGE_BUNDLES.md).
 
 ## Network Controls
 
@@ -128,6 +153,7 @@ Audit records should capture:
 - Documents accessed.
 - Retrieval evidence.
 - Model profile.
+- Generated code hash, interpreter image, and dependency manifest when applicable.
 - Tool proposal.
 - Policy decision.
 - Approval decision.
@@ -173,3 +199,5 @@ Remote support must be:
 | 2026-07-10 | Initial security document created from supplied architecture and product material. |
 | 2026-07-11 | Added hostile-document, prompt-injection, supervised-worker, resource-limit, and staged-input security requirements. |
 | 2026-07-12 | Made a no-NIC microVM the certified hostile-work boundary and prohibited command-matching as the network-isolation mechanism. |
+| 2026-07-12 | Added passive Knowledge Bundle import, trust, archive-safety, atomic-activation, and no-execution requirements. |
+| 2026-07-13 | Added Tauri webview/sidecar controls and the generated-code microVM threat model, audit, and validation requirements. |

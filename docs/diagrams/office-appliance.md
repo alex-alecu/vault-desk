@@ -20,7 +20,7 @@ flowchart LR
 
     Scheduler --> DocumentWorkers["No-NIC microVM document workers"]
     Scheduler --> Inference["Central local inference"]
-    Scheduler --> ToolSandbox["No-NIC microVM tool sandbox"]
+    Scheduler --> ToolSandbox["No-NIC microVM tool and code sandbox"]
     Scheduler --> NetworkBroker["Typed external-connection broker"]
 
     Storage["Appliance or NAS storage"] --> Staging["Job-scoped read-only staging"]
@@ -44,3 +44,4 @@ flowchart LR
 |---|---|
 | 2026-07-10 | Initial office appliance diagram created. |
 | 2026-07-12 | Added no-NIC microVM workers and a separate external-connection broker. |
+| 2026-07-13 | Included bounded generated-code execution in the no-NIC tool sandbox. |

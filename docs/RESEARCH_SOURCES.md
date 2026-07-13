@@ -32,6 +32,11 @@ The deep research report provided the model, runtime, document pipeline, benchma
 - [StreamingLLM paper](https://arxiv.org/abs/2309.17453)
 - [Lost in the Middle paper](https://arxiv.org/abs/2307.03172)
 - [RULER benchmark paper](https://arxiv.org/abs/2404.06654)
+- [Tauri](https://github.com/tauri-apps/tauri)
+- [Tauri v2 sidecar documentation](https://v2.tauri.app/develop/sidecar/)
+- [Tauri distribution documentation](https://v2.tauri.app/distribute/)
+- [OpenCode server documentation](https://opencode.ai/docs/server/)
+- [OpenCode tools and permissions](https://opencode.ai/docs/tools/)
 
 ## 2026-07-11 Live Revalidation
 
@@ -42,7 +47,14 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 - [research/document-tools-2026.md](research/document-tools-2026.md) — parser license posture, Granite-Docling GGUF, PaddleOCR-VL, native Node parsers, LanceDB and sqlite-vec.
 - [research/competitive-landscape.md](research/competitive-landscape.md) — twelve incumbents and six newcomers with verified license, telemetry, OCR, approval, and audit findings.
 - [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md) — TurboQuant (Google Research, ICLR 2026) versus turbovec naming and index decision.
+- [research/offline-knowledge-bundles-2026.md](research/offline-knowledge-bundles-2026.md) — RO-Crate 1.3, BagIt, SPDX 3.0.1 Dataset, W3C PROV/selectors, TUF, Sigstore, OCI, and offline domain-library architecture.
 - [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) — default component stack table.
+
+## 2026-07-13 Desktop And Hybrid-Execution Review
+
+Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
+
+Official OpenCode sources were reviewed only to establish that it offers a headless server and code-capable tool loop. OpenCode is not an accepted dependency. M8 may compare it with a minimal Vault Desk-owned guest loop under identical offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-verification gates.
 
 ## Research-Derived Claims
 
@@ -87,8 +99,11 @@ Before code or public claims:
 - Benchmark LanceDB hybrid search (with RaBitQ quantization) against sqlite-vec and against turbovec-in-sidecar for recall and latency.
 - Validate node-llama-cpp with Gemma 4 QAT GGUF, grammar-constrained output, and the MTP drafter on all three GPU vendors.
 - Re-verify competitor capabilities and pricing before any external marketing use.
+- Validate the Knowledge Bundle profile, archive transport, TypeScript library maturity, TUF offline-media workflow, content rights, and retrieval rebuild on representative accounting and legal libraries.
 - Verify accounting workflow compliance requirements by country.
 - Review IP ownership and employment agreement implications with counsel.
+- Validate pinned Tauri v2 capability denial, signed sidecar identity, local transport bootstrap, WebView2/WKWebView behavior, and packaged lifecycle.
+- Compare OpenCode with a minimal guest loop on the same offline functional and adversarial code-interpreter corpus before adopting either implementation.
 
 ## Revision History
 
@@ -98,3 +113,5 @@ Before code or public claims:
 | 2026-07-10 | Added current Gemma, document tooling, and vector-search web sources and validation backlog. |
 | 2026-07-10 | Added edge-AI, long-context, compaction, and Local 12 and Local 16 validation sources and backlog items. |
 | 2026-07-11 | Recorded the full live-web revalidation pass, moved verified claims out of the research-derived list, and updated the validation backlog to the revised component stack. |
+| 2026-07-12 | Added the live-web standards and architecture review for passive, domain-scoped offline Knowledge Bundles. |
+| 2026-07-13 | Added official Tauri and OpenCode sources for the desktop-shell and hybrid-execution decisions. |

@@ -39,7 +39,7 @@ Negative:
 
 - May leave Apple-specific performance improvements unrealized in the first release.
 - Native build and GPU backend behavior still differ across Metal, CUDA, and Vulkan.
-- The runtime must pass Electron packaging and worker-process validation on every certified platform.
+- The runtime must pass Tauri sidecar packaging and worker-process validation on every certified platform.
 
 ## Required Validation
 
@@ -55,3 +55,4 @@ Negative:
 |---|---|
 | 2026-07-11 | Accepted node-llama-cpp and the official QAT GGUF as the first cross-platform desktop runtime target. |
 | 2026-07-12 | Bound the host-native runtime to the narrow OS-sandboxed accelerator exception in ADR 0012. |
+| 2026-07-13 | Updated the packaging gate for the Tauri desktop shell selected by ADR 0014. |

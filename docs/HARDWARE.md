@@ -45,7 +45,7 @@ Earlier community targets:
 - Better capability on larger unified-memory or workstation systems.
 - Dynamic capability detection based on available memory and runtime support.
 
-The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level choices to ordinary users. Local 12 and Local 16 should not differ by model, verification strictness, citation requirements, supported workflows, or safety policy.
+The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Local 12 and Local 16 should not differ by verification strictness, citation requirements, supported workflows, or safety policy.
 
 Current model target:
 
@@ -71,7 +71,7 @@ They should:
 - Include Vault Desk and validated models.
 - Be encrypted and recoverable.
 - Ship with benchmarked performance.
-- Avoid user model selection.
+- Default automatically to the validated bundled model. If a build includes multiple approved models, expose only those installed choices; a single-model build shows static model text with no selector.
 
 Potential strategic fit:
 

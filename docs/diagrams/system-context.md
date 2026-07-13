@@ -4,7 +4,7 @@ Created: 2026-07-10
 
 ```mermaid
 flowchart LR
-    User["Professional user"] --> Desktop["Vault Desk Desktop"]
+    User["Professional user"] --> Desktop["Vault Desk Desktop: Tauri"]
     Admin["Office administrator"] --> OfficeAdmin["Vault Desk Office Admin"]
 
     Desktop --> Control["Local Control Plane"]
@@ -12,7 +12,7 @@ flowchart LR
 
     Control --> Documents["Approved local documents"]
     Control --> Inference["Local inference runtimes"]
-    Control --> Sandbox["No-NIC microVM sandbox"]
+    Control --> Sandbox["No-NIC document, tool, and code microVMs"]
     Control --> NetworkBroker["Typed external-connection broker"]
     Control --> Audit["Local audit log"]
     Control --> Backup["Backup and recovery"]
@@ -34,3 +34,4 @@ flowchart LR
 |---|---|
 | 2026-07-10 | Initial system context diagram created. |
 | 2026-07-12 | Added the no-NIC microVM and separate typed external-connection broker. |
+| 2026-07-13 | Identified the Tauri desktop shell and bounded code-interpreter microVM role. |
