@@ -81,6 +81,8 @@ packages/
 
 Toolchain: pnpm monorepo, TypeScript strict with NodeNext modules, Biome, vitest, tsx for development commands, and tsc for builds. The desktop package adds a pinned Rust toolchain and Cargo boundary only for Tauri. Package and native dependency versions are locked. Schemas are added just in time rather than designing every future contract in M1.
 
+The file-level blueprint for these packages — which modules exist, the milestone each file first appears in, module dependency rules, and the minimal-code working agreement — is [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
+
 ## Workspace State And Recovery
 
 Vault Core owns one schema-versioned workspace format:
@@ -440,3 +442,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-12 | Replaced command-level worker network policy with a certified no-NIC microVM, added platform launcher gates and typed socket confinement, and retained a narrow OS-sandboxed native GPU exception. |
 | 2026-07-12 | Added staged Knowledge Bundle contracts at M5 and signed offline import, rollback, and hostile-archive gates at M10. |
 | 2026-07-13 | Replaced Electron with Tauri v2, specified the desktop layout and model selector behavior, and added deterministic document operations with a bounded no-NIC generated-code fallback. |
+| 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |

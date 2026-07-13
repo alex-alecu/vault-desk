@@ -74,6 +74,7 @@ Architecture:
 - [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - first Tauri desktop layout, folder/session navigation, model presentation, and UI security rules.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
+- [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -180,3 +181,4 @@ The certified hostile-work sandbox is a disposable microVM with no virtual netwo
 | 2026-07-12 | Replaced command-level network policy with a certified no-NIC microVM requirement for hostile document and executable-tool work. |
 | 2026-07-12 | Added the offline Knowledge Bundle architecture and research documents to the required documentation map. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and adopted deterministic document tools with an isolated code-interpreter fallback. |
+| 2026-07-13 | Added docs/IMPLEMENTATION_STRUCTURE.md: the concrete folder/module blueprint and startup minimal-code working agreement for the implementation phase. |
