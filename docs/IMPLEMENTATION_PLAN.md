@@ -19,7 +19,7 @@ The following architecture decisions are resolved in documentation before implem
 
 M0 may validate exact dependency packages behind these boundaries, but it must not reopen the boundaries without a superseding ADR.
 
-M0 is also blocked until the repository owner selects the Community source license and records who is responsible for dependency, model, notice, and redistribution approval. Implementation code must not be published under an implicit or undecided license.
+M0 is also blocked until the repository owner selects the Community source license and records who is responsible for dependency, model, notice, and redistribution approval. The M0 phase-change commit adds the selected root `LICENSE` before implementation source. Implementation code must not be published under an implicit or undecided license.
 
 ## Process Architecture
 
@@ -41,9 +41,9 @@ The first platform launchers to validate are research-derived until M0 confirms 
 - Windows Pro or Enterprise: HCS/Hyper-V without a virtual network adapter.
 - Linux after desktop support opens: Firecracker/KVM without `virtio-net`.
 
-Process-only fallbacks are compatibility modes and cannot satisfy certification gates. A separate Vault Core broker owns any approved external integration, including credentials, destination policy, approval, limits, and audit; neither the model nor the microVM receives a generic socket or fetch primitive.
+Process-only fallbacks are compatibility modes and cannot satisfy certification gates. When the first external integration is approved after this implementation, a separate Vault Core broker will own its credentials, destination policy, approval, limits, and audit; neither the model nor the microVM will receive a generic socket or fetch primitive.
 
-The first node-llama-cpp inference worker remains host-native for Metal, CUDA, HIP, and Vulkan acceleration. It is supervised and OS-sandboxed and has no shell, executable tools, credentials, approval authority, arbitrary workspace access, or network capability. OCR and layout workers may use this exception only when required acceleration cannot be preserved inside the microVM and the exception passes the native-worker gates.
+The first node-llama-cpp inference worker remains host-native for Metal, CUDA, HIP, and Vulkan acceleration. It is supervised and OS-sandboxed and has no shell, executable tools, credentials, approval authority, arbitrary workspace access, or external network capability. A runtime that requires local IPC may receive only a private supervisor-created endpoint with a fixed protocol; that endpoint is never exposed to a model, guest, webview, or arbitrary caller. OCR and layout workers may use this exception only when required acceleration cannot be preserved inside the microVM and the exception passes the native-worker gates.
 
 The code-interpreter guest is a distinct immutable microVM role. Every job starts fresh with explicit read-only inputs, bounded scratch storage, pinned offline interpreters and libraries, no package installation, and a structured result contract. It can request only bounded model completions through typed host/guest IPC; it never receives a generic model-server socket. Code, environment, inputs, logs, outputs, resource use, and termination are audited, and results remain proposals until Vault Core verifies and approves any side effect.
 
@@ -59,12 +59,14 @@ The first technical slice is cited folder Q&A. The first product slice is the ac
 
 The product slice, compaction, and recovery gates must pass before Local 12 or Local 16 can be called certified.
 
+M7 completes steps 1 through 4 of the product slice. M8 completes step 5 and is the first milestone where the whole slice is acceptance-complete.
+
 ## Monorepo Layout (created incrementally from M0)
 
 ```text
 packages/
-  shared/   @vault/shared   Dependency-free schemas and types introduced only when their
-                            consuming milestone begins.
+  shared/   @vault/shared   Contract-only Zod schemas and inferred types introduced only
+                            when their consuming milestone begins; no product dependencies.
   workers/  @vault/workers  MicroVM launchers and guest protocol, native accelerator
                             clients, parser/runtime adapters, code-interpreter guest contract,
                             resource budgets, and typed IPC.
@@ -73,13 +75,13 @@ packages/
                             tools, approvals, and compaction.
   cli/      @vault/cli      Thin JSON-RPC client used for headless product operation and
                             process-boundary acceptance tests.
-  desktop/  @vault/desktop  Tauri v2 shell: React/TypeScript frontend and minimal Rust host,
-                            introduced in M10.
-  eval/     @vault/eval     Model manifest and fetcher, deterministic fixtures, held-out
-                            acceptance corpus, assertions, and hardware bench harness.
+  desktop/  @vault/desktop  Product Tauri v2 shell: React/TypeScript frontend and minimal
+                            Rust host, introduced in M10 after the M0 test-only shell.
+  eval/     @vault/eval     Development-only model fetcher, deterministic fixtures,
+                            held-out corpus, platform/gate assertions, and bench harness.
 ```
 
-Toolchain: pnpm monorepo, TypeScript strict with NodeNext modules, Biome, vitest, tsx for development commands, and tsc for builds. The desktop package adds a pinned Rust toolchain and Cargo boundary only for Tauri. Package and native dependency versions are locked. Schemas are added just in time rather than designing every future contract in M1.
+Toolchain: pnpm monorepo, TypeScript strict with NodeNext modules, Biome, vitest, tsx for development commands, and tsc for builds. M0 pins the exact Node.js runtime and pnpm version used by CI and sidecar packaging. A pinned Rust toolchain and Cargo are used only by the M0 test-only Tauri shell, the M10 product Tauri host, and any narrow native microVM helper explicitly approved by the M0 platform decision. Package and native dependency versions are locked. Schemas are added just in time rather than designing every future contract in M1.
 
 The file-level blueprint for these packages — which modules exist, the milestone each file first appears in, module dependency rules, and the minimal-code working agreement — is [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 
@@ -87,7 +89,7 @@ The file-level blueprint for these packages — which modules exist, the milesto
 
 Vault Core owns one schema-versioned workspace format:
 
-- A transactional catalog is authoritative for jobs, manifests, document identities, parser records, sessions, approvals, evidence-pack references, verification outcomes, and migrations.
+- A transactional catalog is authoritative for jobs, manifests, document identities, parser records, sessions, approvals, preferences, user-visible warnings, evidence-pack references, verification outcomes, and migrations.
 - Canonical document payloads and evidence artifacts are immutable, content-addressed records written atomically.
 - LanceDB indexes, embeddings, prompt caches, and summaries are derived state and must be reproducible or rebuildable from authoritative records.
 - A per-workspace single-writer lock prevents concurrent mutation; read-only inspection may be concurrent.
@@ -102,9 +104,9 @@ The MVP relies on operating-system account isolation and encrypted storage for d
 
 Three access layers share the same product contracts:
 
-1. **Programmatic API** — `createVaultCore({ workspaceDir, modelsDir, profile })` returns a typed facade used by focused unit tests.
-2. **Daemon** — `vault-cored --workspace <dir>` serves versioned JSON-RPC 2.0 over a Unix domain socket on macOS and a named pipe on Windows. The endpoint is restricted to the current operating-system user. TCP is not enabled for desktop mode.
-3. **CLI** — `vault ingest`, `vault ask`, `vault workflow invoice-review`, `vault approvals`, `vault audit`, `vault compact`, and `vault status` speak only to the daemon.
+1. **Programmatic API** — M1 starts with `createVaultCore({ workspaceDir })`. M2 adds the required model-store and profile inputs when inference first consumes them; M10 adds the installed-bundle store and provisioned trust-root inputs when bundle import exists. A separate public test-harness constructor accepts explicit port implementations and returns the same facade, allowing deterministic fakes without turning infrastructure selection into a product option.
+2. **Daemon** — M1 starts with `vault-cored --workspace <dir>` and adds the same just-in-time asset inputs as the programmatic API. It serves versioned JSON-RPC 2.0 over a Unix domain socket on macOS and a named pipe on Windows. The endpoint is restricted to the current operating-system user. TCP is not enabled for desktop mode.
+3. **CLI** — `vault ingest`, `vault ask`, `vault workflow invoice-review`, `vault approvals`, `vault export`, `vault audit`, `vault compact`, `vault bundles install`, `vault bundles list`, `vault jobs cancel`, `vault jobs resume`, and `vault status` speak only to the daemon.
 
 Protocol contracts include request and job IDs, idempotency keys for mutations, cancellation, bounded streaming, backpressure, structured errors, protocol-version negotiation, reconnect behavior, and server-to-client notifications. `--json` writes exactly one final machine-readable document to stdout; progress and diagnostics use stderr or an explicit event-stream mode.
 
@@ -126,12 +128,13 @@ The installed manifest also defines the user-visible generation models. A one-mo
 
 ## Continuous Verification
 
-CI begins in M0:
+CI begins in M0 and grows only when the corresponding implementation exists:
 
-- macOS and Windows: install, typecheck, lint, unit tests, generated-fixture integration tests, daemon lifecycle, and native dependency load smoke tests.
-- Linux: core unit and integration coverage where dependencies support it; Linux is not an initial desktop certification target.
-- Hardware/model jobs: self-hosted or manually invoked, never silently skipped, with retained machine-readable reports.
-- Packaged-build jobs: platform-native build, asset-manifest checks, protocol smoke, and no-network first-launch smoke.
+- M0 macOS and Windows jobs run install, typecheck, lint, source-boundary checks, deterministic-fixture tests, the test-only Tauri shell gate, provisional microVM platform probes, and native dependency load smoke tests.
+- M1 adds daemon lifecycle, workspace, CLI transport, and certified microVM-launcher jobs on macOS and Windows. Linux core unit and integration jobs begin when the core package exists; Linux remains outside initial desktop certification.
+- Hardware/model jobs begin with M2. They are self-hosted or manually invoked, never silently skipped once required by a gate, and retain machine-readable reports.
+- Parser, index, workflow, and long-session jobs are added with M3 through M9 rather than appearing as empty or skipped M0 jobs.
+- Packaged-build jobs begin with M10 and cover platform-native build, asset-manifest checks, protocol smoke, and no-network first launch.
 
 The local `pnpm verify` command remains the fast developer entry point. CI and local verification must use the same underlying commands.
 
@@ -142,7 +145,7 @@ The local `pnpm verify` command remains the fast developer entry point. CI and l
 | `pnpm test` | Focused unit and contract tests | No models or native document corpus |
 | `pnpm test:integration` | Real parsers, workspace store, daemon, and LanceDB over deterministic fixtures | Generated development corpus |
 | `pnpm test:llm` | Fast LLM invariants and workflow development | Gemma 4 E2B QAT plus EmbeddingGemma |
-| `pnpm test:gate --milestone <n>` | Product-model acceptance for the LLM-facing milestone | Gemma 4 12B QAT and required shipped-candidate workers |
+| `pnpm test:gate --milestone <n>` | Acceptance for one milestone, including platform and security gates | The platforms, assets, and workers named by that milestone; LLM-facing milestones require Gemma 4 12B QAT |
 | `pnpm test:package` | Packaged application and offline asset verification | Platform build plus all `ships` assets |
 | `pnpm bench --profile local12\|local16` | Hardware certification and soak tests | Certified target hardware |
 
@@ -175,36 +178,43 @@ Exact matching is required for typed identifiers, amounts, dates, and enumerated
 
 Each milestone builds on previous gates, introduces only the contracts it consumes, leaves `pnpm verify` green, and records unresolved risks rather than hiding them.
 
+Gate invariants are cumulative, but provisional harnesses are not permanent product dependencies. When M1 replaces the M0 microVM probe or M10 replaces the M0 Tauri shell, the corresponding `m0-*.test.ts` assertions are redirected to the production implementation before the provisional source is removed.
+
 ### M0 — Phase change, minimal scaffold, CI, models, and evaluation corpora
 
 Scope:
 
-- Create the pnpm workspace, root TypeScript/Biome/vitest configuration, lockfile, and only the packages needed by M0 and M1. Pin the Rust toolchain needed for the later Tauri shell without creating product UI in M0.
+- On the explicit user request that starts M0, first rewrite AGENTS.md and the no-code section of TYPESCRIPT_NODE_HARNESS.md to authorize only M0 scaffold and validation work. The documentation-only rules must not remain in force while M0 code is being written. After the gate, record M0 completion; M1 still begins only on an explicit user request.
+- Pin Node.js and pnpm, then create the pnpm workspace, root TypeScript/Biome/vitest configuration, lockfile, source-limit and dependency-boundary checks, and only the package manifests M0 consumes. Add later package manifests when their first source file appears; hand-written worker-image metadata may exist before the workers package becomes executable in M1. Pin the Rust toolchain without creating product UI in M0.
 - Add cross-platform CI and native dependency load smoke jobs.
-- Validate pinned Tauri v2 licensing, capability configuration, platform webviews, sidecar packaging/signing, and a minimal signed sidecar launch on Windows and macOS.
-- Validate the macOS and Windows microVM APIs, no-NIC configuration, host/guest socket, packaging, edition requirements, and guest-image lifecycle; record findings before choosing exact launcher dependencies.
-- Add the model manifest and hash-pinned development fetcher. Redistribution status uses `development`, `candidate_to_ship`, and `ships`.
+- Add a committed test-only Tauri shell under `@vault/eval` and use it to select and validate the Node sidecar executable-packaging/signing path later used for Vault Core, pinned Tauri v2 licensing, capability configuration, platform webviews, and a minimal signed sidecar launch on Windows and macOS. It contains no product UI and is removed after the M10 product-shell tests cover the same boundary.
+- Add committed test-only platform probes under `@vault/eval` for the macOS and Windows microVM APIs, no-NIC configuration, host/guest socket, packaging, edition requirements, and guest-image lifecycle; record findings before choosing the M1 launcher dependencies.
+- Add the canonical machine-readable model manifest plus a hash-pinned development-only fetcher. Redistribution status uses `development`, `candidate_to_ship`, and `ships`; product code never depends on `@vault/eval` to read the installed manifest.
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
-- Update AGENTS.md and TYPESCRIPT_NODE_HARNESS.md to end the documentation-only phase only when the gate passes.
+- Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0016-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
+- Resolve every item in IMPLEMENTATION_STRUCTURE.md's M0 open-item list and record each decision in the owning manifest, configuration, ADR, or blueprint before the gate closes.
 
 Gate:
 
+- The owner-selected root `LICENSE` is present, and the compliance inventory records the responsible owner for dependency, model, notice, and redistribution decisions.
 - Fixture generation is byte-deterministic.
 - Ground truth covers positive, negative, contradiction, locale, corruption, and prompt-injection cases.
 - Hash mismatch and unapproved `ships` transitions fail.
-- macOS and Windows CI run `pnpm verify` successfully.
-- A minimal Tauri test shell launches only the allowlisted signed test sidecar; webview attempts to invoke arbitrary commands, arguments, paths, URLs, or endpoints fail.
+- macOS and Windows CI use the pinned Node.js and pnpm versions and run `pnpm verify` successfully.
+- A minimal Tauri test shell launches only the allowlisted signed executable produced by the selected Node sidecar packaging path; webview attempts to invoke arbitrary commands, arguments, paths, URLs, or endpoints fail.
 - The selected macOS and Windows sandbox backends demonstrate a booted minimal guest with typed socket round-trip and zero virtual network adapters; unsupported editions or hardware fail with an explicit compatibility classification.
-- AGENTS.md reflects the implementation phase.
+- ADR 0016 records the Knowledge Bundle dependency and transport/trust decision; any claim not proven by M0 remains explicitly research-derived.
+- IMPLEMENTATION_STRUCTURE.md has no unresolved M0 item whose answer changes an M1 file, dependency, language, or security boundary.
+- AGENTS.md reflects the active implementation phase and keeps work milestone-scoped.
 
 ### M1 — Workspace state, core security primitives, daemon skeleton, and CLI health
 
 Scope:
 
-- Introduce only the shared schemas needed for workspace identity, jobs, policy decisions, audit events, JSON-RPC envelopes, and typed errors.
+- Introduce only the shared schemas needed for workspace identity, jobs, policy decisions, audit events, JSON-RPC envelopes, worker frames/resource limits, and typed errors.
 - Implement the schema-versioned workspace catalog, immutable artifact writes, single-writer lock, migration harness, and rebuildable-state boundary.
-- Implement `WorkspaceScope` and `ScopedFileSystem`; direct filesystem access is lint-forbidden outside approved storage and worker-broker adapters.
+- Implement `WorkspaceScope` and `ScopedFileSystem`; direct filesystem, local-transport, and process-spawn imports are denied outside the explicit storage, daemon/client, worker-launch, guest-I/O/interpreter, development, and verification boundaries in IMPLEMENTATION_STRUCTURE.md.
 - Implement the redaction-aware hash-chained audit log.
 - Implement the daemon lifecycle, macOS socket, Windows named pipe, endpoint permissions, version negotiation, request IDs, cancellation, and `vault status`.
 - Implement the common microVM launcher contract, verified immutable guest image, job-scoped read-only input attachment, bounded ephemeral scratch storage, typed host/guest socket, resource limits, cancellation, termination, and cleanup.
@@ -212,7 +222,7 @@ Scope:
 
 Gate:
 
-- Traversal, symlink escape, MIME confusion, out-of-scope paths, and time-of-check/time-of-use file replacement are rejected.
+- Traversal, symlink escape, out-of-scope paths, and time-of-check/time-of-use file replacement are rejected.
 - Abrupt termination cannot leave partially committed authoritative state.
 - Audit tampering is detected without requiring raw document content in routine records.
 - Daemon start, health, restart, incompatible-version, and current-user endpoint tests pass on macOS and Windows.
@@ -224,7 +234,7 @@ Gate:
 Scope:
 
 - Add the runtime adapter contract and a separate supervised inference-worker process.
-- Apply the native accelerator boundary: OS-enforced network denial, no shell or executable tools, no credentials or approval authority, and only brokered model/evidence inputs.
+- Apply the native accelerator boundary: OS-enforced external-network denial, no shell or executable tools, no credentials or approval authority, only fixed supervisor-owned local IPC where required, and only job-scoped model/evidence inputs resolved by Vault Core.
 - Implement node-llama-cpp behind worker IPC with model resolution, grammar-enforced structured output, embeddings, cancellation, timeout, memory-budget reporting, and typed failure states.
 - Add a deterministic fake worker for unit tests.
 - Add a resource scheduler that prevents generation, embeddings, and later vision work from exceeding the active profile budget.
@@ -235,7 +245,7 @@ Gate:
 - E2B structured generation and EmbeddingGemma smoke tests pass.
 - Gemma 4 12B loads, produces grammar-valid output, and shuts down cleanly on at least one Local 12-class and one Local 16-class target before later LLM work proceeds.
 - Native runtime loading passes on the initial macOS and Windows paths.
-- Native-worker probes prove network denial and absence of arbitrary workspace, credential, shell, and tool authority.
+- Native-worker probes prove external-network denial and absence of arbitrary workspace, credential, shell, and tool authority; any supervisor-created local endpoint accepts only its fixed worker protocol.
 
 ### M3 — Native document ingestion and crash-consistent manifests
 
@@ -246,7 +256,7 @@ Scope:
 - Run native PDF, DOCX, XLSX, CSV, and EML parsers inside the no-NIC microVM boundary.
 - Preserve page, heading, paragraph, table, sheet, cell, formula, typed-value, and attachment anchors.
 - Implement deterministic exact and case-normalized spreadsheet text search over canonical cells and displayed values.
-- Surface unsupported, corrupt, password-protected, excessive-size, and changed-during-ingest states.
+- Surface unsupported, corrupt, password-protected, MIME-spoofed, excessive-size, and changed-during-ingest states.
 
 Gate:
 
@@ -257,6 +267,7 @@ Gate:
 - Zip/decompression bombs, oversized outputs, and parser hangs are stopped by resource limits.
 - A nested folder of XLSX fixtures is searchable for `avans` across all sheets without a model call or generated code; every hit returns file, workbook, sheet, cell, value, and source hash.
 - Formula/displayed-value, Unicode, blank, merged-cell, hidden-sheet, malformed, and password-protected workbook cases produce the specified results or explicit warnings.
+- Declared-versus-detected media-type mismatches are rejected or classified before a parser can treat the declared type as authoritative.
 
 ### M4 — OCR, layout, and low-confidence routing
 
@@ -265,7 +276,7 @@ Scope:
 - Add supervised PaddleOCR-VL and Granite-Docling routes for scanned, mixed, table-heavy, and low-confidence pages.
 - Preserve OCR regions, bounding boxes, parser/model versions, confidence, and warnings in CanonicalDocument.
 - Unload or serialize GPU workers according to the profile resource scheduler; document workers must not silently steal the certified generation budget.
-- Keep CPU parsing inside the microVM. Any GPU-backed OCR or layout worker that uses the native accelerator exception must pass the same OS-enforced network and authority-denial probes as inference.
+- Keep CPU parsing inside the microVM. Any GPU-backed OCR or layout worker that uses the native accelerator exception must pass the same OS-enforced external-network and authority-denial probes as inference.
 
 Gate:
 
@@ -283,7 +294,8 @@ Scope:
 - Cache embeddings by chunk hash, encoder version, dimension, and normalization version.
 - Use LanceDB for full-text and dense retrieval with reciprocal-rank fusion and metadata filters.
 - Provide exact identifier, date, amount, name, and clause search.
-- Add the minimum Knowledge Bundle reader contract needed for fixtures: immutable manifest identity, source and normalized-resource roles, bundle digest, jurisdiction, validity interval, authority class, and separate evidence scope. Build retrieval indexes locally; do not implement bundle distribution or signing yet.
+- Add separate deterministic development and held-out unpacked Knowledge Bundle fixtures and the minimum reader contract they exercise: immutable manifest identity, source and normalized-resource roles, bundle digest, jurisdiction, validity interval, authority class, and separate evidence scope. Build retrieval indexes locally; do not implement bundle distribution or signing yet.
+- Apply the M0-recorded bundle reader decision. M5 reads unpacked immutable fixture bundles only; archive import, signature policy, update metadata, and activation remain M10 responsibilities.
 
 Gate:
 
@@ -300,6 +312,7 @@ Scope:
 - Add EvidencePack, Claim, Citation, and VerificationResult schemas.
 - Build reproducible, token-budgeted evidence packs containing exact matches, retrieved chunks, contradictions, and parser warnings.
 - Generate task-specific typed answers with claim-level citations.
+- Persist each cited Q&A turn as explicit session records that reference its evidence pack and verification result; do not persist hidden model reasoning.
 - Verify citation presence, evidence containment, normalized identifiers and quantities, exact re-search, spreadsheet arithmetic, contradictions, ambiguity, and low-confidence sources.
 - Treat document content and tool output as untrusted evidence, never as control instructions.
 
@@ -329,14 +342,15 @@ Gate:
 
 Scope:
 
-- Add just-in-time ToolDefinition, PolicyDecision, Approval, Preview, and ToolResult schemas.
+- Add just-in-time ToolDefinition, Approval, Preview, and ToolResult schemas. Reuse the PolicyDecision contract introduced in M1 and extend it only with tool-specific decision reasons when required.
 - Implement read-only search/open/table tools as typed Vault Core queries through scoped adapters, not shell commands, and add an approval-gated structured exception export.
 - Implement typed deterministic filter, sort, join, compare, aggregate, arithmetic, and extraction operations over canonical documents.
-- Implement the bounded code-interpreter guest role for transformations that cannot be expressed through supported operations. It uses fresh no-NIC microVMs, read-only inputs, pinned offline libraries, typed model mediation, strict resources, structured results, full audit, and destruction after every job.
+- Add the Core-side `CodeInterpreterPort`, then implement the bounded code-interpreter guest role for transformations that cannot be expressed through supported operations. It uses fresh no-NIC microVMs, read-only inputs, pinned offline libraries, typed model mediation, strict resources, structured results, full audit, and destruction after every job. The port returns proposals only; policy, verification, approval, and authoritative writes remain in Core.
 - Benchmark OpenCode against a minimal Vault Desk-owned guest loop on the same offline functional, security, footprint, cancellation, packaging, and audit corpus. Adopt OpenCode only if it passes every boundary and materially reduces maintained code.
 - Export through ScopedFileSystem using preview, destination validation, atomic write, immutable originals, audit, and rollback where applicable.
-- Complete CLI commands for ingest, ask, invoice-review, approvals, export, audit, cancellation, and resume.
-- Evaluate the Vercel AI SDK provider only for bounded iterative read-tool use. Adopt it only if it preserves Vault Desk policy, approval, audit, cancellation, and structured-output contracts and reduces code versus the explicit workflow loop.
+- Complete CLI commands for ingest, ask, invoice-review, approvals, export, audit, `vault jobs cancel`, and `vault jobs resume`; M9 adds `vault compact` when compaction exists.
+- Start the bounded read-tool-loop evaluation with Vercel AI SDK over a thin local `InferencePort` adapter and compare it with the explicit loop. No SDK cloud provider, telemetry, or network path is configured. Keep the SDK only if it preserves Vault Desk policy, approval, audit, cancellation, and structured-output contracts and reduces maintained code.
+- Keep the two comparison harnesses development-only and reproducible under `@vault/eval`, record both selection results, and include only the selected implementation and dependencies in product packages.
 
 Gate:
 
@@ -344,9 +358,10 @@ Gate:
 - Approval is durable across daemon restart; rejection and expiration cause no side effect.
 - The daemon/CLI drives the full invoice-review and approved export flow on E2B and 12B.
 - Export correctness is checked by parsing the exported artifact and reconciling it to verified workflow state.
-- No worker or model has direct filesystem-write authority.
+- No worker or model can write authoritative workspace state or exports. A microVM guest may write only to its bounded ephemeral scratch and declared result channel; Vault Core validates and commits accepted results.
 - No executable tool worker has a virtual NIC or a generic network broker; an external integration, when later introduced, must cross the separate typed Vault Core broker.
 - Supported deterministic operations never route to generated code.
+- Product dependency and export graphs contain only the selected read loop and code-interpreter implementation; comparison adapters remain reachable only from `@vault/eval`.
 - Generated code cannot reach host paths, credentials, package managers, external or local networks, the general Vault Core API, approvals, or exports; loop, process, memory, disk, output, malformed-IPC, crash, and cancellation attacks are contained and audited.
 - Code-produced numeric and tabular results are source-anchored and deterministically rechecked where applicable before presentation.
 
@@ -354,10 +369,10 @@ Gate:
 
 Scope:
 
-- Build page, section, table, sheet, document, folder, and task summary nodes with source anchors, prompt/model versions, evidence IDs, warnings, and verification state.
-- Implement session, task, evidence, artifact, preference, and warning ledgers.
+- Build page, section, table, sheet, document, folder, and task summary nodes separately from the ledger store, with source anchors, prompt/model versions, evidence IDs, warnings, and verification state. Summaries are derived records; ledgers are replayable state.
+- Complete the replayable ledger set without creating a central ledger owner: reuse the session/evidence records from M6 and the job/artifact/audit records from M1, add preference and user-visible warning records in their owning modules, and build compaction replay views over those authoritative records.
 - Compact at the documented 70/85/95 percent triggers and after long tools, approvals, and exports.
-- Add manual compact, source-change invalidation, and post-compaction replay.
+- Add manual compact, source-change invalidation, post-compaction replay, and the `vault compact` daemon/CLI path.
 
 Gate:
 
@@ -370,13 +385,14 @@ Gate:
 
 Scope:
 
-- Implement the minimal Tauri v2 Rust host and React/TypeScript frontend over the existing daemon protocol. The webview has no generic shell, process, environment, network, or unrestricted filesystem capability.
+- Add the minimal shared Tauri command/result contracts, then implement the minimal Tauri v2 Rust host and React/TypeScript frontend over the existing daemon protocol. The webview has no generic shell, process, environment, network, or unrestricted filesystem capability.
 - Implement the layout in DESKTOP_DESIGN.md: a header spanning the full window with session name and active model; chats followed by working folders in the persistent left sidebar below it; conversation content in the main pane; and the chat composer anchored at the bottom of that pane.
 - Provide folder selection, ingest progress, invoice review, chat, citation previews, human-review queue, approval dialog, export preview, audit/task log, cancellation, and support settings without exposing runtime infrastructure configuration.
 - Render a single bundled model as static header text with no selector affordance. If a package contains multiple approved models, render a selector containing only installed compatible `ships` entries from the signed manifest.
-- Build macOS and Windows packages containing the product generation model, embedding model, OCR/layout assets, and native runtimes only after every asset is approved as `ships`.
+- Build macOS and Windows packages containing the approved product generation model or models, embedding model, OCR/layout assets, and native runtimes only after every packaged asset is approved as `ships`.
 - Generate notices, SBOMs, artifact manifests, hashes, signatures, and platform packaging metadata.
-- Validate signed Knowledge Bundle import and atomic activation from offline media, including corrupt, expired, rolled-back, oversized, traversal, duplicate-path, and incompatible-accelerator cases.
+- Add the Core-side `BundleInspectorPort`, then implement the M0-selected Knowledge Bundle trust verifier, hostile-archive guest inspector, separate schema-versioned installed-bundle catalog, content-addressed object store, and atomic activation transaction. The guest returns a bounded inventory only; Core owns trust decisions and state changes. Bundle-catalog migrations are backup-before-migrate and leave the prior catalog usable on failure. Install new immutable versions beside old ones, retain any version referenced by evidence, audit, export, or retention policy, and collect objects only when the catalog proves no live reference. Validate offline imports including corrupt, expired, rolled-back, oversized, traversal, duplicate-path, and incompatible-accelerator cases.
+- Expose bundle installation and installed-version listing through the versioned daemon protocol and `vault bundles install` / `vault bundles list`; Core canonicalizes and stages the explicit user-selected archive path through `ScopedFileSystem`, while the CLI never opens or validates the hostile archive itself.
 - Add hardware capability detection that maps supported machines to Certified, Compatible, or Experimental without changing verification policy.
 
 Gate:
@@ -385,9 +401,10 @@ Gate:
 - The required sidebar, header, model presentation, conversation, and bottom-composer layout passes keyboard, screen-reader, focus-restoration, resize, and 200 percent scaling checks.
 - Single-model packages show no dropdown affordance; multi-model test packages reject uninstalled, unsigned, incompatible, and arbitrary-path models.
 - Packaged builds complete first launch, microVM boot, ingestion, invoice review, citations, approval, and export with zero downloads.
-- Packaged sandbox evidence proves that hostile parsing used the platform no-NIC microVM, not a process-only fallback, and that native accelerator workers had OS-enforced network denial.
-- No development model or unapproved candidate asset leaks into the package.
+- Packaged sandbox evidence proves that hostile parsing used the platform no-NIC microVM, not a process-only fallback, and that native accelerator workers had OS-enforced external-network denial and only fixed supervisor-owned local IPC.
+- No development model, `@vault/eval` code/dependency, unselected loop implementation, or unapproved candidate asset leaks into the package.
 - A bundled offline repository snapshot verifies from the provisioned root without network access; failed or interrupted bundle import leaves the prior active version intact.
+- Bundle update and cleanup tests preserve every version/object referenced by evidence, audit, export, or retention policy and remove only proven orphans.
 - Windows and macOS packages pass install, launch, upgrade, uninstall, workspace-preservation, and crash-recovery smoke tests.
 
 ### M11 — Full 12B certification and pilot readiness
@@ -404,7 +421,7 @@ Thresholds are versioned before the final run. Minimum invariant thresholds rema
 
 Gate:
 
-- M0 through M10 gates remain green on the packaged product.
+- M0 through M10 gate invariants remain green on the packaged product, including M0 assertions migrated from provisional harnesses to their production replacements.
 - Local 12 and Local 16 pass the full workflow, compaction, recovery, and memory suite with the same model, workflow eligibility, retrieval policy, verification policy, and approval policy.
 - Hardware classifications and unsupported configurations are reported honestly.
 - Known limitations, model/component notices, recovery instructions, and pilot support procedures are documented.
@@ -443,3 +460,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-12 | Added staged Knowledge Bundle contracts at M5 and signed offline import, rollback, and hostile-archive gates at M10. |
 | 2026-07-13 | Replaced Electron with Tauri v2, specified the desktop layout and model selector behavior, and added deterministic document operations with a bounded no-NIC generated-code fallback. |
 | 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |
+| 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
