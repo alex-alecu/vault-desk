@@ -47,7 +47,7 @@ To minimize code written and code changed later, the implementation should start
 | Deterministic document operations | Typed Vault Core queries over canonical documents | Format adapter escalation | Common search, filter, join, compare, calculate, and extraction behavior without model-generated scripts |
 | Long-tail transformation | Minimal Vault Desk-owned code-interpreter guest loop in a fresh no-NIC microVM | OpenCode only if it passes identical offline, security, footprint, and audit gates and reduces code | Keeps uncommon transformations possible without making a coding agent the product backend |
 | Index (lexical plus dense) | LanceDB (Apache 2.0) | sqlite-vec plus FTS5; turbovec via the Python sidecar if benchmarks justify | One embedded dependency covers full-text, vector, hybrid fusion, and quantization |
-| Embeddings | EmbeddingGemma via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation |
+| Embeddings | Qwen3-Embedding-0.6B via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation; Apache 2.0 official GGUF |
 | Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
 | Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
 | Audit trace shape | OpenTelemetry GenAI semantic conventions, version-pinned, persisted to a local append-only log | — | Standard shape instead of an invented one |

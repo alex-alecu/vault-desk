@@ -245,7 +245,7 @@ Do not:
 - [Gemma 4 model overview](https://ai.google.dev/gemma/docs/core)
 - [Gemma 4 model card](https://ai.google.dev/gemma/docs/core/model_card_4)
 - [Gemma 4 Multi-Token Prediction](https://ai.google.dev/gemma/docs/mtp/overview)
-- [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma)
+- [Qwen3-Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/)
 - [PagedAttention paper](https://arxiv.org/abs/2309.06180)
 - [StreamingLLM paper](https://arxiv.org/abs/2309.17453)
 - [Lost in the Middle paper](https://arxiv.org/abs/2307.03172)

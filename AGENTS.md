@@ -69,10 +69,10 @@ Primary orientation:
 Architecture:
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - four-plane system architecture.
-- [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - single-family Gemma model strategy and VRAM profiles.
+- [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - model-agnostic strategy with certified defaults and VRAM profiles.
 - [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - Local 12 and Local 16 performance, context, compaction, and benchmark specification.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
-- [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - EmbeddingGemma, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
+- [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - Qwen3-Embedding-0.6B encoding, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
 - [docs/KNOWLEDGE_BUNDLES.md](docs/KNOWLEDGE_BUNDLES.md) - passive, signed, domain-scoped offline reference libraries, provenance, storage, retrieval, and updates.
 - [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - first Tauri desktop layout, folder/session navigation, model presentation, and UI security rules.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
@@ -116,6 +116,7 @@ Architecture decision records:
 - [docs/adr/0013-first-desktop-runtime.md](docs/adr/0013-first-desktop-runtime.md)
 - [docs/adr/0014-tauri-desktop-shell.md](docs/adr/0014-tauri-desktop-shell.md)
 - [docs/adr/0015-deterministic-document-tools-and-code-fallback.md](docs/adr/0015-deterministic-document-tools-and-code-fallback.md)
+- [docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)
 
 Research:
 
@@ -151,7 +152,7 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 - Safe, previewable, reversible actions.
 - Evidence-linked answers with citations.
 - Hardware-aware defaults, not user-managed model configuration.
-- One primary model family for generation and retrieval profiles unless a future ADR explicitly changes that boundary.
+- Model-agnostic product contracts with per-model certification: Gemma 4 12B QAT is the default and first certified generation model and Qwen3-Embedding-0.6B the product-managed encoder, per [ADR 0016](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md). Model installation, when offered, is a managed, catalog-driven, broker-mediated experience — never arbitrary paths, endpoints, or unsigned manifests.
 - Customer ownership rather than mandatory rental.
 
 ## Architecture Principles To Preserve

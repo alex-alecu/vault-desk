@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Status: Accepted, amended by [ADR 0009](0009-12-16gb-gemma-context-standard.md)
+Status: Accepted, amended by [ADR 0009](0009-12-16gb-gemma-context-standard.md); partially superseded by [ADR 0016](0016-model-agnostic-defaults-and-managed-downloads.md), which removes the single-family mandate and the EmbeddingGemma default while keeping Gemma 4 12B QAT as the default and first certified generation model
 
 ## Context
 

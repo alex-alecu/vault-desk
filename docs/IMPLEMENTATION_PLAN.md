@@ -114,7 +114,12 @@ The daemon skeleton and CLI health command arrive in M1. Every later milestone g
 
 ## Model And Asset Distribution
 
-Development models are fetched by a hash-pinned tool into a local cache. The installed product has no downloader or network fallback and bundles every required runtime asset.
+Development models are fetched by a hash-pinned tool into a local cache from the official publisher repositories on Hugging Face.
+
+Per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md), the product has two distribution flavors:
+
+- **Bundled build** — the M10/M11 target: bundles every required runtime asset, has no downloader or network fallback, and completes first launch with zero downloads.
+- **Model-download build** — sequenced after M11: ships every runtime asset except generation models (the encoder and OCR/layout assets stay bundled) and installs generation models through the typed Vault Core network broker from a signed catalog of allowlisted official repositories, with hash verification before a model becomes loadable. This flavor is the broker's first approved integration and follows the recommendations-first, search-by-name experience in [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
 
 The model manifest distinguishes:
 
@@ -122,7 +127,7 @@ The model manifest distinguishes:
 - `candidate_to_ship`: asset intended for packaging but blocked on technical and redistribution review.
 - `ships`: asset approved for redistribution, included in the installer, covered by notices, and verified by SHA-256 in the build.
 
-EmbeddingGemma and every OCR or layout model begin as `candidate_to_ship`. They cannot become `ships` until redistribution terms, required notices, installer size, and offline operation are reviewed. M10 produces a third-party notice bundle, dependency and model SBOM, artifact manifest, and signed platform packages.
+Qwen3-Embedding-0.6B and every OCR or layout model begin as `candidate_to_ship`. They cannot become `ships` until redistribution terms, required notices, installer size, and offline operation are reviewed. M10 produces a third-party notice bundle, dependency and model SBOM, artifact manifest, and signed platform packages.
 
 The installed manifest also defines the user-visible generation models. A one-model build renders the model name as static text. A multi-model build exposes only installed `ships` models compatible with the detected hardware and selected workflow. It never accepts an arbitrary model path, runtime endpoint, or unsigned manifest entry.
 
@@ -144,7 +149,7 @@ The local `pnpm verify` command remains the fast developer entry point. CI and l
 |---|---|---|
 | `pnpm test` | Focused unit and contract tests | No models or native document corpus |
 | `pnpm test:integration` | Real parsers, workspace store, daemon, and LanceDB over deterministic fixtures | Generated development corpus |
-| `pnpm test:llm` | Fast LLM invariants and workflow development | Gemma 4 E2B QAT plus EmbeddingGemma |
+| `pnpm test:llm` | Fast LLM invariants and workflow development | Gemma 4 E2B QAT plus Qwen3-Embedding-0.6B |
 | `pnpm test:gate --milestone <n>` | Acceptance for one milestone, including platform and security gates | The platforms, assets, and workers named by that milestone; LLM-facing milestones require Gemma 4 12B QAT |
 | `pnpm test:package` | Packaged application and offline asset verification | Platform build plus all `ships` assets |
 | `pnpm bench --profile local12\|local16` | Hardware certification and soak tests | Certified target hardware |
@@ -192,7 +197,7 @@ Scope:
 - Add the canonical machine-readable model manifest plus a hash-pinned development-only fetcher. Redistribution status uses `development`, `candidate_to_ship`, and `ships`; product code never depends on `@vault/eval` to read the installed manifest.
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
-- Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0016-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
+- Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0017-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
 - After the root license exists, activate [the contribution workflow](../CONTRIBUTING.md): replace owner-only commits with human contributor authorship and DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off and private vulnerability reporting, and protect `main` with pull requests, required DCO and applicable CI checks, resolved conversations, and force-push and deletion denial. Keep implementation contributions closed until this point.
 - Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one milestone-gate report without requiring an approval count until a second maintainer exists.
 - Resolve every item in IMPLEMENTATION_STRUCTURE.md's M0 open-item list and record each decision in the owning manifest, configuration, ADR, or blueprint before the gate closes.
@@ -206,7 +211,7 @@ Gate:
 - macOS and Windows CI use the pinned Node.js and pnpm versions and run `pnpm verify` successfully.
 - A minimal Tauri test shell launches only the allowlisted signed executable produced by the selected Node sidecar packaging path; webview attempts to invoke arbitrary commands, arguments, paths, URLs, or endpoints fail.
 - The selected macOS and Windows sandbox backends demonstrate a booted minimal guest with typed socket round-trip and zero virtual network adapters; unsupported editions or hardware fail with an explicit compatibility classification.
-- ADR 0016 records the Knowledge Bundle dependency and transport/trust decision; any claim not proven by M0 remains explicitly research-derived.
+- ADR 0017 records the Knowledge Bundle dependency and transport/trust decision; any claim not proven by M0 remains explicitly research-derived.
 - IMPLEMENTATION_STRUCTURE.md has no unresolved M0 item whose answer changes an M1 file, dependency, language, or security boundary.
 - AGENTS.md reflects the active implementation phase and keeps work milestone-scoped.
 - Implementation contributions remain closed until the root license, human-authorship and DCO rule, required DCO check, web sign-off, private vulnerability reporting, `main` protection, and contribution-ready issue workflow are active and verified.
@@ -245,7 +250,7 @@ Scope:
 Gate:
 
 - Worker crash, cancellation, timeout, malformed IPC, missing model, and out-of-memory paths are contained and audited.
-- E2B structured generation and EmbeddingGemma smoke tests pass.
+- E2B structured generation and Qwen3-Embedding-0.6B smoke tests pass.
 - Gemma 4 12B loads, produces grammar-valid output, and shuts down cleanly on at least one Local 12-class and one Local 16-class target before later LLM work proceeds.
 - Native runtime loading passes on the initial macOS and Windows paths.
 - Native-worker probes prove external-network denial and absence of arbitrary workspace, credential, shell, and tool authority; any supervisor-created local endpoint accepts only its fixed worker protocol.
@@ -293,7 +298,7 @@ Gate:
 Scope:
 
 - Add Chunk and retrieval contracts.
-- Implement structure-aware page, heading, paragraph, table, row-window, sheet, and OCR-region chunks under EmbeddingGemma's token limit.
+- Implement structure-aware page, heading, paragraph, table, row-window, sheet, and OCR-region chunks sized by retrieval quality tests within the encoder's input limit.
 - Cache embeddings by chunk hash, encoder version, dimension, and normalization version.
 - Use LanceDB for full-text and dense retrieval with reciprocal-rank fusion and metadata filters.
 - Provide exact identifier, date, amount, name, and clause search.
@@ -433,14 +438,15 @@ This is the first milestone allowed to move Local 12, Local 16, and Community De
 
 ## Explicitly Deferred After M11
 
-1. Python sidecar for additional formats when the native/GGUF routes prove insufficient.
-2. MTP and KV-cache-quantization certification as a pinned runtime combination.
-3. turbovec evaluation against the LanceDB baseline.
-4. MCP position ADR.
-5. Additional accounting integrations and direct accounting-system connectors.
-6. Legal workflow pack.
-7. Application-managed workspace encryption, subject to a dedicated threat model and recovery design.
-8. Appliance mode, backup orchestration, identity, multi-user governance, and permission-aware shared retrieval.
+1. The model-download build flavor: managed generation-model installation through the typed Vault Core broker per ADR 0016, including the signed model catalog, allowlisted repositories, download UI, and broker audit. The bundled build certifies first.
+2. Python sidecar for additional formats when the native/GGUF routes prove insufficient.
+3. MTP and KV-cache-quantization certification as a pinned runtime combination.
+4. turbovec evaluation against the LanceDB baseline.
+5. MCP position ADR.
+6. Additional accounting integrations and direct accounting-system connectors.
+7. Legal workflow pack.
+8. Application-managed workspace encryption, subject to a dedicated threat model and recovery design.
+9. Appliance mode, backup orchestration, identity, multi-user governance, and permission-aware shared retrieval.
 
 Never written in the first implementation: custom parser, custom OCR engine, custom vector database, unrestricted shell tool, persistent coding workspace, broad plugin system, or generic agent brain.
 
@@ -465,3 +471,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |
 | 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
 | 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |
+| 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |

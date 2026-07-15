@@ -27,7 +27,7 @@ flowchart TD
 
     Canonical --> Chunk["Structure-aware chunking"]
     Chunk --> Summary["Page, section, table, sheet, document, folder summaries"]
-    Chunk --> Dense["EmbeddingGemma vectors"]
+    Chunk --> Dense["Qwen3-Embedding-0.6B vectors"]
     Chunk --> Lexical["Lexical index"]
     Dense --> Hybrid["Embedded hybrid index, optional TurboQuant acceleration"]
     Hybrid --> Retrieve["Hybrid retrieval"]

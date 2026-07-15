@@ -18,7 +18,7 @@ The first Windows and macOS desktop certification target is node-llama-cpp runni
 
 This host-native worker uses the accelerator exception defined by [ADR 0012](0012-worker-isolation-and-untrusted-documents.md): GPU access remains available, but an operating-system sandbox denies networking and the worker receives no shell, executable tools, credentials, approval authority, or arbitrary workspace access. It is not the hostile-document or executable-tool sandbox.
 
-The first retrieval path uses EmbeddingGemma through the same runtime family when redistribution and packaging review permits it.
+The first retrieval path uses the default dense encoder selected by [ADR 0016](0016-model-agnostic-defaults-and-managed-downloads.md) — Qwen3-Embedding-0.6B, official GGUF — through the same node-llama-cpp runtime.
 
 The runtime adapter exposes model loading, structured generation, embeddings, cancellation, resource reporting, health, and disposal without exposing node-llama-cpp types to Vault Core.
 
@@ -56,3 +56,4 @@ Negative:
 | 2026-07-11 | Accepted node-llama-cpp and the official QAT GGUF as the first cross-platform desktop runtime target. |
 | 2026-07-12 | Bound the host-native runtime to the narrow OS-sandboxed accelerator exception in ADR 0012. |
 | 2026-07-13 | Updated the packaging gate for the Tauri desktop shell selected by ADR 0014. |
+| 2026-07-15 | Replaced the EmbeddingGemma retrieval line with the ADR 0016 default encoder (Qwen3-Embedding-0.6B) on the same runtime. |

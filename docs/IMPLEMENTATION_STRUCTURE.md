@@ -99,7 +99,7 @@ assets/models.json     canonical machine-readable model and redistribution manif
 assets/bundles/trust-root.json  provisioned offline bundle trust root                 M10
 compliance/inventory.json  machine-readable dependency/model ownership and license inventory
 scripts/check-source-limits.ts  hand-written source-file length gate
-docs/adr/0016-knowledge-bundle-format-and-trust.md  M0 transport/trust decision
+docs/adr/0017-knowledge-bundle-format-and-trust.md  M0 transport/trust decision
 .github/workflows/ci.yml   one evolving workflow: M0 macOS/Windows matrix; just-in-time
                            Linux, hardware/model, and package jobs
 packages/
@@ -391,7 +391,7 @@ Consolidated from the plan and this review: the first four are first-implementat
 
 | Milestone | New folders and files |
 |---|---|
-| M0 | Phase-rule update and selected root `LICENSE`; root configs and source-limit check; canonical model and compliance manifests; ADR 0016; `shared/model.ts`; `eval` models, fixtures, M0 gates, provisional microVM smoke harness, and test-only Tauri shell; worker guest-image README/manifest; CI workflow |
+| M0 | Phase-rule update and selected root `LICENSE`; root configs and source-limit check; canonical model and compliance manifests; ADR 0017; `shared/model.ts`; `eval` models, fixtures, M0 gates, provisional microVM smoke harness, and test-only Tauri shell; worker guest-image README/manifest; CI workflow |
 | M1 | Split `shared` workspace/job/audit/policy/RPC/error/worker contracts; core composition root/facade/test harness, daemon entry/server/methods, workspace state/storage, audit, jobs, and policy; worker public exports, IPC, microVM launchers, guest I/O/probe, and image build; `cli` |
 | M2 | `shared/inference.ts`; core inference port, supervisor, scheduler, and model resolver; native-worker platform launchers; inference worker/client/fake |
 | M3 | `shared/document.ts`; core ingest orchestration, inventory, manifest, parser port, and exact search; microVM parse client, guest router, and per-format adapters |
@@ -414,7 +414,7 @@ M11 deliberately adds no product code: certification runs against what already e
 - Decide whether the macOS microVM launcher needs a small signed helper binary for Virtualization.framework. If it does, update AGENTS.md and this blueprint with the exact source path, language, Cargo/native lockfile boundary, and lifecycle-only contract before adding helper code; without that recorded exception, no helper is permitted.
 - Choose hand-rolled CLI argument dispatch versus one small dependency; default is hand-rolled.
 - Select guest-image build tooling, record its rationale in `workers/images/README.md`, and pin machine-readable inputs in `workers/images/manifest.json`.
-- Select maintained archive, TUF-style metadata, and signature-verification libraries for Knowledge Bundles, then record the M5 reader and M10 import/trust decision in ADR 0016.
+- Select maintained archive, TUF-style metadata, and signature-verification libraries for Knowledge Bundles, then record the M5 reader and M10 import/trust decision in ADR 0017.
 
 ## Revision History
 

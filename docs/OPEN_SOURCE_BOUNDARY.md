@@ -70,7 +70,8 @@ Open decisions:
 Known model-license facts (verified 2026-07-11):
 
 - Gemma 4 (including 12B QAT) is Apache 2.0. It can be redistributed inside community packaging with standard notices.
-- EmbeddingGemma remains under the Gemma Terms of Use, not Apache 2.0. Redistribution and bundling terms need explicit review before it ships inside the community installer.
+- Qwen3-Embedding-0.6B, the default encoder per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md), is Apache 2.0 with an official GGUF release, so the default shipped stack is fully Apache 2.0.
+- EmbeddingGemma (validated alternative encoder) remains under the Gemma Terms of Use, not Apache 2.0. Redistribution and bundling terms need explicit review before it could ship inside any installer.
 - Candidate third-party components are permissively licensed: turbovec (MIT), Docling (MIT), MarkItDown (MIT), llama.cpp and node-llama-cpp (MIT).
 
 Implementation consequence: every model and native runtime begins as a development or candidate-to-ship asset. A candidate can be marked as shipping only after redistribution terms, required notices, platform package behavior, hashes, and offline operation are reviewed. Packaging must emit third-party notices plus dependency and model inventories.

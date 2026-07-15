@@ -187,7 +187,7 @@ Audit shape: structure trace records after the OpenTelemetry GenAI semantic conv
 
 The harness should coordinate:
 
-- EmbeddingGemma indexing (via node-llama-cpp GGUF embeddings or the Transformers.js ONNX path).
+- Qwen3-Embedding-0.6B indexing (via node-llama-cpp GGUF embeddings or the Transformers.js ONNX path).
 - Lexical indexing.
 - An embedded hybrid index (LanceDB is the verified primary candidate: in-process for Node, hybrid lexical-plus-dense search, binary quantization), with TurboQuant-based acceleration only if benchmarks justify it. See [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 - Evidence pack assembly.

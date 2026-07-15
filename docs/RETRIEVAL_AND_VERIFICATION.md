@@ -14,24 +14,27 @@ Use hybrid retrieval:
 2. Evidence-scope filters separating customer documents, installed Knowledge Bundles, and deterministic tool results.
 3. For Knowledge Bundles, applicability filters for bundle digest, domain, jurisdiction, language, validity interval, source status, and authority class.
 4. Lexical search for exact names, invoice numbers, clause labels, account IDs, dates, and amounts.
-5. Dense retrieval with EmbeddingGemma.
+5. Dense retrieval with Qwen3-Embedding-0.6B.
 6. Optional vector compression and approximate search acceleration with TurboQuant-based indexing.
 7. Metadata-aware reranking.
 8. Contradiction and supersession search.
-9. Gemma-family evidence verification.
+9. Model-backed evidence verification using the active certified generation model.
 
 Dense search alone is not enough for professional documents because exact identifiers and numeric values matter.
 
 ## Encoder Choice
 
-EmbeddingGemma should be the default dense encoder.
+Qwen3-Embedding-0.6B is the product-managed dense encoder, per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md).
 
 Reasons:
 
-- It keeps the product inside the Gemma family.
-- It is designed for local retrieval.
-- It is small enough to run alongside generation profiles.
-- It supports multilingual professional document sets better than an English-only encoder would.
+- Apache 2.0 with an official GGUF release, keeping the shipped stack fully Apache 2.0 and the development fetch ungated.
+- Designed for local retrieval and served by the same node-llama-cpp runtime as generation.
+- Small enough (roughly 0.4 to 1.2 GB depending on quantization) to run alongside generation profiles.
+- Strong multilingual retrieval over 100+ languages for professional document sets, with verified MTEB multilingual results at or above the prior default.
+- 32K input context removes the encoder-side chunk-length ceiling; chunk sizing remains governed by recall tests.
+
+EmbeddingGemma remains a validated alternative encoder. It carries Gemma Terms of Use distribution obligations and must not ship in an installer without a dedicated redistribution review. The encoder is never an ordinary user choice; a signed catalog entry may pair a different encoder with a downloaded model, which triggers an explicit re-index.
 
 The first index should store full source text and source anchors separately from compressed vectors. Compression accelerates retrieval; it must not become the only record of evidence.
 
@@ -41,7 +44,7 @@ Use three logical stores:
 
 - Canonical content store: full extracted text, structure, metadata, and source anchors.
 - Lexical index: exact terms, identifiers, dates, numbers, names, and headings.
-- Dense vector index: EmbeddingGemma vectors, optionally compressed for speed and memory.
+- Dense vector index: Qwen3-Embedding-0.6B vectors, optionally compressed for speed and memory.
 
 ### Index Choice (Verified 2026-07-11)
 
@@ -205,7 +208,9 @@ Compaction should not replace source evidence with prose memory. After compactin
 
 ## Research Links
 
-- [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma)
+- [Qwen3-Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/)
+- [Qwen3-Embedding-0.6B-GGUF](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF)
+- [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma) (validated alternative)
 - [TurboQuant paper](https://arxiv.org/abs/2504.19874)
 - [Google Research TurboQuant blog](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/)
 - [turbovec repository](https://github.com/RyanCodrai/turbovec)
@@ -222,3 +227,4 @@ Compaction should not replace source evidence with prose memory. After compactin
 | 2026-07-10 | Added reproducible evidence-pack and compaction requirements for Local 12 and Local 16. |
 | 2026-07-11 | Verified TurboQuant as the Google Research algorithm underlying turbovec, documented the Python-only binding constraint, and named LanceDB as the primary embedded index candidate with sqlite-vec fallback and turbovec as a benchmark-gated acceleration option. |
 | 2026-07-12 | Added separate Knowledge Bundle evidence scope, applicability and authority filters, supersession checks, and bundle-digest replay requirements. |
+| 2026-07-15 | Applied ADR 0016: replaced EmbeddingGemma with Qwen3-Embedding-0.6B as the product-managed encoder and made verification wording model-agnostic. |

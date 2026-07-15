@@ -6,7 +6,7 @@ Vault Desk should be an offline-first, cross-vendor desktop and appliance platfo
 
 The architecture should separate the model, document reader, control plane, and tool loop. This prevents the product from becoming a fragile wrapper around one local model runtime.
 
-The current strategic constraint is stronger than the initial architecture: Vault Desk should standardize on one primary model family, the Gemma family, with first certified profiles for 12 GB and 16 GB VRAM systems. Local 12 and Local 16 should use the same Gemma 4 12B QAT model and differ only by certified active context size.
+The current strategic constraint: product contracts are model-agnostic with per-model certification and strong defaults, per [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md). The first certified profiles target 12 GB and 16 GB VRAM systems, both using Gemma 4 12B QAT as the default generation model and differing only by certified active context size.
 
 The first desktop implementation decisions are recorded in [ADR 0010](adr/0010-electron-and-local-transport.md), [ADR 0011](adr/0011-workspace-state-and-recovery.md), [ADR 0012](adr/0012-worker-isolation-and-untrusted-documents.md), [ADR 0013](adr/0013-first-desktop-runtime.md), [ADR 0014](adr/0014-tauri-desktop-shell.md), and [ADR 0015](adr/0015-deterministic-document-tools-and-code-fallback.md). ADR 0014 supersedes the Electron portion of ADR 0010; its separate-daemon transport decision remains active.
 
@@ -53,7 +53,7 @@ This is the core future TypeScript/Node harness area.
 
 ### Inference Plane
 
-The inference plane hosts local Gemma-family model runtimes through adapter boundaries.
+The inference plane hosts local model runtimes through model-agnostic adapter boundaries.
 
 The first desktop certification target is node-llama-cpp with the official Gemma 4 QAT GGUF in a supervised worker on both Windows and macOS. MLX-family serving remains a later adapter-backed Apple Silicon optimization rather than a parallel first implementation. See [ADR 0013](adr/0013-first-desktop-runtime.md).
 
@@ -69,7 +69,7 @@ Current target profiles:
 
 - Local 12 profile: Gemma 4 12B QAT as the default reasoning and synthesis model, with bounded active context and retrieval-first prompting.
 - Local 16 profile: the same Gemma 4 12B QAT model, workflows, retrieval, verification, safety, and approval policy with a larger certified active context.
-- Retrieval profile: EmbeddingGemma as the default dense encoder, paired with lexical search and vector compression.
+- Retrieval profile: Qwen3-Embedding-0.6B as the product-managed dense encoder, paired with lexical search and vector compression.
 
 See [MODEL_STRATEGY.md](MODEL_STRATEGY.md), [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md), and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
@@ -229,3 +229,4 @@ For the first desktop MVP, local workspace protection relies on operating-system
 | 2026-07-12 | Replaced process-only hostile-work isolation with a no-NIC microVM and separated approved external connectivity into a typed broker. |
 | 2026-07-12 | Added installed offline Knowledge Bundles as a passive, separately scoped source for the document and retrieval planes. |
 | 2026-07-13 | Replaced Electron with Tauri v2 and added deterministic document operations plus a no-NIC code-interpreter fallback. |
+| 2026-07-15 | Applied ADR 0016: model-agnostic contracts with per-model certification, Gemma 4 12B QAT as the default generation model, and Qwen3-Embedding-0.6B as the product-managed encoder. |

@@ -20,6 +20,8 @@ The deep research report provided the model, runtime, document pipeline, benchma
 - [Gemma core docs](https://ai.google.dev/gemma/docs/core)
 - [Gemma 4 QAT announcement](https://blog.google/innovation-and-ai/technology/developers-tools/quantization-aware-training-gemma-4/)
 - [EmbeddingGemma docs](https://ai.google.dev/gemma/docs/embeddinggemma)
+- [Qwen3-Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/)
+- [Qwen3-Embedding-0.6B-GGUF](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF)
 - [Gemma function calling docs](https://ai.google.dev/gemma/docs/core/function-calling)
 - [Gemma 4 model card](https://ai.google.dev/gemma/docs/core/model_card_4)
 - [Gemma 4 Multi-Token Prediction](https://ai.google.dev/gemma/docs/mtp/overview)
@@ -75,7 +77,7 @@ Now verified against primary sources (2026-07-11), still requiring validation on
 
 - Gemma 4 licensing (Apache 2.0) and QAT checkpoint availability: verified. Memory and runtime behavior on actual 12 GB and 16 GB targets under full product load: still to benchmark.
 - Multi-Token Prediction runtime support: verified. Its memory, latency, and stability on Local 12 and Local 16, and node-llama-cpp MTP drafter support: still to validate.
-- EmbeddingGemma profile and license: verified. Retrieval quality on local professional corpora: still to benchmark.
+- EmbeddingGemma profile and license: verified; demoted to validated alternative by ADR 0016. Qwen3-Embedding-0.6B license (Apache 2.0), official GGUF availability, and published MTEB multilingual results: verified 2026-07-15. Retrieval quality of the default encoder on local professional corpora: still to benchmark.
 - Parser quality rankings and OCR benchmark scores: vendor and community benchmarks only; must be re-run on Vault Desk accounting and legal corpora.
 - Community tokens-per-second figures: research-derived, not lab results.
 
@@ -107,7 +109,7 @@ Before code or public claims:
 - Benchmark Gemma 4 12B QAT active context on 12 GB and 16 GB with document workers running.
 - Benchmark Local 12 and Local 16 through at least 30-minute sessions with multiple context compactions.
 - Benchmark Gemma 4 12B QAT, 26B A4B, and 31B dense only after the Local 12 and Local 16 workflow suite is stable.
-- Benchmark EmbeddingGemma plus lexical search against accounting and legal corpora.
+- Benchmark Qwen3-Embedding-0.6B plus lexical search against accounting and legal corpora, with EmbeddingGemma as the comparison alternative.
 - Benchmark native Node parsers, Granite-Docling GGUF, the Docling sidecar, PaddleOCR-VL, MarkItDown, Unstructured, and native spreadsheet parsing against the same files.
 - Benchmark LanceDB hybrid search (with RaBitQ quantization) against sqlite-vec and against turbovec-in-sidecar for recall and latency.
 - Validate node-llama-cpp with Gemma 4 QAT GGUF, grammar-constrained output, and the MTP drafter on all three GPU vendors.
