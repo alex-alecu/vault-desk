@@ -53,15 +53,18 @@ Likely proprietary:
 - Proprietary modules should add governance, scale, supportability, and integrations.
 - The user should not need to understand which module handles a task.
 
-## Licensing Questions
+## Licensing Decisions
+
+Resolved decisions:
+
+- Community source license: Apache License 2.0, selected by the repository owner on 2026-07-15. The root `LICENSE` file is added by the M0 phase-change commit before any implementation source, per [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md); it is not added during the documentation-only phase. Rationale: explicit patent grant over MIT, no CLA needed alongside the DCO-only contribution rule, compatible with the open-core boundary in this document, and matching Gemma 4, llama.cpp, and node-llama-cpp licensing. The permissive norm in the adjacent space (AnythingLLM, Hermes, OpenClaw, OpenCode, Onyx community on MIT; Jan on Apache 2.0) and the Open WebUI custom-license backlash both informed the choice.
+- Contributor agreement strategy: Developer Certificate of Origin 1.1 sign-off with no CLA, per [CONTRIBUTING.md](../CONTRIBUTING.md).
+- Compliance ownership: the repository owner is responsible for dependency, model, notice, and redistribution approval decisions until a second maintainer is appointed and this line is updated.
+- Model and third-party notice strategy: manifest-driven `development` / `candidate_to_ship` / `ships` status with packaged notices, SBOMs, and inventories, per [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 Open decisions:
 
-- Open-source license.
-- Contributor agreement strategy.
 - Trademark policy.
-- Model license notice strategy.
-- Third-party component notice strategy.
 - Whether business plugins can depend on community extension points.
 
 Known model-license facts (verified 2026-07-11):
@@ -104,3 +107,4 @@ Before signing employment or investment agreements, review the repository and co
 | 2026-07-11 | Added the candidate-to-ship review gate and package notice/inventory requirements. |
 | 2026-07-12 | Added community and business Knowledge Bundle boundaries plus resource-level content-rights review. |
 | 2026-07-13 | Added deterministic document operations and the bounded code-interpreter fallback to the community candidate surface. |
+| 2026-07-15 | Recorded the owner-selected Apache 2.0 community license, DCO-only contributor strategy, compliance ownership, and manifest-driven notice strategy; narrowed open decisions to trademark policy and business-plugin extension points. |

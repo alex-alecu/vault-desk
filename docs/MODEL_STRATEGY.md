@@ -36,6 +36,13 @@ Licensing (verified 2026-07-11): Gemma 4 is Apache 2.0. EmbeddingGemma remains u
 
 Packaging rule (verified 2026-07-11): ship or pin the official pre-converted QAT Q4_0 GGUF checkpoints. Self-converting QAT checkpoints to GGUF destroys the QAT quality benefit.
 
+Development fetch sources (verified 2026-07-15): the hash-pinned development fetcher pulls from the official Google repositories on Hugging Face and from no other host.
+
+- Generation: `google/gemma-4-12B-it-qat-q4_0-gguf` and `google/gemma-4-E2B-it-qat-q4_0-gguf` (Apache 2.0, ungated; the 12B GGUF is approximately 7 GB).
+- Retrieval: `google/embeddinggemma-300m` (Gemma Terms of Use, gated: each developer and CI identity accepts the terms on Hugging Face once and authenticates downloads with its own token; access grants are processed immediately).
+
+Vault Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF, and rehosting EmbeddingGemma is distribution under the Gemma Terms of Use, which would immediately trigger its notice, flow-down, and terms-copy obligations. Those obligations are accepted deliberately at the M10 packaging gate when an asset moves to `ships`, not implicitly through a development mirror. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache.
+
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md) and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
 ## Local 12 And Local 16 Profiles
@@ -175,3 +182,4 @@ Each certified profile needs:
 | 2026-07-10 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
 | 2026-07-11 | Revalidated against live sources: Apache 2.0 licensing, EmbeddingGemma license caveat, official QAT GGUF packaging rule, verified MTP runtime support and memory cost, node-llama-cpp and LiteRT-LM runtime guidance, and joint QAT/KV-quant/MTP certification rule. |
 | 2026-07-11 | Selected node-llama-cpp and the official QAT GGUF as the single first Windows/macOS runtime target through ADR 0013. |
+| 2026-07-15 | Recorded the official Google Hugging Face repositories as the only development fetch sources, the per-identity EmbeddingGemma gating procedure, and the decision not to mirror weights on GitHub or elsewhere before the M10 packaging gate. |
