@@ -165,20 +165,4 @@ Models may propose actions. The application validates, authorizes, previews, exe
 
 The certified hostile-work sandbox is a disposable microVM with no virtual network device and only typed host/guest socket IPC. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 
-## Revision History
-
-| Date | Change |
-|---|---|
-| 2026-07-10 | Initial agent instructions created for a documentation-only Vault Desk repository. |
-| 2026-07-10 | Added Gemma-family, huge-document, retrieval, and verification docs to the required architecture map. |
-| 2026-07-10 | Added Local 12 and Local 16 performance, compaction, edge-AI review, and implementation quality docs to the map. |
-| 2026-07-10 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
-| 2026-07-11 | Added CLAUDE.md pointer so Claude Code loads these instructions verbatim. |
-| 2026-07-11 | Live-web revalidation pass: verified Gemma 4/QAT/MTP status, corrected TurboQuant/turbovec naming, revised the parser and index component stack for least future code, and added the README competitor comparison. |
-| 2026-07-11 | Added docs/IMPLEMENTATION_PLAN.md with the M0-M11 milestone plan (three-layer architecture, AI-testable gates, tiered Gemma 4 test models). Repository remains documentation-only until M0 is explicitly started. |
-| 2026-07-11 | Added the commit authorship rule: no AI co-author trailers or attribution lines in commits or PRs. |
-| 2026-07-11 | Revised the implementation plan after readiness review and added ADRs for Electron/local transport, workspace recovery, worker isolation, and the first desktop runtime. |
-| 2026-07-12 | Replaced command-level network policy with a certified no-NIC microVM requirement for hostile document and executable-tool work. |
-| 2026-07-12 | Added the offline Knowledge Bundle architecture and research documents to the required documentation map. |
-| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and adopted deterministic document tools with an isolated code-interpreter fallback. |
-| 2026-07-13 | Added docs/IMPLEMENTATION_STRUCTURE.md: the concrete folder/module blueprint and startup minimal-code working agreement for the implementation phase. |
+For revision history and additional detail when needed, see [README.md](README.md#revision-history).

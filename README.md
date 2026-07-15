@@ -96,9 +96,16 @@ Vault Desk should not begin as:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial documentation-only repository created from supplied concept and research material. |
-| 2026-07-10 | Added current Gemma-family, huge-document, retrieval, and verification architecture pointers. |
-| 2026-07-10 | Added Local 12 and Local 16 Gemma 4 12B QAT performance, context, and implementation quality specs. |
-| 2026-07-11 | Added verified competitor comparison table (AnythingLLM, Open WebUI, LM Studio, Jan, GPT4All, Msty, Openwork) after live-web revalidation of the documentation set. |
-| 2026-07-11 | Added the M0-M11 implementation plan pointer (docs/IMPLEMENTATION_PLAN.md). |
+| 2026-07-10 | Created the agent instructions for the documentation-only phase. |
+| 2026-07-10 | Added Gemma-family, huge-document, retrieval, and verification architecture documentation. |
+| 2026-07-10 | Added Local 12 and Local 16 performance, context, compaction, edge-AI review, and implementation quality documentation. |
+| 2026-07-10 | Added explicit Clean Code-derived implementation principles to the agent instructions. |
+| 2026-07-11 | Added the `CLAUDE.md` pointer so Claude Code loads the agent instructions verbatim. |
+| 2026-07-11 | Completed a live-web revalidation pass: verified Gemma 4, QAT, and MTP status; corrected TurboQuant and turbovec naming; revised the parser and index component stack for least future code; and added the competitor comparison. |
+| 2026-07-11 | Added `docs/IMPLEMENTATION_PLAN.md` with the M0-M11 milestone plan, three-layer architecture, AI-testable gates, and tiered Gemma 4 test models. The repository remains documentation-only until M0 is explicitly started. |
+| 2026-07-11 | Added the commit authorship rule prohibiting AI co-author trailers and attribution lines in commits and pull requests. |
+| 2026-07-11 | Revised the implementation plan after readiness review and added ADRs for Electron and local transport, workspace recovery, worker isolation, and the first desktop runtime. |
+| 2026-07-12 | Replaced command-level network policy with a certified no-NIC microVM requirement for hostile document and executable-tool work. |
 | 2026-07-12 | Added the offline Knowledge Bundle architecture and current standards research. |
-| 2026-07-13 | Selected Tauri v2 for the desktop shell and added the deterministic-tools plus isolated-code-fallback architecture. |
+| 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and adopted deterministic document tools with an isolated code-interpreter fallback. |
+| 2026-07-13 | Added `docs/IMPLEMENTATION_STRUCTURE.md`, the concrete folder and module blueprint, startup minimal-code working agreement, and milestone-to-folder map. |
