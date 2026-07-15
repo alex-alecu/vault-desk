@@ -152,6 +152,7 @@ Use runtime adapters:
 - Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
 - MLX-family serving is a later Apple Silicon optimization candidate and must pass the same packaged workflow, citation, verification, compaction, and offline suite before certification.
 - Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.
+- [PrismML Bonsai](https://prismml.com/news/bonsai-8b) as a research-derived post-M11 candidate to track: its low-bit model formats may suit Local 12 and Local 16, but evaluation waits until the formats and required upstream runtime backends are stable in pinned releases. It must pass the same licensing, redistribution, offline packaging, cross-platform, memory, context, structured-output, tool-use, workflow-quality, citation, and verification gates before certification; it does not change the current default.
 - vLLM-class serving for later office appliances and high-throughput profiles after Gemma 4 QAT support is verified.
 - Avoid runtime-specific features in core workflow logic.
 - Pin runtime builds. QAT, KV-cache quantization, and MTP interact per build and must be certified together.
@@ -203,3 +204,4 @@ Each certified profile needs:
 | 2026-07-15 | Recorded the official Google Hugging Face repositories as the only development fetch sources, the per-identity EmbeddingGemma gating procedure, and the decision not to mirror weights on GitHub or elsewhere before the M10 packaging gate. |
 | 2026-07-15 | Applied ADR 0016: model-agnostic contracts with Gemma 4 12B QAT as default generation model, Qwen3-Embedding-0.6B replacing EmbeddingGemma as the product-managed encoder (ungated fetch, fully Apache 2.0 shipped stack), and the managed model-download build flavor. |
 | 2026-07-15 | Pinned the exact default assets for the M0 manifest — repository names, literal file names, sizes, and SHA-256 digests read from the Hugging Face API and verified anonymously downloadable — covering 12B QAT, E2B QAT, their multimodal projectors, and the Q8_0 encoder. |
+| 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 candidate, pending stable upstream runtime support and the complete certification suite. |

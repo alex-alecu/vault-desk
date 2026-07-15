@@ -447,11 +447,12 @@ The v1 launch follows M11 certification and is when the repository opens to coll
 2. Python sidecar for additional formats when the native/GGUF routes prove insufficient.
 3. MTP and KV-cache-quantization certification as a pinned runtime combination.
 4. turbovec evaluation against the LanceDB baseline.
-5. MCP position ADR.
-6. Additional accounting integrations and direct accounting-system connectors.
-7. Legal workflow pack.
-8. Application-managed workspace encryption, subject to a dedicated threat model and recovery design.
-9. Appliance mode, backup orchestration, identity, multi-user governance, and permission-aware shared retrieval.
+5. [PrismML Bonsai](https://prismml.com/news/bonsai-8b) evaluation after its low-bit formats and required upstream runtime backends are stable in pinned releases. Treat it as research-derived and require the same license, redistribution, offline packaging, cross-platform, memory, context, structured-output, tool-use, workflow-quality, citation, and verification gates before changing any certified default.
+6. MCP position ADR.
+7. Additional accounting integrations and direct accounting-system connectors.
+8. Legal workflow pack.
+9. Application-managed workspace encryption, subject to a dedicated threat model and recovery design.
+10. Appliance mode, backup orchestration, identity, multi-user governance, and permission-aware shared retrieval.
 
 Never written in the first implementation: custom parser, custom OCR engine, custom vector database, unrestricted shell tool, persistent coding workspace, broad plugin system, or generic agent brain.
 
@@ -477,4 +478,5 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
 | 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |
 | 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |
+| 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 evaluation candidate, gated on stable upstream runtime support and the full model-certification suite. |
 | 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
