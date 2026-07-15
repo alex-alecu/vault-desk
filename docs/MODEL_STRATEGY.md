@@ -34,10 +34,26 @@ Licensing (verified 2026-07-15): Gemma 4 is Apache 2.0 and Qwen3-Embedding-0.6B 
 
 Packaging rule (verified 2026-07-11): ship or pin the official pre-converted QAT Q4_0 GGUF checkpoints. Self-converting QAT checkpoints to GGUF destroys the QAT quality benefit.
 
-Development fetch sources (verified 2026-07-15): the hash-pinned development fetcher pulls from the official publisher repositories on Hugging Face and from no other host.
+Development fetch sources (verified 2026-07-15): the hash-pinned development fetcher pulls from the official publisher repositories on Hugging Face and from no other host. All three repositories are Apache 2.0 and ungated; anonymous download was verified live (HTTP 200 without a token), so neither developers nor CI need Hugging Face accounts.
 
-- Generation: `google/gemma-4-12B-it-qat-q4_0-gguf` and `google/gemma-4-E2B-it-qat-q4_0-gguf` (Apache 2.0, ungated; the 12B GGUF is approximately 7 GB).
-- Retrieval: `Qwen/Qwen3-Embedding-0.6B-GGUF` (Apache 2.0, ungated; no Hugging Face account or token required).
+### Pinned Default Assets
+
+These exact repository names, file names, sizes, and SHA-256 digests were read from the Hugging Face API on 2026-07-15 and are the canonical values for the M0 machine-readable model manifest. Download URLs follow the pattern `https://huggingface.co/<repository>/resolve/main/<file>`.
+
+| Role | Repository | File | Size | SHA-256 |
+|---|---|---|---|---|
+| Default generation (12B, manifest status `candidate_to_ship`) | `google/gemma-4-12B-it-qat-q4_0-gguf` | `gemma-4-12b-it-qat-q4_0.gguf` | 6.98 GB | `1e76e46623deaa4db97d4ef272ceab0dfb767c0f34c2c76524837edf2b57a510` |
+| 12B multimodal projector (paired with the above) | `google/gemma-4-12B-it-qat-q4_0-gguf` | `mmproj-gemma-4-12b-it-qat-q4_0.gguf` | 0.18 GB | `e70b0e5cd80323d5d588b4ed06780356b7b1ba03995a4b8164c6ae9db0ff5989` |
+| Development test model (E2B, manifest status `development`, never shipped) | `google/gemma-4-E2B-it-qat-q4_0-gguf` | `gemma-4-E2B_q4_0-it.gguf` | 3.35 GB | `25194efbf8a53268241e5ffa6d5490edc08b3faaa6ead24478c8b025a986d556` |
+| E2B multimodal projector (paired with the above) | `google/gemma-4-E2B-it-qat-q4_0-gguf` | `gemma-4-E2B-it-mmproj.gguf` | 0.99 GB | `58c187648007cab392bd5678b87e862c3e8794017deb945feea2cf256195e96a` |
+| Default encoder (manifest status `candidate_to_ship`) | `Qwen/Qwen3-Embedding-0.6B-GGUF` | `Qwen3-Embedding-0.6B-Q8_0.gguf` | 0.64 GB | `06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439` |
+
+Notes:
+
+- The E2B file name does not follow the 12B naming pattern (`gemma-4-E2B_q4_0-it.gguf`, underscore before `q4_0`); the manifest must use these literal file names, not a derived pattern.
+- The Q8_0 encoder quantization is the pinned default (near-lossless, 0.64 GB). The f16 file (`Qwen3-Embedding-0.6B-f16.gguf`, 1.20 GB, `421a27e58d165478cc7acb984a688c2aa41404968b0203e7cd743ece44c54340`) is recorded as the comparison reference if M5 recall tests implicate quantization.
+- The multimodal projectors ride along for the M4 page-inspection path and E2B vision smoke tests; text-only milestones may defer fetching them.
+- A digest mismatch on fetch is a hard failure: the upstream file changed and the pin must be re-reviewed deliberately, never auto-updated.
 
 Vault Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache. The same official repositories later serve as the allowlisted sources for the ADR 0016 model-download build, behind the typed broker and signed catalog.
 
@@ -186,3 +202,4 @@ Each certified profile needs:
 | 2026-07-11 | Selected node-llama-cpp and the official QAT GGUF as the single first Windows/macOS runtime target through ADR 0013. |
 | 2026-07-15 | Recorded the official Google Hugging Face repositories as the only development fetch sources, the per-identity EmbeddingGemma gating procedure, and the decision not to mirror weights on GitHub or elsewhere before the M10 packaging gate. |
 | 2026-07-15 | Applied ADR 0016: model-agnostic contracts with Gemma 4 12B QAT as default generation model, Qwen3-Embedding-0.6B replacing EmbeddingGemma as the product-managed encoder (ungated fetch, fully Apache 2.0 shipped stack), and the managed model-download build flavor. |
+| 2026-07-15 | Pinned the exact default assets for the M0 manifest — repository names, literal file names, sizes, and SHA-256 digests read from the Hugging Face API and verified anonymously downloadable — covering 12B QAT, E2B QAT, their multimodal projectors, and the Q8_0 encoder. |
