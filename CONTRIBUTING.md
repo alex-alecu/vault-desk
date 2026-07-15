@@ -4,15 +4,15 @@ Thank you for helping build Vault Desk. Contributions must preserve the project'
 
 ## Current Contribution Status
 
-Vault Desk is documentation-only until milestone M0 is explicitly started. The repository does not yet invite implementation pull requests because the Community source license and implementation scaffold have not been established.
+Vault Desk does not invite implementation pull requests before its v1 launch. Through v1 the repository owner develops directly on `main`; external contributions open when v1 ships and the contribution workflow in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) is activated.
 
-Until M0 completes:
+Until the v1 launch:
 
 - Open an issue to propose an implementation, architecture change, or documentation correction.
 - Do not submit application code, manifests, build configuration, scripts, generated assets, or dependency changes.
 - Do not treat an unassigned milestone or roadmap item as authorization to implement it.
 
-After M0, implementation issues will be advertised with the `ready-for-contribution` label. Work only from one of those issues or from an issue that a maintainer has explicitly accepted.
+After the v1 launch, implementation issues will be advertised with the `ready-for-contribution` label. Work only from one of those issues or from an issue that a maintainer has explicitly accepted.
 
 ## Before Starting
 
@@ -41,7 +41,7 @@ Vault Desk does not use a blanket coverage percentage. Tests protect product beh
 
 ## Commit Authorship And DCO
 
-When contributions open after M0, every commit must be authored by the human contributor and certified under the [Developer Certificate of Origin 1.1](https://developercertificate.org/). Add a matching sign-off with:
+When contributions open at the v1 launch, every commit must be authored by the human contributor and certified under the [Developer Certificate of Origin 1.1](https://developercertificate.org/). Add a matching sign-off with:
 
 ```text
 git commit -s
@@ -99,4 +99,4 @@ External pull requests require maintainer review. Pull requests use squash mergi
 
 ## Security Reports
 
-Do not publish vulnerability details in an issue. Follow [.github/SECURITY.md](.github/SECURITY.md) and use GitHub private vulnerability reporting after M0 enables it.
+Do not publish vulnerability details in an issue. Follow [.github/SECURITY.md](.github/SECURITY.md) and use GitHub private vulnerability reporting once it is enabled.

@@ -20,7 +20,7 @@ Vault Desk is currently in a documentation-only phase. Do not create application
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
 
-M0 replaces the owner-only portion of this rule when implementation contributions open. From that point, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
+The v1 launch (after milestone M11) replaces the owner-only portion of this rule when implementation contributions open. Until then the owner commits directly to `main` without pull-request gates. From activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Future Implementation Rule
 

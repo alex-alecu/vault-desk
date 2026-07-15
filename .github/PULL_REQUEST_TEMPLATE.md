@@ -44,4 +44,4 @@
 - [ ] Security, privacy, evidence, approval, audit, and recovery effects were reviewed.
 - [ ] Documentation and source links were updated where behavior or research changed.
 - [ ] No customer, confidential, employer-owned, credential, or unapproved third-party material is included.
-- [ ] Every commit is human-authored and DCO-signed after M0; no AI author, co-author, or generator attribution is present.
+- [ ] Every commit is human-authored and DCO-signed; no AI author, co-author, or generator attribution is present.

@@ -19,7 +19,9 @@ The following architecture decisions are resolved in documentation before implem
 
 M0 may validate exact dependency packages behind these boundaries, but it must not reopen the boundaries without a superseding ADR.
 
-M0 is also blocked until the repository owner selects the Community source license and records who is responsible for dependency, model, notice, and redistribution approval. The M0 phase-change commit adds the selected root `LICENSE` before implementation source. Implementation code must not be published under an implicit or undecided license.
+The Community source license (Apache 2.0) and compliance ownership were recorded on 2026-07-15 in [OPEN_SOURCE_BOUNDARY.md](OPEN_SOURCE_BOUNDARY.md), and the root `LICENSE` is committed. Implementation code must not be published under an implicit or undecided license.
+
+Development is platform-independent: work proceeds on whatever platform the developer uses, with cross-platform breadth covered by CI. Gate items that require a specific platform, GPU, or edition (microVM probes, sidecar signing, model loads) are milestone-closure checkpoints, not daily development blockers; when the required machine is not yet available, the item is recorded as an open gate item and the milestone stays open rather than the work stopping.
 
 ## Process Architecture
 
@@ -198,13 +200,12 @@ Scope:
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
 - Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0017-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
-- After the root license exists, activate [the contribution workflow](../CONTRIBUTING.md): replace owner-only commits with human contributor authorship and DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off and private vulnerability reporting, and protect `main` with pull requests, required DCO and applicable CI checks, resolved conversations, and force-push and deletion denial. Keep implementation contributions closed until this point.
-- Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one milestone-gate report without requiring an approval count until a second maintainer exists.
+- Contribution activation is deferred to the v1 launch (after M11). Through v1, the repository owner commits directly to `main` without pull-request gates, keeping each commit small and leaving `pnpm verify` green. Implementation contributions remain closed; enable GitHub private vulnerability reporting early since it costs nothing and gates nothing.
 - Resolve every item in IMPLEMENTATION_STRUCTURE.md's M0 open-item list and record each decision in the owning manifest, configuration, ADR, or blueprint before the gate closes.
 
 Gate:
 
-- The owner-selected root `LICENSE` is present, and the compliance inventory records the responsible owner for dependency, model, notice, and redistribution decisions.
+- The root `LICENSE` is present, and the compliance inventory records the responsible owner for dependency, model, notice, and redistribution decisions.
 - Fixture generation is byte-deterministic.
 - Ground truth covers positive, negative, contradiction, locale, corruption, and prompt-injection cases.
 - Hash mismatch and unapproved `ships` transitions fail.
@@ -214,7 +215,7 @@ Gate:
 - ADR 0017 records the Knowledge Bundle dependency and transport/trust decision; any claim not proven by M0 remains explicitly research-derived.
 - IMPLEMENTATION_STRUCTURE.md has no unresolved M0 item whose answer changes an M1 file, dependency, language, or security boundary.
 - AGENTS.md reflects the active implementation phase and keeps work milestone-scoped.
-- Implementation contributions remain closed until the root license, human-authorship and DCO rule, required DCO check, web sign-off, private vulnerability reporting, `main` protection, and contribution-ready issue workflow are active and verified.
+- Implementation contributions remain closed; the contribution-activation checklist is deferred to the v1 launch gate below.
 
 ### M1 — Workspace state, core security primitives, daemon skeleton, and CLI health
 
@@ -436,6 +437,10 @@ Gate:
 
 This is the first milestone allowed to move Local 12, Local 16, and Community Desktop MVP claims from research-derived to measured or pilot-ready.
 
+## V1 Launch And Contribution Activation
+
+The v1 launch follows M11 certification and is when the repository opens to collaborators. At launch, activate [the contribution workflow](../CONTRIBUTING.md): replace owner-only direct commits with human contributor authorship and DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off, and protect `main` with pull requests, required DCO and applicable CI checks, resolved conversations, and force-push and deletion denial. Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one gate report without requiring an approval count until a second maintainer exists.
+
 ## Explicitly Deferred After M11
 
 1. The model-download build flavor: managed generation-model installation through the typed Vault Core broker per ADR 0016, including the signed model catalog, allowlisted repositories, download UI, and broker audit. The bundled build certifies first.
@@ -456,7 +461,7 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 - Use small, reviewable commits that each leave relevant fast checks green.
 - Tag or otherwise record milestone completion only after its full gate passes.
 - Do not combine unrelated refactors with milestone behavior.
-- Before M0 contribution activation, commit and pull-request authorship follows AGENTS.md's repository-owner-only rule. After activation, human contributors author and DCO-sign every commit; AI authorship, co-authorship, attribution trailers, and generated-by lines remain prohibited.
+- Through the v1 launch, the repository owner commits directly to `main` without pull-request gates, following AGENTS.md's repository-owner-only authorship rule. After v1 contribution activation, human contributors author and DCO-sign every commit through pull requests; AI authorship, co-authorship, attribution trailers, and generated-by lines remain prohibited in both phases.
 
 ## Revision History
 
@@ -472,3 +477,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
 | 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |
 | 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |
+| 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
