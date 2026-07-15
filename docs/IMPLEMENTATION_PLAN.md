@@ -193,6 +193,8 @@ Scope:
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
 - Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0016-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
+- After the root license exists, activate [the contribution workflow](../CONTRIBUTING.md): replace owner-only commits with human contributor authorship and DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off and private vulnerability reporting, and protect `main` with pull requests, required DCO and applicable CI checks, resolved conversations, and force-push and deletion denial. Keep implementation contributions closed until this point.
+- Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one milestone-gate report without requiring an approval count until a second maintainer exists.
 - Resolve every item in IMPLEMENTATION_STRUCTURE.md's M0 open-item list and record each decision in the owning manifest, configuration, ADR, or blueprint before the gate closes.
 
 Gate:
@@ -207,6 +209,7 @@ Gate:
 - ADR 0016 records the Knowledge Bundle dependency and transport/trust decision; any claim not proven by M0 remains explicitly research-derived.
 - IMPLEMENTATION_STRUCTURE.md has no unresolved M0 item whose answer changes an M1 file, dependency, language, or security boundary.
 - AGENTS.md reflects the active implementation phase and keeps work milestone-scoped.
+- Implementation contributions remain closed until the root license, human-authorship and DCO rule, required DCO check, web sign-off, private vulnerability reporting, `main` protection, and contribution-ready issue workflow are active and verified.
 
 ### M1 — Workspace state, core security primitives, daemon skeleton, and CLI health
 
@@ -447,7 +450,7 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 - Use small, reviewable commits that each leave relevant fast checks green.
 - Tag or otherwise record milestone completion only after its full gate passes.
 - Do not combine unrelated refactors with milestone behavior.
-- Commit and pull-request authorship follows AGENTS.md: repository-owner authorship only and no AI attribution trailers or generated-by lines.
+- Before M0 contribution activation, commit and pull-request authorship follows AGENTS.md's repository-owner-only rule. After activation, human contributors author and DCO-sign every commit; AI authorship, co-authorship, attribution trailers, and generated-by lines remain prohibited.
 
 ## Revision History
 
@@ -461,3 +464,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-13 | Replaced Electron with Tauri v2, specified the desktop layout and model selector behavior, and added deterministic document operations with a bounded no-NIC generated-code fallback. |
 | 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |
 | 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
+| 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |

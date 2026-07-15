@@ -37,6 +37,11 @@ The deep research report provided the model, runtime, document pipeline, benchma
 - [Tauri distribution documentation](https://v2.tauri.app/distribute/)
 - [OpenCode server documentation](https://opencode.ai/docs/server/)
 - [OpenCode tools and permissions](https://opencode.ai/docs/tools/)
+- [Everything Claude Code](https://github.com/affaan-m/ECC)
+- [ECC cross-harness architecture](https://github.com/affaan-m/ECC/blob/main/docs/architecture/cross-harness.md)
+- [Developer Certificate of Origin 1.1](https://developercertificate.org/)
+- [DCO GitHub App](https://github.com/apps/dco)
+- [GitHub commit sign-off policy](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-the-commit-signoff-policy-for-your-repository)
 
 ## 2026-07-11 Live Revalidation
 
@@ -55,6 +60,14 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
 Official OpenCode sources were reviewed only to establish that it offers a headless server and code-capable tool loop. OpenCode is not an accepted dependency. M8 may compare it with a minimal Vault Desk-owned guest loop under identical offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-verification gates.
+
+## 2026-07-15 Development And Contribution Workflow Review
+
+Everything Claude Code was reviewed as a development-workflow reference rather than as a product or build dependency. Vault Desk adopted the useful ideas of research before custom code, explicit verification evidence, on-demand reusable skills, findings-first review, and privacy-safe handoffs in original project-specific wording.
+
+Vault Desk did not adopt ECC's package, installers, global agent configuration, Codex synchronization, Git hooks, MCP baseline, memory and autonomous-learning services, worktree orchestration, blanket coverage target, proactive delegation policy, generic application architecture, model routing, inference guidance, or runtime components. If substantial ECC material is copied later, its MIT license and required notice must be retained.
+
+The canonical DCO text, DCO GitHub App, and GitHub commit sign-off documentation were reviewed for the M0 human-contributor authorship and enforcement workflow. The app and repository settings remain inactive until M0 selects the root license and explicitly opens implementation contributions.
 
 ## Research-Derived Claims
 
@@ -115,3 +128,4 @@ Before code or public claims:
 | 2026-07-11 | Recorded the full live-web revalidation pass, moved verified claims out of the research-derived list, and updated the validation backlog to the revised component stack. |
 | 2026-07-12 | Added the live-web standards and architecture review for passive, domain-scoped offline Knowledge Bundles. |
 | 2026-07-13 | Added official Tauri and OpenCode sources for the desktop-shell and hybrid-execution decisions. |
+| 2026-07-15 | Added ECC workflow, DCO, and GitHub sign-off sources and documented the selective adoption boundary. |

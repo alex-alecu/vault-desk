@@ -20,6 +20,8 @@ Vault Desk is currently in a documentation-only phase. Do not create application
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
 
+M0 replaces the owner-only portion of this rule when implementation contributions open. From that point, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Future Implementation Rule
 
 When implementation begins, Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Product workflows and policy must not move into Rust.
@@ -58,6 +60,7 @@ Implementation code follows these Clean Code-derived principles. They are based 
 Primary orientation:
 
 - [README.md](README.md) - top-level project overview.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - contribution status, human authorship, DCO, and pull request requirements.
 - [docs/PRODUCT.md](docs/PRODUCT.md) - product thesis, formats, and boundaries.
 - [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md) - commercial structure.
 - [docs/ROADMAP.md](docs/ROADMAP.md) - launch sequence.
@@ -82,6 +85,7 @@ Architecture:
 
 Workflows:
 
+- [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) - milestone-scoped planning, research, verification, review, and handoff process.
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - workflow architecture and priorities.
 - [docs/workflows/accounting.md](docs/workflows/accounting.md) - first vertical workflow target.
 - [docs/workflows/legal.md](docs/workflows/legal.md) - legal workflow target.
@@ -129,6 +133,12 @@ Research:
 Strategy:
 
 - [docs/strategy/PARTNERSHIPS.md](docs/strategy/PARTNERSHIPS.md)
+
+## Repository-Local Agent Skills
+
+The optional Markdown skills under [.agents/skills](.agents/skills) package the development workflow for compatible coding agents. They are on-demand helpers for change planning, dependency review, verification, review, and handoff.
+
+These skills do not override this file, accepted ADRs, the active milestone, or user instructions. They cannot broaden permissions, require delegation, install tools, mutate external systems, or move agent workflow behavior into Vault Core or the shipped product.
 
 ## Product Principles To Preserve
 

@@ -1,0 +1,196 @@
+# Development Workflow
+
+Created: 2026-07-15
+
+This document is the canonical implementation and contribution workflow for Vault Desk. It prepares the repository for implementation but does not end the documentation-only phase. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+
+## Operating Principles
+
+- Work only inside the active milestone and accepted issue scope.
+- Define acceptance evidence before implementation.
+- Search the repository and maintained dependencies before writing custom infrastructure.
+- Prefer deterministic checks and primary-source evidence.
+- Protect security, privacy, evidence, recovery, and approval invariants with focused tests.
+- Report commands and results exactly; never imply that an unrun check passed.
+- Keep agent workflows in development tooling. They are not Vault Core modules or shipped product behavior.
+
+The repository does not require a universal test-coverage percentage, test-driven development for every edit, proactive delegation, blanket immutability, or a generic application architecture. The milestone gates and the risk-based test policy define what is required.
+
+## 1. Confirm The Active Milestone
+
+Before changing a file:
+
+1. Read the current phase rules in [AGENTS.md](../AGENTS.md).
+2. Find the active milestone and its gate in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+3. Identify the product contract, adapter boundary, or documentation responsibility the issue exercises.
+4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
+5. Stop if the requested implementation belongs to an inactive milestone.
+
+Roadmap presence is not authorization. Until M0 explicitly starts, implementation requests must be converted into an issue, design note, or plan rather than code.
+
+### Change Brief
+
+Record this before implementation:
+
+```markdown
+## Change Brief
+
+- Goal:
+- Active milestone and issue:
+- Allowed scope:
+- Product contracts and boundaries:
+- Risks:
+- Acceptance evidence:
+- Dependencies affected:
+- Explicitly not doing:
+```
+
+## 2. Inspect And Research First
+
+Search locally before searching externally:
+
+1. Inspect the relevant source, tests, schemas, adapters, and recent history.
+2. Check whether the capability already exists or can be expressed through a current contract.
+3. For a dependency decision, use official documentation, package metadata, source, releases, security advisories, and license files.
+4. Compare adopt, wrap, benchmark, and build-minimally options.
+5. Mark unvalidated compatibility, performance, or packaging claims as research-derived.
+
+Dependency decisions must evaluate maintenance, license and redistribution, transitive dependencies, offline operation, telemetry and network behavior, credentials, package size, native components, platform support, security posture, and adapter fit. A popular package is not automatically acceptable.
+
+## 3. Define Acceptance Evidence
+
+Select tests from the failure being prevented. Ask whether the change can:
+
+- Leak data or create an undeclared network path.
+- Bypass policy, approval, workspace scope, or a process boundary.
+- Lose evidence, citations, audit history, authoritative state, or recovery state.
+- Route deterministic work to a model or code interpreter unnecessarily.
+- Corrupt an export, package, migration, or platform lifecycle.
+- Break a user-visible milestone behavior.
+
+If yes, name the focused test or gate before implementation. If no, prefer the smallest relevant test and avoid broad snapshots or mock-heavy coverage.
+
+## 4. Implement The Minimum Change
+
+Follow the startup working agreement in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md):
+
+- Write only what the active gate consumes.
+- Keep security boundaries complete even when product breadth is minimal.
+- Handle named cases and return a typed unsupported outcome for the rest.
+- Add abstractions only for an ADR-mandated seam or a second real implementation.
+- Keep policy separate from model output and adapters thin around dependencies.
+- Do not add speculative options, plugins, frameworks, or extension points.
+
+If the gate demands disproportionate code, propose reducing the requirement before adding infrastructure around it.
+
+## 5. Verify With Evidence
+
+For an ordinary implementation pull request:
+
+1. Inspect the complete diff and changed-file list.
+2. Run the smallest targeted tests that prove the named behavior or invariant.
+3. Run `pnpm verify` once M0 creates it.
+4. Run additional integration, platform, model, package, or benchmark commands only when the affected boundary requires them.
+
+Run `pnpm test:gate --milestone <n>` only when claiming that milestone's gate is complete. Missing required hardware, models, workers, or packages must be reported as failures or not-run prerequisites, never silent skips.
+
+### Verification Report
+
+```markdown
+## Verification Report
+
+- Changed surfaces:
+- Commands passed:
+- Commands failed:
+- Required checks not run and why:
+- Manual checks:
+- Remaining risks:
+- Conclusion: ready | not ready | blocked
+```
+
+Use `not ready` for a fixable incomplete change. Use `blocked` only when progress requires a decision, authority, platform, asset, or external state that is unavailable.
+
+## 6. Self-Review And Handoff
+
+Review findings in this order:
+
+1. Security, privacy, authority, and process boundaries.
+2. Active milestone contract and scope.
+3. Correctness, evidence, recovery, and user-visible behavior.
+4. Minimum-code and dependency discipline.
+5. Maintainability and documentation.
+
+Use severities consistently:
+
+- **P0**: immediate data exposure, authority bypass, destructive behavior, or release-blocking security failure.
+- **P1**: milestone contract, correctness, recovery, evidence, or approval invariant is broken.
+- **P2**: material test, scope, dependency, or maintainability gap that should be fixed before merge.
+- **P3**: low-risk clarity or documentation improvement.
+
+When work continues in another session or contributor's branch, produce a handoff:
+
+```markdown
+## Handoff
+
+- Objective and current state:
+- Changed paths:
+- Decisions and source links:
+- Commands run and results:
+- Failures and attempted fixes:
+- Open risks or questions:
+- Next concrete action:
+```
+
+Do not include secrets, customer content, raw sensitive outputs, private credentials, or hidden model reasoning. Record decisions and evidence, not internal thought processes.
+
+## Pull Request Gate
+
+A pull request is ready for maintainer review only when:
+
+- It links an accepted issue and active milestone.
+- The diff contains no unrelated cleanup or speculative scaffolding.
+- Required product and security boundaries are preserved.
+- Tests and verification results are stated exactly.
+- Dependency and redistribution impacts are documented.
+- Documentation and audit contracts are updated when behavior changes.
+- Unresolved risks and unrun checks are visible.
+- Every commit has the required human DCO sign-off after M0.
+
+There is no fixed line limit or coverage percentage. Reviewers may ask for a split when a pull request spans unrelated responsibilities or cannot be verified coherently.
+
+## Repository-Local Agent Skills
+
+The optional skills under `.agents/skills/` package this workflow for compatible coding agents:
+
+- `vault-plan-change`
+- `vault-review-dependency`
+- `vault-verify-change`
+- `vault-review-change`
+- `vault-handoff`
+
+They are on-demand instructions, not executable hooks. They cannot install dependencies, add network services, mutate external systems, require subagents, broaden permissions, or override [AGENTS.md](../AGENTS.md).
+
+## ECC-Derived Workflow Review
+
+The development-workflow review was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), particularly its research-before-code, explicit verification, reusable-skill, review, and handoff patterns. Vault Desk adopts those ideas in original project-specific wording.
+
+Vault Desk explicitly does not adopt ECC's package, installers, global Codex synchronization, hooks, MCP baseline, memory database, autonomous learning, worktree services, blanket coverage rules, generic architecture defaults, model routing, inference guidance, or runtime components. If substantial ECC material is copied in the future, its MIT license and required notice must accompany the copied material.
+
+## M0 Contribution Activation
+
+M0 opens implementation contributions only after the owner-selected root license exists. M0 also:
+
+- Replaces owner-only commits with human contributor authorship and DCO 1.1 sign-off.
+- Installs the DCO GitHub App for this repository and makes its check required.
+- Enables web commit sign-off and protects `main` with pull requests, required CI and DCO checks, resolved conversations, and force-push and deletion denial.
+- Enables GitHub private vulnerability reporting.
+- Publishes only issues labeled `ready-for-contribution` as available implementation work.
+- Exercises the contributor bootstrap, verification, and milestone-gate reporting workflow.
+
+External pull requests require maintainer review. The ruleset does not require an approval count until a second maintainer exists, so maintainer-authored pull requests can still merge after all required checks. Squash merging is the default.
+
+## Revision History
+
+| Date | Change |
+|---|---|
+| 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |

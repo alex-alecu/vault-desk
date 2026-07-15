@@ -16,6 +16,8 @@ This repository is documentation-only. It intentionally contains no application 
 
 When implementation begins, Vault Core and orchestration should be TypeScript running on Node.js. The desktop application uses a thin Tauri v2 host with React/TypeScript; Rust is limited to the native shell and sidecar boundary. The planned direction is documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md).
 
+Implementation contributions open only after M0 adds the owner-selected root license and activates the contribution checks. Until then, use issues for proposals and read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes.
+
 ## Product Shape
 
 Vault Desk is one platform delivered in three formats:
@@ -42,6 +44,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture outli
 ## Start Here
 
 - [AGENTS.md](AGENTS.md) - instructions for future coding agents and documentation maintainers.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - contribution status, authorship, DCO, and pull request requirements.
+- [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) - implementation planning, dependency review, verification, review, and handoff workflow.
 - [docs/PRODUCT.md](docs/PRODUCT.md) - product goals, boundaries, and principles.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - planned system architecture.
 - [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - Gemma 4 12B QAT model strategy for 12 GB and 16 GB local profiles.
@@ -109,3 +113,4 @@ Vault Desk should not begin as:
 | 2026-07-12 | Added the offline Knowledge Bundle architecture and current standards research. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and adopted deterministic document tools with an isolated code-interpreter fallback. |
 | 2026-07-13 | Added `docs/IMPLEMENTATION_STRUCTURE.md`, the concrete folder and module blueprint, startup minimal-code working agreement, and milestone-to-folder map. |
+| 2026-07-15 | Added the development and contribution workflow, repository-local agent skills, GitHub templates, DCO transition, and M0 contribution activation gate. |
