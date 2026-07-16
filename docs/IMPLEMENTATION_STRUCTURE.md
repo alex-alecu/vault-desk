@@ -2,7 +2,7 @@
 
 Created: 2026-07-13
 
-This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. It is planning material only. The repository remains documentation-only until milestone M0 explicitly begins.
+This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M0 is active; later milestone paths remain blueprints rather than implementation authority.
 
 ## Startup Working Agreement
 
@@ -53,7 +53,7 @@ Reviewed 2026-07-13 against IMPLEMENTATION_PLAN.md, TYPESCRIPT_NODE_HARNESS.md, 
 - **Workspace catalog** — one embedded SQLite binding (selected in M0; better-sqlite3 is the candidate) with numbered `.sql` migration files applied in order inside a transaction, backup-before-migrate. `catalog.ts` owns the connection, transaction, migration, lock, and idempotency primitives; typed persistence commands and queries live with the product module that owns the records. There is no ORM, migration framework, or generic repository layer.
 - **Schemas** — defined once as Zod schemas in `@vault/shared`; TypeScript types, JSON-RPC validation, and llama.cpp grammars all derive from the same definition. No parallel JSON Schema files.
 - **Workers** — host-native accelerator processes use `child_process` only through `NativeWorkerLauncher`; microVM workers use the selected platform launcher. Vault Desk-owned worker and guest entries use one length-prefixed typed JSON frame protocol over their constrained channels. Supervised llama-server is the sole fixed local-HTTP exception and is translated immediately to shared vision payloads inside `workers/vision/client.ts`; its endpoint is not exposed beyond that adapter. No worker framework, message bus, dependency-injection container, or event-emitter hierarchy.
-- **MicroVM launchers** — the thinnest per-OS shim that satisfies the common launcher contract. M0 decides whether macOS requires a small signed helper binary for Virtualization.framework; if so, that helper owns lifecycle only and no policy, recorded as a narrow exception like the Tauri Rust host.
+- **MicroVM launchers** — the thinnest per-OS shim that satisfies the common launcher contract. M0 confirmed two native call boundaries: a signed Swift Virtualization.framework helper at `packages/workers/native/macos-vz-helper/`, pinned by `Package.swift` and `Package.resolved`, and a signed Rust HCS/Hyper-V-socket helper at `packages/workers/native/windows-hcs-helper/`, pinned by `Cargo.toml` and `Cargo.lock`. Each owns only VM lifecycle, empty network-device configuration, resource limits, typed host/guest socket transport, and teardown. Neither contains product policy, filesystem authorization, network brokerage, parsing, or workflow logic.
 - **Read-tool loop** — `core/tools/loop.ts` owns Vault Desk policy and orchestration. M8 starts with Vercel AI SDK over a thin local `InferencePort` adapter, with no cloud provider, telemetry, or network path, compares it with a thin explicit loop, and keeps the SDK only if it preserves policy, approval, audit, and cancellation while deleting more maintained code than it adds.
 - **Code-interpreter guest loop** — `workers/microvm/guest/interpreter.ts` is a separate bounded guest responsibility. OpenCode is evaluated once at M8 against that guest loop and adopted only if it passes the no-NIC, typed-inference, resource, audit, and packaging gates while deleting more maintained code than it adds.
 - **External-connection broker** — not built. No external integration ships in M0 through M11, so the boundary is satisfied by writing no external-network product code at all. The only application-authored fetcher in this implementation is development-only code in `@vault/eval`; package managers and CI acquisition are build tooling, not product capabilities. The broker module is created when the first real integration is approved after M11, not before.
@@ -255,6 +255,8 @@ src/
     launcher.ts               common native accelerator capability contract          M2
     macos.ts                  macOS network/filesystem/process confinement            M2
     windows.ts                Windows network/filesystem/process confinement          M2
+    macos-vz-helper/          signed Swift Virtualization.framework lifecycle helper M1
+    windows-hcs-helper/       signed Rust HCS and Hyper-V socket lifecycle helper     M1
   inference/
     worker.ts                 node-llama-cpp child-process entry                     M2
     client.ts                 host-side typed inference client                       M2
@@ -406,15 +408,17 @@ Consolidated from the plan and this review: the first four are first-implementat
 
 M11 deliberately adds no product code: certification runs against what already exists.
 
-## Open Items For M0
+## M0 Decisions
 
-- Confirm the SQLite binding (better-sqlite3 candidate) packages cleanly on Windows and macOS with the pinned Node version.
-- Pin a Biome version after verifying the exact restricted-import, function-line, cognitive-complexity, and maximum-parameter rules used by `pnpm verify`.
-- Select and validate the Node sidecar packaging method that produces an exact executable for Tauri on macOS and Windows; record its runtime inclusion, lockfile inputs, hashes, signing identity checks, and release-signing handoff in `eval/src/platform/tauri-smoke/README.md`.
-- Decide whether the macOS microVM launcher needs a small signed helper binary for Virtualization.framework. If it does, update AGENTS.md and this blueprint with the exact source path, language, Cargo/native lockfile boundary, and lifecycle-only contract before adding helper code; without that recorded exception, no helper is permitted.
-- Choose hand-rolled CLI argument dispatch versus one small dependency; default is hand-rolled.
-- Select guest-image build tooling, record its rationale in `workers/images/README.md`, and pin machine-readable inputs in `workers/images/manifest.json`.
-- Select maintained archive, TUF-style metadata, and signature-verification libraries for Knowledge Bundles, then record the M5 reader and M10 import/trust decision in ADR 0017.
+Cross-platform validation evidence remains tracked in [M0_STATUS.md](M0_STATUS.md) until the milestone closes.
+
+- SQLite: `better-sqlite3` 12.11.1 under Node 24.18.0, with macOS and Windows native load smoke tests.
+- Quality tooling: Biome 2.5.4 with restricted imports, 40 function-body lines, cognitive complexity 10, and four parameters; nesting depth remains human-reviewed.
+- Node sidecar: Node 24 SEA plus `postject` 1.0.0-alpha.6, signed only after injection; exact build and signing evidence is defined in the Tauri smoke README.
+- microVM native boundaries: signed Swift helper at `packages/workers/native/macos-vz-helper/` with a SwiftPM lock, and signed Rust helper at `packages/workers/native/windows-hcs-helper/` with a Cargo lock; both follow the lifecycle-only contract stated above.
+- CLI: hand-rolled argument dispatch in M1; no parser dependency.
+- Guest image: pinned Buildroot input and deterministic root filesystem recipe, documented in `packages/workers/images/README.md`.
+- Knowledge Bundles: uncompressed deterministic tar inspected with `tar-stream` 3.2.0, TUF metadata verified with `tuf-js` 6.0.0, and detached Ed25519 signatures verified with Node `crypto`, per ADR 0017.
 
 ## Revision History
 
@@ -424,3 +428,4 @@ M11 deliberately adds no product code: certification runs against what already e
 | 2026-07-13 | Elevated the twenty Clean Code principles to the top-priority implementation bar and bound each principle to a concrete rule in this blueprint. |
 | 2026-07-13 | Added a 300-line file cap, TypeScript function-length/complexity/parameter thresholds, a nesting-depth review rule, and an explicit human readability bar. |
 | 2026-07-13 | Reconciled the blueprint with all M0-M11 gates: added repeatable M0 platform harnesses, split shared contracts and parser adapters, named the minimal ports, restored native/vision/bundle/summary ownership, corrected dependency and I/O boundaries, and limited mechanical enforcement claims to supported tooling. |
+| 2026-07-16 | Recorded the M0 dependency, sidecar, CLI, guest-image, bundle, and signed macOS Swift helper decisions. |

@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. It prepares the repository for implementation but does not end the documentation-only phase. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This document is the canonical implementation and contribution workflow for Vault Desk. Milestone M0 is active; [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
 
 ## Operating Principles
 
@@ -26,7 +26,7 @@ Before changing a file:
 4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 5. Stop if the requested implementation belongs to an inactive milestone.
 
-Roadmap presence is not authorization. Until M0 explicitly starts, implementation requests must be converted into an issue, design note, or plan rather than code.
+Roadmap presence is not authorization. M0 is active, and implementation outside its explicit scope must still be converted into an issue, design note, or plan rather than code.
 
 ### Change Brief
 
@@ -154,7 +154,7 @@ A pull request is ready for maintainer review only when:
 - Dependency and redistribution impacts are documented.
 - Documentation and audit contracts are updated when behavior changes.
 - Unresolved risks and unrun checks are visible.
-- Every commit has the required human DCO sign-off after M0.
+- Every commit is authored only by its human owner; the repository owner commits directly to `main` through M11.
 
 There is no fixed line limit or coverage percentage. Reviewers may ask for a split when a pull request spans unrelated responsibilities or cannot be verified coherently.
 
@@ -176,21 +176,15 @@ The development-workflow review was informed by [Everything Claude Code](https:/
 
 Vault Desk explicitly does not adopt ECC's package, installers, global Codex synchronization, hooks, MCP baseline, memory database, autonomous learning, worktree services, blanket coverage rules, generic architecture defaults, model routing, inference guidance, or runtime components. If substantial ECC material is copied in the future, its MIT license and required notice must accompany the copied material.
 
-## M0 Contribution Activation
+## V1 Contribution Activation
 
-M0 opens implementation contributions only after the owner-selected root license exists. M0 also:
+Implementation contributions remain closed through M11. The repository owner commits directly to `main`, keeps each commit small, and leaves the active milestone gate green. The v1 launch gate activates human DCO sign-off, pull-request protection, contribution-ready issue labeling, maintainer review, and the contributor bootstrap described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
 
-- Replaces owner-only commits with human contributor authorship and DCO 1.1 sign-off.
-- Installs the DCO GitHub App for this repository and makes its check required.
-- Enables web commit sign-off and protects `main` with pull requests, required CI and DCO checks, resolved conversations, and force-push and deletion denial.
-- Enables GitHub private vulnerability reporting.
-- Publishes only issues labeled `ready-for-contribution` as available implementation work.
-- Exercises the contributor bootstrap, verification, and milestone-gate reporting workflow.
-
-External pull requests require maintainer review. The ruleset does not require an approval count until a second maintainer exists, so maintainer-authored pull requests can still merge after all required checks. Squash merging is the default.
+AI assistants, models, coding agents, and tools are never authors or co-authors. Private vulnerability reporting may be enabled before v1 because it does not open implementation contributions or change milestone scope.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
 | 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |
+| 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the post-M11 v1 gate. |

@@ -7,7 +7,7 @@ Vault Desk is a local-first AI coworker for people who work with sensitive docum
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk is still in its documentation-only phase. There is no application or installer yet; [the implementation plan](docs/IMPLEMENTATION_PLAN.md) defines the path to one.
+> Vault Desk is in implementation milestone M0. The reproducible workspace and validation harness exist, but there is no product application or installer yet; [the M0 status](docs/M0_STATUS.md) records the open closure gates.
 
 ## Why
 
@@ -25,7 +25,7 @@ The same platform is planned as a free community desktop app, a supported person
 
 - [PDF.js](https://mozilla.github.io/pdf.js/), [Mammoth](https://github.com/mwilliamson/mammoth.js), [ExcelJS](https://github.com/exceljs/exceljs), [SheetJS](https://sheetjs.com/), [officeParser](https://github.com/harshankur/officeParser), and [MailParser](https://nodemailer.com/extras/mailparser) cover ordinary files directly. [Granite Docling](https://huggingface.co/ibm-granite/granite-docling-258M), [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR), [Docling](https://docling-project.github.io/docling/), [MarkItDown](https://github.com/microsoft/markitdown), and [Unstructured](https://github.com/Unstructured-IO/unstructured) are escalation paths for scans, difficult layouts, and less common formats.
 
-- Untrusted documents and generated code run in a disposable [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md). The [AI SDK](https://ai-sdk.dev/) supplies a typed tool loop, [OpenTelemetry](https://opentelemetry.io/docs/specs/semconv/gen-ai/) gives audits a standard shape, and [pnpm](https://pnpm.io/), [Biome](https://biomejs.dev/), and [Vitest](https://vitest.dev/) keep the future workspace small and verifiable.
+- Untrusted documents and generated code run in a disposable [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md). The [AI SDK](https://ai-sdk.dev/) supplies a typed tool loop, [OpenTelemetry](https://opentelemetry.io/docs/specs/semconv/gen-ai/) gives audits a standard shape, and [pnpm](https://pnpm.io/), [Biome](https://biomejs.dev/), and [Vitest](https://vitest.dev/) keep the workspace small and verifiable.
 
 These are planned defaults behind replaceable adapters, not permanent coupling. [The implementation quality bar](docs/IMPLEMENTATION_QUALITY_BAR.md) records the full rationale.
 

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "builder": {
+    "name": "buildroot",
+    "version": "2026.05",
+    "sourceUrl": "https://buildroot.org/downloads/buildroot-2026.05.tar.xz",
+    "sourceSha256": "9d2f3af10fcac763a61ff6e41894a033f9ecf9267ba13dd0912eedcd3be2b22a",
+    "sourceDateEpoch": 1780876800,
+    "containerImage": "registry.gitlab.com/buildroot.org/buildroot/base@sha256:340aa0de68e8e13e4eca70a00aaf94ec68d3a3891c28f3e7495d844829a8c958",
+    "sourceInputs": [
+      {
+        "file": "linux/linux-6.18.7.tar.xz",
+        "sha256": "b726a4d15cf9ae06219b56d87820776e34d89fbc137e55fb54a9b9c3015b8f1e"
+      }
+    ]
+  },
+  "plannedContents": ["linux-kernel", "busybox", "vault-probe-init"],
+  "requiredKernelFeatures": [
+    "CONFIG_VIRTIO",
+    "CONFIG_VIRTIO_PCI",
+    "CONFIG_VIRTIO_VSOCKETS",
+    "CONFIG_HYPERV",
+    "CONFIG_HYPERV_VSOCKETS"
+  ],
+  "networkFeaturesForbidden": ["CONFIG_INET", "CONFIG_IPV6", "CONFIG_WLAN", "CONFIG_WIRELESS"],
+  "outputs": {
+    "aarch64": {
+      "kernelFile": "Image",
+      "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
+      "initramfsFile": "rootfs.cpio",
+      "initramfsSha256": "d7ea5c8df6da1faa9fd6aaf7109833be45dc3b208515977b0021ea478715e3c9"
+    },
+    "x86_64": {
+      "kernelFile": "bzImage",
+      "kernelSha256": null,
+      "initramfsFile": "rootfs.cpio",
+      "initramfsSha256": null
+    }
+  }
+}

@@ -4,15 +4,16 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk is currently in a documentation-only phase. Do not create application code, package manifests, build configuration, generated assets, or implementation scaffolding unless a future user request explicitly changes that phase.
+Vault Desk is in active implementation milestone M0. The explicit owner request on 2026-07-16 ended the documentation-only phase and authorized only the M0 scaffold and validation work in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- Write Markdown documentation only.
-- Keep every new file source-readable and hand-editable.
-- Do not add TypeScript, JavaScript, Rust, Python, shell scripts, JSON manifests, lockfiles, generated diagrams, or binary assets.
-- Do not initialize package managers or framework templates.
-- Do not run installers or dependency managers.
+- The active milestone is M0. Work only inside its scope and gate.
+- M0 may add the selected root license, pinned workspace and toolchain configuration, lockfiles, compliance and model manifests, the `@vault/shared` model contract, `@vault/eval` fixtures and gates, provisional platform probes, the test-only Tauri capability shell, guest-image metadata, and cross-platform CI.
+- Do not add M1 daemon, CLI, workspace, worker, persistence, RPC, or product behavior. M1 begins only on a new explicit owner request after the M0 gate is recorded complete.
+- Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
+- Install and execute only dependencies consumed by M0 and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
+- Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
 - Do not introduce employer-owned, confidential, or third-party proprietary content.
 - If research claims are carried forward from source material, mark them as research-derived until independently validated.
 
@@ -22,11 +23,11 @@ Commits must be authored solely by the repository owner. Never add Claude or any
 
 The v1 launch (after milestone M11) replaces the owner-only portion of this rule when implementation contributions open. Until then the owner commits directly to `main` without pull-request gates. From activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Future Implementation Rule
+## Implementation Rule
 
-When implementation begins, Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Product workflows and policy must not move into Rust.
+Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Platform microVM launchers may invoke two signed native helpers introduced in M1: the Swift helper rooted at `packages/workers/native/macos-vz-helper/` with `Package.swift` and `Package.resolved`, and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/` with `Cargo.toml` and `Cargo.lock`. These helpers own only native VM lifecycle, no-NIC configuration, resource limits, virtio/Hyper-V socket transport, and teardown. They may not contain product policy, filesystem authorization, network brokering, parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates. Milestone M0 of that plan is the step that formally ends the documentation-only phase and rewrites this file's phase rules.
+Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -117,6 +118,7 @@ Architecture decision records:
 - [docs/adr/0014-tauri-desktop-shell.md](docs/adr/0014-tauri-desktop-shell.md)
 - [docs/adr/0015-deterministic-document-tools-and-code-fallback.md](docs/adr/0015-deterministic-document-tools-and-code-fallback.md)
 - [docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)
+- [docs/adr/0017-knowledge-bundle-format-and-trust.md](docs/adr/0017-knowledge-bundle-format-and-trust.md)
 
 Research:
 

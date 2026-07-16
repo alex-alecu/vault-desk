@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "created": "2026-07-16",
+  "owner": {
+    "dependencyDecisions": "repository_owner",
+    "modelDecisions": "repository_owner",
+    "noticeDecisions": "repository_owner",
+    "redistributionDecisions": "repository_owner"
+  },
+  "sourceOfTruth": {
+    "javascriptResolution": "pnpm-lock.yaml",
+    "rustResolution": "packages/eval/src/platform/tauri-smoke/src-tauri/Cargo.lock",
+    "models": "assets/models.json",
+    "guestImage": "packages/workers/images/manifest.json"
+  },
+  "directDependencies": [
+    {
+      "name": "@biomejs/biome",
+      "version": "2.5.4",
+      "license": "MIT OR Apache-2.0",
+      "use": "development"
+    },
+    {
+      "name": "@tauri-apps/cli",
+      "version": "2.11.4",
+      "license": "Apache-2.0 OR MIT",
+      "use": "development"
+    },
+    {
+      "name": "@types/better-sqlite3",
+      "version": "7.6.13",
+      "license": "MIT",
+      "use": "development"
+    },
+    { "name": "@types/node", "version": "24.13.3", "license": "MIT", "use": "development" },
+    { "name": "@types/tar-stream", "version": "3.1.4", "license": "MIT", "use": "development" },
+    { "name": "better-sqlite3", "version": "12.11.1", "license": "MIT", "use": "native_smoke" },
+    { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "development" },
+    { "name": "node-llama-cpp", "version": "3.19.0", "license": "MIT", "use": "native_smoke" },
+    { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "development" },
+    { "name": "tar-stream", "version": "3.2.0", "license": "MIT", "use": "development_validation" },
+    { "name": "tsx", "version": "4.23.1", "license": "MIT", "use": "development" },
+    { "name": "tuf-js", "version": "6.0.0", "license": "MIT", "use": "development_validation" },
+    { "name": "typescript", "version": "7.0.2", "license": "Apache-2.0", "use": "development" },
+    { "name": "vitest", "version": "4.1.10", "license": "MIT", "use": "development" },
+    { "name": "zod", "version": "4.4.3", "license": "MIT", "use": "runtime_schema" }
+  ],
+  "nativeDependencies": [
+    { "name": "tauri", "version": "2.11.5", "license": "Apache-2.0 OR MIT", "use": "test_shell" },
+    {
+      "name": "tauri-build",
+      "version": "2.6.3",
+      "license": "Apache-2.0 OR MIT",
+      "use": "test_shell_build"
+    },
+    {
+      "name": "tauri-plugin-shell",
+      "version": "2.3.5",
+      "license": "Apache-2.0 OR MIT",
+      "use": "allowlisted_sidecar"
+    }
+  ],
+  "toolsAndInputs": [
+    { "name": "Node.js", "version": "24.18.0", "license": "MIT", "use": "runtime_and_sidecar" },
+    { "name": "pnpm", "version": "11.13.1", "license": "MIT", "use": "package_manager" },
+    {
+      "name": "Rust",
+      "version": "1.97.0",
+      "license": "Apache-2.0 OR MIT",
+      "use": "test_shell_toolchain"
+    },
+    {
+      "name": "Buildroot",
+      "version": "2026.05",
+      "license": "GPL-2.0-or-later with exceptions and component licenses",
+      "use": "development_guest_image_input"
+    },
+    {
+      "name": "Buildroot CI builder image",
+      "version": "20250218.2110@sha256:340aa0de68e8e13e4eca70a00aaf94ec68d3a3891c28f3e7495d844829a8c958",
+      "license": "mixed development-tool licenses",
+      "use": "development_guest_image_builder"
+    },
+    {
+      "name": "actions/checkout",
+      "version": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "license": "MIT",
+      "use": "ci"
+    },
+    {
+      "name": "actions/setup-node",
+      "version": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
+      "license": "MIT",
+      "use": "ci"
+    }
+  ],
+  "redistribution": {
+    "dependencies": "not_yet_shipped",
+    "models": "controlled_by_assets_models_json",
+    "guestImage": "development_input_only",
+    "noticeBundle": "required_before_any_packaged_distribution"
+  }
+}

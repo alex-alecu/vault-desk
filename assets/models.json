@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "reviewOwner": "repository_owner",
+  "models": [
+    {
+      "id": "gemma-4-12b-it-qat-q4_0",
+      "family": "gemma-4",
+      "role": "generation",
+      "source": {
+        "host": "huggingface.co",
+        "repository": "google/gemma-4-12B-it-qat-q4_0-gguf",
+        "revision": "f6e7774e6148da3b7f201e42ba37cf084c1db35f",
+        "file": "gemma-4-12b-it-qat-q4_0.gguf"
+      },
+      "byteLength": 6975878912,
+      "sha256": "1e76e46623deaa4db97d4ef272ceab0dfb767c0f34c2c76524837edf2b57a510",
+      "license": "Apache-2.0",
+      "redistribution": {
+        "status": "candidate_to_ship",
+        "reviewOwner": "repository_owner"
+      }
+    },
+    {
+      "id": "gemma-4-12b-it-qat-q4_0-mmproj",
+      "family": "gemma-4",
+      "role": "multimodal_projector",
+      "companionFor": "gemma-4-12b-it-qat-q4_0",
+      "source": {
+        "host": "huggingface.co",
+        "repository": "google/gemma-4-12B-it-qat-q4_0-gguf",
+        "revision": "f6e7774e6148da3b7f201e42ba37cf084c1db35f",
+        "file": "mmproj-gemma-4-12b-it-qat-q4_0.gguf"
+      },
+      "byteLength": 175115264,
+      "sha256": "e70b0e5cd80323d5d588b4ed06780356b7b1ba03995a4b8164c6ae9db0ff5989",
+      "license": "Apache-2.0",
+      "redistribution": {
+        "status": "candidate_to_ship",
+        "reviewOwner": "repository_owner"
+      }
+    },
+    {
+      "id": "gemma-4-e2b-it-qat-q4_0",
+      "family": "gemma-4",
+      "role": "generation",
+      "source": {
+        "host": "huggingface.co",
+        "repository": "google/gemma-4-E2B-it-qat-q4_0-gguf",
+        "revision": "1894d1fc0a19d86697abd40483f5983c867df03f",
+        "file": "gemma-4-E2B_q4_0-it.gguf"
+      },
+      "byteLength": 3349515840,
+      "sha256": "25194efbf8a53268241e5ffa6d5490edc08b3faaa6ead24478c8b025a986d556",
+      "license": "Apache-2.0",
+      "redistribution": {
+        "status": "development",
+        "reviewOwner": "repository_owner"
+      }
+    },
+    {
+      "id": "gemma-4-e2b-it-qat-q4_0-mmproj",
+      "family": "gemma-4",
+      "role": "multimodal_projector",
+      "companionFor": "gemma-4-e2b-it-qat-q4_0",
+      "source": {
+        "host": "huggingface.co",
+        "repository": "google/gemma-4-E2B-it-qat-q4_0-gguf",
+        "revision": "1894d1fc0a19d86697abd40483f5983c867df03f",
+        "file": "gemma-4-E2B-it-mmproj.gguf"
+      },
+      "byteLength": 986833312,
+      "sha256": "58c187648007cab392bd5678b87e862c3e8794017deb945feea2cf256195e96a",
+      "license": "Apache-2.0",
+      "redistribution": {
+        "status": "development",
+        "reviewOwner": "repository_owner"
+      }
+    },
+    {
+      "id": "qwen3-embedding-0.6b-q8_0",
+      "family": "qwen3-embedding",
+      "role": "embedding",
+      "source": {
+        "host": "huggingface.co",
+        "repository": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+        "revision": "d20cf9c16f82914a21dbd9c645f56895fb1d7750",
+        "file": "Qwen3-Embedding-0.6B-Q8_0.gguf"
+      },
+      "byteLength": 639150592,
+      "sha256": "06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439",
+      "license": "Apache-2.0",
+      "redistribution": {
+        "status": "candidate_to_ship",
+        "reviewOwner": "repository_owner"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[package]
+name = "vault-m0-tauri-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "=2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.5", features = [] }
+tauri-plugin-shell = "=2.3.5"

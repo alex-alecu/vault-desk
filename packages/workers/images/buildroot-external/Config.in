@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_VAULT_PROBE_PATH/package/vault-probe-init/Config.in"

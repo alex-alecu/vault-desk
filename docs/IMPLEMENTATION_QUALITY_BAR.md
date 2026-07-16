@@ -2,13 +2,13 @@
 
 Created: 2026-07-10
 
-This document defines the future implementation quality constraints for Vault Desk. It is planning material only and does not authorize code creation during the documentation-only phase.
+This document defines the implementation quality constraints for Vault Desk. M0 is active under the milestone-scoped authority in [AGENTS.md](../AGENTS.md); this quality bar does not authorize work beyond the active milestone.
 
 The goal is the least amount of new code and the least amount of tests that still protects the product's privacy, correctness, auditability, and local performance promises.
 
 ## Minimal Code Rule
 
-Future implementation should start from product contracts, not framework defaults.
+Implementation starts from product contracts, not framework defaults.
 
 Add code only when it is required to express one of these product responsibilities:
 
@@ -123,7 +123,7 @@ The following principles are based on the major themes of Clean Code by Robert C
 
 ## Architecture Consequences
 
-The future TypeScript/Node harness should be small because it coordinates work rather than doing all work itself.
+The TypeScript/Node harness should be small because it coordinates work rather than doing all work itself.
 
 Preferred shape:
 
@@ -159,9 +159,9 @@ When deciding whether to add a test, ask:
 
 If the answer is yes, add a focused test. If the answer is no, prefer a simpler implementation and defer the test.
 
-## Future Implementation Gate
+## Implementation Entry Gate
 
-Before application code is added, the implementation plan must name:
+Before code for a milestone is added, the implementation plan must name:
 
 - The first workflow being implemented.
 - The product contract it exercises.
@@ -170,7 +170,7 @@ Before application code is added, the implementation plan must name:
 - The dependencies being used instead of custom code.
 - The code that will intentionally not be written.
 
-No package manifest or source tree should be created until that plan exists.
+No package manifest or source tree should be created until that plan exists and the milestone is active. M0 satisfies this entry gate through [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#m0--phase-change-minimal-scaffold-ci-models-and-evaluation-corpora) and [M0_STATUS.md](M0_STATUS.md).
 
 ## Revision History
 
@@ -181,3 +181,4 @@ No package manifest or source tree should be created until that plan exists.
 | 2026-07-11 | Added persistence recovery, cross-platform process, hostile-document, and worker-isolation invariants to the first implementation quality gates. |
 | 2026-07-12 | Required a no-NIC microVM for certified hostile work and made process-only sandboxing a non-equivalent fallback. |
 | 2026-07-13 | Added Tauri, deterministic document operations, and the bounded code-interpreter fallback to the minimal component and test bar. |
+| 2026-07-16 | Activated the quality bar for M0 while retaining milestone-scoped authorization. |

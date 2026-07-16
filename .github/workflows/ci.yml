@@ -1,0 +1,40 @@
+name: M0 CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-26
+          - windows-2025
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Use Node.js 24.18.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.18.0
+      - name: Use pnpm 11.13.1
+        shell: bash
+        run: corepack prepare pnpm@11.13.1 --activate
+      - name: Use Rust 1.97.0
+        shell: bash
+        run: rustup toolchain install 1.97.0 --profile minimal --component clippy --component rustfmt
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify source and native dependencies
+        run: pnpm verify
+      - name: Build the capability-scoped Tauri smoke shell
+        run: pnpm tauri:check
+      - name: Classify the provisional microVM backend
+        run: pnpm test:platform

@@ -1,0 +1,19 @@
+{
+  "name": "@vault/eval",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vault/shared": "workspace:*",
+    "better-sqlite3": "12.11.1",
+    "node-llama-cpp": "3.19.0",
+    "tar-stream": "3.2.0",
+    "tuf-js": "6.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/tar-stream": "3.1.4",
+    "esbuild": "0.28.1",
+    "postject": "1.0.0-alpha.6"
+  }
+}

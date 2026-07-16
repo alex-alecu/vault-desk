@@ -1,0 +1,34 @@
+{
+  "name": "vault-desk",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": "24.18.0",
+    "pnpm": "11.13.1"
+  },
+  "scripts": {
+    "check:source": "node --import tsx scripts/check-source-limits.ts",
+    "lint": "biome check .",
+    "lint:boundaries": "biome lint packages/shared/src packages/eval/src scripts",
+    "typecheck": "tsc -b packages/shared packages/eval",
+    "test": "vitest run --config vitest.workspace.ts --project unit",
+    "test:native": "vitest run --config vitest.workspace.ts --project native",
+    "test:gate": "node --import tsx packages/eval/src/gates/run.ts",
+    "test:platform": "node --import tsx packages/eval/src/platform/microvm-smoke/probe.ts",
+    "guest:build": "node --import tsx packages/eval/src/platform/microvm-smoke/build.ts",
+    "model:fetch": "node --import tsx packages/eval/src/gates/fetch-model.ts",
+    "tauri:build-sidecar": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts",
+    "tauri:check": "node --import tsx packages/eval/src/platform/tauri-smoke/build.ts --tauri",
+    "verify:rust": "pnpm tauri:build-sidecar && cargo fmt --manifest-path packages/eval/src/platform/tauri-smoke/src-tauri/Cargo.toml --check && cargo clippy --manifest-path packages/eval/src/platform/tauri-smoke/src-tauri/Cargo.toml --locked -- -D warnings",
+    "verify": "pnpm check:source && pnpm lint && pnpm typecheck && pnpm test && pnpm test:native && pnpm verify:rust"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.4",
+    "@tauri-apps/cli": "2.11.4",
+    "@types/node": "24.13.3",
+    "tsx": "4.23.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

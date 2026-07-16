@@ -2,9 +2,9 @@
 
 Created: 2026-07-10
 
-This document prepares for future implementation. It is not implementation scaffolding.
+This document defines the implementation direction. M0 now contains only the workspace and validation scaffolding authorized by [AGENTS.md](../AGENTS.md).
 
-When Vault Desk moves from documentation to code, Vault Core and the local orchestration layer should be TypeScript running on Node.js. The Tauri v2 desktop host is the narrow exception: it contains only the minimum Rust needed for the native shell and sidecar boundary.
+Vault Core and the local orchestration layer are TypeScript running on Node.js. The Tauri v2 desktop host is the narrow exception: it contains only the minimum Rust needed for the native shell and sidecar boundary.
 
 ## Scope Of The Harness
 
@@ -259,19 +259,11 @@ Future tests should cover:
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
-## No-Code Constraint
+## Active M0 Constraint
 
-Do not add:
+The explicit owner request on 2026-07-16 lifted the former no-code constraint for milestone M0 only. M0 may add the minimal pinned workspace, shared model contract, evaluation fixtures and gates, provisional platform validation harnesses, compliance records, guest-image metadata, and CI named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
-- package.json.
-- tsconfig.json.
-- source directories.
-- test files.
-- scripts.
-- lockfiles.
-- generated templates.
-
-Those belong to a future implementation phase. The step-by-step plan for that phase is [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md); its milestone M0 is what formally lifts this constraint.
+Do not add M1 daemon, CLI, workspace-state, persistence, RPC, worker-runtime, or product behavior until M0 is complete and the owner explicitly starts M1. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 
@@ -285,3 +277,4 @@ Those belong to a future implementation phase. The step-by-step plan for that ph
 | 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |
 | 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
+| 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
