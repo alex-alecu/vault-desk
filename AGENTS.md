@@ -17,6 +17,14 @@ Vault Desk completed implementation milestone M0 on 2026-07-17. M1 is not author
 - Do not introduce employer-owned, confidential, or third-party proprietary content.
 - If research claims are carried forward from source material, mark them as research-derived until independently validated.
 
+## Startup Implementation Rule
+
+Vault Desk is a startup. Implement each active milestone with the minimum amount of code and the minimum number of tests needed to deliver and prove the required behavior. Prefer the simplest sensible design for current, named use cases.
+
+Do not build a legacy enterprise-grade system that attempts to anticipate every hypothetical requirement, compatibility variation, or edge case. Do not add speculative abstractions, exhaustive defensive branches, or tests for framework wiring and unsupported scenarios. Handle the cases required by the active milestone and supported workflows; return an explicit unsupported outcome or defer the rest.
+
+Minimum implementation does not mean incomplete implementation. Keep required security, privacy, authorization, evidence, correctness, recovery, and cross-platform invariants complete, and add focused tests when a realistic failure could violate one of those invariants.
+
 ## Commit Authorship Rule
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
