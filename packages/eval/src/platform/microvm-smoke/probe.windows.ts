@@ -14,6 +14,10 @@ interface NativeProbe {
   };
 }
 
+interface HcsConfiguration {
+  VirtualMachine: { Devices: Record<string, unknown> };
+}
+
 function run(command: string, args: string[]): string {
   const result = spawnSync(command, args, { encoding: "utf8", timeout: 180_000 });
   if (result.status !== 0)
@@ -36,6 +40,12 @@ export async function runNativeWindowsProbe(
   await mkdir(generatedRoot, { recursive: true });
   const executable = join(generatedRoot, "hcs-config-probe.exe");
   compile(executable, join(probeRoot, "probe.windows.cs"));
+  const configuration = JSON.parse(
+    run(executable, ["--print-configuration", kernel, initramfs]),
+  ) as HcsConfiguration;
+  if ("NetworkAdapters" in configuration.VirtualMachine.Devices) {
+    throw new Error("HCS probe configuration unexpectedly contains a network adapter section.");
+  }
   const output = run(executable, [kernel, initramfs]);
   return JSON.parse(output) as NativeProbe;
 }

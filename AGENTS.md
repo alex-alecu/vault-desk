@@ -4,11 +4,11 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk is in active implementation milestone M0. The explicit owner request on 2026-07-16 ended the documentation-only phase and authorized only the M0 scaffold and validation work in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17. M1 is not authorized and begins only on a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- The active milestone is M0. Work only inside its scope and gate.
+- M0 is complete, and no later milestone is active. Do not begin new implementation work without an explicit owner request for M1.
 - M0 may add the selected root license, pinned workspace and toolchain configuration, lockfiles, compliance and model manifests, the `@vault/shared` model contract, `@vault/eval` fixtures and gates, provisional platform probes, the test-only Tauri capability shell, guest-image metadata, and cross-platform CI.
 - Do not add M1 daemon, CLI, workspace, worker, persistence, RPC, or product behavior. M1 begins only on a new explicit owner request after the M0 gate is recorded complete.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.

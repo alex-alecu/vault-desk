@@ -133,7 +133,7 @@ internal static class WindowsHcsProbe
                     "\"ServiceTable\":{\"" + serviceId + "\":{" +
                         "\"AllowWildcardBinds\":true," +
                         "\"BindSecurityDescriptor\":\"D:P(A;;FA;;;WD)\"," +
-                        "\"ConnectSecurityDescriptor\":\"D:P(A;;FA;;;SY)(A;;FA;;;BA)\"}}}}}}}" +
+                        "\"ConnectSecurityDescriptor\":\"D:P(A;;FA;;;SY)(A;;FA;;;BA)\"}}}}}}" +
             "}";
     }
 
@@ -320,6 +320,11 @@ internal static class WindowsHcsProbe
     {
         try
         {
+            if (args.Length == 3 && args[0] == "--print-configuration")
+            {
+                Console.WriteLine(Configuration(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])));
+                return 0;
+            }
             if (args.Length < 2 || args.Length > 3)
                 throw new ArgumentException("Expected kernel, initramfs, and optional output paths.");
             string result = Run(Path.GetFullPath(args[0]), Path.GetFullPath(args[1]));
@@ -329,7 +334,8 @@ internal static class WindowsHcsProbe
         }
         catch (Exception error)
         {
-            if (args.Length == 3) File.WriteAllText(Path.GetFullPath(args[2]) + ".error", error.Message);
+            if (args.Length == 3 && args[0] != "--print-configuration")
+                File.WriteAllText(Path.GetFullPath(args[2]) + ".error", error.Message);
             else Console.Error.WriteLine(error.Message);
             return 1;
         }
