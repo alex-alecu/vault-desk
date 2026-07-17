@@ -137,7 +137,8 @@ Defaults:
 - Approved external integrations execute through a separate typed Vault Core broker that owns policy, credentials, destination validation, approval, and audit.
 - Local inference should work without internet.
 - Document processing should not require outbound connections.
-- No customer-document telemetry.
+- No application telemetry, usage analytics, automatic crash reporting, or background metrics export.
+- Local customer-owned audit records are never transmitted unless the user explicitly exports them.
 - No silent hosted reasoning fallback.
 - Updates should be user-controlled.
 - Office appliances should support offline update packages.
@@ -163,6 +164,8 @@ Audit records should capture:
 - Timing and resource metrics.
 
 Audit logs should avoid storing unnecessary sensitive content. Where possible, store hashes, references, redacted previews, and structured metadata.
+
+Audit logs are local product records, not telemetry. Vault Desk must not configure an exporter or transmit audit events, traces, timing, resource metrics, crash data, or usage data in the background. Any user-initiated export remains visible, scoped, and approval-gated.
 
 ## Business Control Layer
 
@@ -201,3 +204,4 @@ Remote support must be:
 | 2026-07-12 | Made a no-NIC microVM the certified hostile-work boundary and prohibited command-matching as the network-isolation mechanism. |
 | 2026-07-12 | Added passive Knowledge Bundle import, trust, archive-safety, atomic-activation, and no-execution requirements. |
 | 2026-07-13 | Added Tauri webview/sidecar controls and the generated-code microVM threat model, audit, and validation requirements. |
+| 2026-07-17 | Prohibited application telemetry and telemetry exporters; clarified that local customer-owned audit records are transmitted only through explicit, scoped export. |

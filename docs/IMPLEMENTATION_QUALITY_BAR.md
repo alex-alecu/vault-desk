@@ -50,7 +50,7 @@ To minimize code written and code changed later, the implementation should start
 | Embeddings | Qwen3-Embedding-0.6B via node-llama-cpp GGUF | Transformers.js ONNX | Same runtime as generation; Apache 2.0 official GGUF |
 | Tool loop | Vercel AI SDK 6 (Apache 2.0) with per-tool approval gating | Thin hand-rolled loop on node-llama-cpp | Approval-paused tool execution and typed schemas provided, policy stays in Vault Desk code |
 | Structured output | JSON Schema to grammar via node-llama-cpp, schemas defined once in TypeScript | — | One schema source feeds grammar, validation, and tool typing |
-| Audit trace shape | OpenTelemetry GenAI semantic conventions, version-pinned, persisted to a local append-only log | — | Standard shape instead of an invented one |
+| Audit trace shape | Small versioned Vault Desk schema persisted to a local append-only log, with no telemetry exporter | — | Keeps the customer-owned audit contract explicit, stable, local, and limited to product needs |
 | Desktop shell | Tauri v2 with React/TypeScript and a minimal Rust host | — | Operating-system webview, capability-scoped native surface, sidecar packaging, and no product logic in the shell |
 
 Avoid:
@@ -182,3 +182,4 @@ No package manifest or source tree should be created until that plan exists and 
 | 2026-07-12 | Required a no-NIC microVM for certified hostile work and made process-only sandboxing a non-equivalent fallback. |
 | 2026-07-13 | Added Tauri, deterministic document operations, and the bounded code-interpreter fallback to the minimal component and test bar. |
 | 2026-07-16 | Activated the quality bar for M0 while retaining milestone-scoped authorization. |
+| 2026-07-17 | Replaced the proposed OpenTelemetry trace shape with a minimal Vault Desk-owned local audit schema and no exporter. |

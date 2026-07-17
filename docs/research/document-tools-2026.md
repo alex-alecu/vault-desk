@@ -22,7 +22,7 @@ This document captures the current document tooling baseline for Vault Desk. It 
 - [node-llama-cpp](https://node-llama-cpp.withcat.ai)
 - [llama.cpp multimodal docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md)
 - [Vercel AI SDK 6 announcement](https://vercel.com/blog/ai-sdk-6)
-- [OpenTelemetry GenAI observability](https://opentelemetry.io/blog/2026/genai-observability/)
+- [OpenTelemetry GenAI observability](https://opentelemetry.io/blog/2026/genai-observability/) — reviewed and rejected for the product audit contract; Vault Desk uses a small local schema and no telemetry exporter.
 
 ## Verified Parser Landscape (July 2026)
 
@@ -150,3 +150,4 @@ Create private benchmark folders containing:
 | 2026-07-10 | Added concrete MarkItDown security, Docling, Unstructured, and turbovec research implications. |
 | 2026-07-10 | Added Local 12 and Local 16 parser-routing and minimal benchmark guidance. |
 | 2026-07-11 | Revalidated against live sources: added license posture table, Granite-Docling GGUF path, PaddleOCR-VL as primary OCR, native Node parsers for born-digital files, VLM-versus-pipeline OCR verdict, and LanceDB/sqlite-vec vector store findings. |
+| 2026-07-17 | Recorded rejection of OpenTelemetry for the product audit contract after the no-application-telemetry boundary was strengthened. |

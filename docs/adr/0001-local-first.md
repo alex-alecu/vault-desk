@@ -12,7 +12,9 @@ Vault Desk targets individuals and small professional offices that handle sensit
 
 Vault Desk will be local and offline-first.
 
-The product must not require cloud inference, cloud document upload, cloud identity, or customer-document telemetry for basic operation.
+The product must not include application telemetry, usage analytics, automatic crash reporting, or background metrics export. Local customer-owned audit records stay on the device unless the user explicitly exports them.
+
+The product must not require cloud inference, cloud document upload, or cloud identity for basic operation.
 
 Hosted or hybrid escalation may exist later, but only as an explicit, auditable, user-authorized option.
 
@@ -36,3 +38,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-10 | Initial ADR created. |
+| 2026-07-17 | Strengthened the privacy decision from no required customer-document telemetry to no application telemetry of any kind; local audit records remain customer-owned and local unless explicitly exported. |

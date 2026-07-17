@@ -150,7 +150,8 @@ Vault Desk should provide stronger guarantees than "local by default":
 - No silent cloud fallback.
 - No-NIC microVM isolation for hostile document processing and executable agent tools on certified platforms.
 - No command, URL, domain, address, or protocol matching presented as a network-isolation guarantee.
-- No customer-document telemetry.
+- No application telemetry, usage analytics, automatic crash reporting, or background metrics export.
+- Local customer-owned audit records stay on the device unless the user explicitly exports them.
 - Clear network activity controls.
 - Auditable external connections.
 - Offline update packages for controlled environments.
@@ -176,3 +177,4 @@ Medical administration is a later target. Initial medical scope should avoid aut
 | 2026-07-10 | Initial product document created from supplied concept material. |
 | 2026-07-12 | Added passive, versioned offline domain libraries as a product capability distinct from Workflow Packs. |
 | 2026-07-13 | Added the Tauri desktop interaction contract, curated model presentation, deterministic document operations, and isolated generated-code fallback. |
+| 2026-07-17 | Prohibited all application telemetry and distinguished explicit user exports from local customer-owned audit records. |

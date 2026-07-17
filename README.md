@@ -7,7 +7,7 @@ Vault Desk is a local-first AI coworker for people who work with sensitive docum
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk is in implementation milestone M0. The reproducible workspace and validation harness exist, but there is no product application or installer yet; [the M0 status](docs/M0_STATUS.md) records the open closure gates.
+> Vault Desk completed implementation milestone M0 on 2026-07-17. The reproducible workspace and validation harness exist, but there is no product application or installer yet. M1 is not authorized; [the M0 status](docs/M0_STATUS.md) records the completed gates.
 
 ## Why
 
@@ -21,15 +21,23 @@ The same platform is planned as a free community desktop app, a supported person
 
 - The product logic lives in [TypeScript](https://www.typescriptlang.org/) on [Node.js](https://nodejs.org/) so it remains portable and easy to test. [Tauri v2](https://tauri.app/) and [React](https://react.dev/) provide the desktop experience; [Rust](https://www.rust-lang.org/) is kept at the small native boundary where the operating system requires it.
 
-- [node-llama-cpp](https://node-llama-cpp.withcat.ai/) runs local models. [Gemma 4 12B QAT](https://ai.google.dev/gemma/docs/core/model_card_4) is the first generation model to certify, while [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF) finds relevant passages and [LanceDB](https://lancedb.com/) combines semantic and exact search. The contracts remain model-agnostic, even though the defaults are deliberate.
+- [node-llama-cpp](https://node-llama-cpp.withcat.ai/) runs local models. [Gemma 4 12B QAT](https://ai.google.dev/gemma/docs/core/model_card_4) is the first generation model to certify, while [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF) finds relevant passages. [LanceDB](https://lancedb.com/) is the planned embedded local index for rebuildable semantic and exact-search data; it is not a hosted service and has no telemetry role. The contracts remain model-agnostic, even though the defaults are deliberate.
 
 - [PDF.js](https://mozilla.github.io/pdf.js/), [Mammoth](https://github.com/mwilliamson/mammoth.js), [ExcelJS](https://github.com/exceljs/exceljs), [SheetJS](https://sheetjs.com/), [officeParser](https://github.com/harshankur/officeParser), and [MailParser](https://nodemailer.com/extras/mailparser) cover ordinary files directly. [Granite Docling](https://huggingface.co/ibm-granite/granite-docling-258M), [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR), [Docling](https://docling-project.github.io/docling/), [MarkItDown](https://github.com/microsoft/markitdown), and [Unstructured](https://github.com/Unstructured-IO/unstructured) are escalation paths for scans, difficult layouts, and less common formats.
 
-- Untrusted documents and generated code run in a disposable [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md). The [AI SDK](https://ai-sdk.dev/) supplies a typed tool loop, [OpenTelemetry](https://opentelemetry.io/docs/specs/semconv/gen-ai/) gives audits a standard shape, and [pnpm](https://pnpm.io/), [Biome](https://biomejs.dev/), and [Vitest](https://vitest.dev/) keep the workspace small and verifiable.
+- Untrusted documents and generated code run in a disposable [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md). The [AI SDK](https://ai-sdk.dev/) is the planned candidate for a typed tool loop, while local, customer-owned audit records make activity reviewable. Vault Desk sends no application telemetry. [pnpm](https://pnpm.io/), [Biome](https://biomejs.dev/), and [Vitest](https://vitest.dev/) keep the workspace small and verifiable.
 
 These are planned defaults behind replaceable adapters, not permanent coupling. [The implementation quality bar](docs/IMPLEMENTATION_QUALITY_BAR.md) records the full rationale.
 
 [PrismML Bonsai](https://prismml.com/news/bonsai-8b) is a promising later candidate because low-bit local models fit the hardware thesis. It is not a selected dependency or model: after M11, and only when its formats and upstream runtime support are stable, it can face the same offline, licensing, quality, memory, citation, verification, and cross-platform gates as every other model. This remains research-derived until Vault Desk measures it.
+
+## Open source and acknowledgements
+
+Vault Desk builds on open-source software. The current, pinned M0 dependencies, development tools, native components, versions, licenses, and uses are recorded in the [machine-readable compliance inventory](compliance/inventory.json); transitive JavaScript and Rust resolutions are owned by the repository lockfiles. The [M0 dependency review](docs/research/m0-dependency-review.md) explains why each adopted component is present. Planned or evaluated components named above are not necessarily installed dependencies.
+
+The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), especially its research, verification, reusable-skill, review, and handoff practices. Vault Desk expresses those ideas in original project-specific instructions and does not include the ECC package or runtime. The exact adoption boundary and other reviewed projects are documented in [development workflow](docs/DEVELOPMENT_WORKFLOW.md#ecc-derived-workflow-review) and [research sources](docs/RESEARCH_SOURCES.md).
+
+Before any packaged distribution, Vault Desk will generate the required third-party notices and dependency and model software bills of materials, as required by the [implementation plan](docs/IMPLEMENTATION_PLAN.md#model-and-asset-distribution).
 
 ## Go deeper
 

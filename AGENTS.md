@@ -39,6 +39,17 @@ Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](d
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
+## Repository Consistency Rule
+
+Keep the repository internally consistent after every change. Code, tests, fixtures, schemas, configuration, manifests, diagrams, and authoritative documentation must describe and enforce the same current behavior, architecture, contracts, defaults, and milestone state.
+
+- When code or behavior changes, update every affected test, contract, configuration surface, and authoritative document in the same change.
+- When documentation changes a current requirement or contract, reconcile the affected implementation and tests in the same change. If the behavior is planned rather than implemented, label it clearly with its milestone or research status; do not present it as current behavior.
+- Search for related references before editing and inspect the complete diff afterward. Do not leave stale names, defaults, examples, diagrams, commands, or contradictory guidance elsewhere in the repository.
+- Treat `AGENTS.md` as authoritative, followed by accepted ADRs, [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), and [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md). Keep lower-level documentation and code aligned with those sources.
+- Do not silently choose between conflicting code and documentation. Resolve the conflict within the authorized milestone and issue scope, or stop and report the inconsistency and the maintainer decision required.
+- A change is not complete while known repository drift remains. Verification and review must explicitly check code-documentation consistency for every affected surface.
+
 ## Clean Code Rule
 
 Implementation code follows these Clean Code-derived principles. They are based on the major themes of Clean Code by Robert C. Martin and are project guidance rather than quoted source text.
@@ -156,7 +167,7 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 - Local and offline-first.
 - No mandatory cloud dependency.
 - No silent cloud fallback.
-- No customer-document telemetry.
+- No application telemetry. Local customer-owned audit records are not transmitted unless the user explicitly exports them.
 - No AI infrastructure vocabulary in the ordinary user experience.
 - Outcome-first workflows.
 - Safe, previewable, reversible actions.

@@ -181,7 +181,7 @@ The first accounting workflow should be an explicit, inspectable workflow rather
 
 Framework rule: policy checks, approval decisions, audit events, and rollback stay in Vault Desk code behind the tool registry contract. The framework only drives the propose-approve-execute-observe cycle; it must not own policy.
 
-Audit shape: structure trace records after the OpenTelemetry GenAI semantic conventions (agent invocation, model call, tool execution span tree), persisted to a local append-only audit log with content hashes so sessions are replayable, while noting those conventions are still pre-stability and must be version-pinned.
+Audit shape: define a small, versioned Vault Desk schema for agent invocation, model calls, and tool execution, persisted to a local append-only audit log with content hashes so sessions are replayable. Audit records are customer-owned local product data, not telemetry; the application configures no exporter and transmits nothing unless the user explicitly exports a scoped record.
 
 ## Retrieval And Verification Principle
 
@@ -278,3 +278,4 @@ Do not add M1 daemon, CLI, workspace-state, persistence, RPC, worker-runtime, or
 | 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
 | 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
+| 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |

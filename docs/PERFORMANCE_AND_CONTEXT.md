@@ -89,7 +89,7 @@ Required validation areas:
 
 - GGUF QAT path for llama.cpp-compatible serving.
 - MLX conversion path for Apple Silicon if Gemma 4 QAT support is stable.
-- Ollama-compatible path only when model format, context behavior, and telemetry controls are explicit.
+- Ollama-compatible path only when model format and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
 - vLLM-class serving only for later appliance or server profiles, not as a Local 12 or Local 16 assumption.
 
 Optimization candidates:

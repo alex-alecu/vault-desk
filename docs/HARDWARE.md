@@ -110,7 +110,7 @@ The first office appliance should benchmark from real workflow demand, not from 
 Planned first-choice runtime directions:
 
 - Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
-- Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging, context behavior, and telemetry controls are explicit.
+- Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
 - Windows with supported AMD hardware: node-llama-cpp/llama.cpp with HIP or Vulkan first.
 - Shared appliance or Linux server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.

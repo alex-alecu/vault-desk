@@ -45,7 +45,7 @@ Windows with NVIDIA should prefer llama.cpp-compatible local serving first for t
 
 The main product reason is low-friction local deployment and a practical low-VRAM path.
 
-Ollama-compatible serving should be evaluated only when packaging, context behavior, and telemetry controls are explicit.
+Ollama-compatible serving should be evaluated only when packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
 
 ### AMD Desktop
 
