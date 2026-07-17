@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runNativeWindowsProbe } from "./probe.windows.js";
 
 type Classification = "unsupported" | "compatible_unverified" | "certified";
 
@@ -106,6 +107,39 @@ async function macArtifacts(): Promise<{ kernel: string; initramfs: string } | u
   return paths;
 }
 
+async function windowsArtifacts(): Promise<{ kernel: string; initramfs: string } | undefined> {
+  const manifest = JSON.parse(
+    await readFile(join(process.cwd(), "packages/workers/images/manifest.json"), "utf8"),
+  ) as {
+    outputs: {
+      x86_64: {
+        kernelFile: string;
+        kernelSha256: string | null;
+        initramfsFile: string;
+        initramfsSha256: string | null;
+      };
+    };
+  };
+  const output = manifest.outputs.x86_64;
+  const root = join(process.cwd(), "packages/workers/images/.generated/artifacts/x86_64");
+  const paths = {
+    kernel: join(root, output.kernelFile),
+    initramfs: join(root, output.initramfsFile),
+  };
+  if (
+    output.kernelSha256 === null ||
+    output.initramfsSha256 === null ||
+    !existsSync(paths.kernel) ||
+    !existsSync(paths.initramfs)
+  )
+    return undefined;
+  if ((await sha256(paths.kernel)) !== output.kernelSha256)
+    throw new Error("Pinned x86_64 kernel SHA-256 mismatch.");
+  if ((await sha256(paths.initramfs)) !== output.initramfsSha256)
+    throw new Error("Pinned x86_64 initramfs SHA-256 mismatch.");
+  return paths;
+}
+
 async function runNativeMacProbe(kernel: string, initramfs: string): Promise<NativeProbe> {
   await mkdir(generatedRoot, { recursive: true });
   const executable = join(generatedRoot, "virtualization-config-probe");
@@ -159,12 +193,37 @@ async function probeMac(): Promise<ProbeReport> {
   });
 }
 
-function probeWindows(): ProbeReport {
+function windowsHostDetails(): { edition: string; hypervisor: boolean } {
   const script =
     "$e=(Get-ComputerInfo).WindowsProductName;$h=(Get-CimInstance Win32_ComputerSystem).HypervisorPresent;[pscustomobject]@{edition=$e;hypervisor=$h}|ConvertTo-Json -Compress";
-  const details = JSON.parse(
+  return JSON.parse(
     command("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script]),
   ) as { edition: string; hypervisor: boolean };
+}
+
+function windowsProbeReport(native: NativeProbe): ProbeReport {
+  const socketRoundTrip =
+    native.guest.protocolVersion === 1 &&
+    native.guest.status === "ok" &&
+    native.guest.transport === "vsock";
+  const noNetworkDeviceConfigured =
+    native.networkDeviceCount === 0 && native.guest.nonLoopbackNetworkDeviceCount === 0;
+  const certified = noNetworkDeviceConfigured && native.socketDeviceCount === 1 && socketRoundTrip;
+  return report({
+    classification: certified ? "certified" : "compatible_unverified",
+    reason: certified
+      ? "Booted the pinned guest and completed its bounded Hyper-V socket no-NIC probe."
+      : "The guest booted, but its evidence did not meet the no-NIC Hyper-V socket gate.",
+    noNetworkDeviceConfigured,
+    typedSocketConfigured: native.socketDeviceCount === 1,
+    guestBooted: true,
+    socketRoundTrip,
+    guestReportedNonLoopbackNetworkDeviceCount: native.guest.nonLoopbackNetworkDeviceCount,
+  });
+}
+
+async function probeWindows(): Promise<ProbeReport> {
+  const details = windowsHostDetails();
   const supportedEdition = /Pro|Enterprise|Server/u.test(details.edition);
   if (!supportedEdition || !details.hypervisor)
     return report({
@@ -176,22 +235,20 @@ function probeWindows(): ProbeReport {
       socketRoundTrip: false,
       guestReportedNonLoopbackNetworkDeviceCount: null,
     });
-  return report({
-    classification: "compatible_unverified",
-    reason:
-      "HCS host is compatible; zero-NIC boot and Hyper-V socket round-trip evidence is still required.",
-    noNetworkDeviceConfigured: false,
-    typedSocketConfigured: false,
-    guestBooted: false,
-    socketRoundTrip: false,
-    guestReportedNonLoopbackNetworkDeviceCount: null,
-  });
+  const artifacts = await windowsArtifacts();
+  if (artifacts === undefined)
+    return unbooted(
+      "compatible_unverified",
+      "The pinned x86_64 guest artifacts must be built before Windows certification.",
+    );
+  const native = await runNativeWindowsProbe(artifacts.kernel, artifacts.initramfs);
+  return windowsProbeReport(native);
 }
 
 async function runProbe(): Promise<ProbeReport> {
   try {
-    if (process.platform === "darwin") return probeMac();
-    if (process.platform === "win32") return probeWindows();
+    if (process.platform === "darwin") return await probeMac();
+    if (process.platform === "win32") return await probeWindows();
     return report({
       classification: "unsupported",
       reason: "M0 desktop certification targets only macOS and Windows.",

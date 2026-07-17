@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
-import { link, readFile, rm, stat } from "node:fs/promises";
+import { link, mkdir, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -89,6 +89,7 @@ async function downloadToFile(model: ModelAsset, url: URL, path: string): Promis
 
 export async function fetchModel(model: ModelAsset, destination: string): Promise<void> {
   const temporaryPath = join(dirname(destination), `.${model.id}.tmp`);
+  await mkdir(dirname(destination), { recursive: true });
   try {
     await downloadToFile(model, modelDownloadUrl(model), temporaryPath);
     await verifyModelFile(model, temporaryPath);

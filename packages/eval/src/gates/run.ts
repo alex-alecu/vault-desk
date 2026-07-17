@@ -11,7 +11,14 @@ function milestoneArgument(): string {
 
 function run(command: string, args: string[]): void {
   const result = spawnSync(command, args, { stdio: "inherit" });
+  if (result.error !== undefined) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+function runPnpm(args: string[]): void {
+  const pnpmScript = process.env.npm_execpath;
+  if (pnpmScript === undefined) throw new Error("Run the M0 gate through the pinned pnpm script.");
+  run(process.execPath, [pnpmScript, ...args]);
 }
 
 function requiredModelPath(): string {
@@ -27,10 +34,9 @@ if (milestoneArgument() !== "0") {
   throw new Error("Only the active M0 gate exists.");
 }
 
-const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const modelPath = requiredModelPath();
-run(pnpm, ["verify"]);
-run(pnpm, ["tauri:check"]);
+runPnpm(["verify"]);
+runPnpm(["tauri:check"]);
 run(process.execPath, [
   "--import",
   "tsx",
@@ -38,4 +44,4 @@ run(process.execPath, [
   "--model",
   modelPath,
 ]);
-run(pnpm, ["test:platform", "--require-certified"]);
+runPnpm(["test:platform", "--require-certified"]);

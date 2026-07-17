@@ -11,8 +11,16 @@ const frontendRoot = join(generatedRoot, "frontend");
 const tauriRoot = join(smokeRoot, "src-tauri");
 const expectedNodeVersion = "v24.18.0";
 
-function run(command: string, args: string[], cwd?: string): void {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: "pipe" });
+function run(
+  command: string,
+  args: string[],
+  options: { cwd?: string; env?: NodeJS.ProcessEnv } = {},
+): void {
+  const result = spawnSync(command, args, {
+    ...options,
+    encoding: "utf8",
+    stdio: "pipe",
+  });
   if (result.status === 0) return;
   const detail = result.error?.message ?? result.stderr ?? result.stdout ?? "unknown failure";
   throw new Error(`${command} failed: ${detail}`);
@@ -20,6 +28,20 @@ function run(command: string, args: string[], cwd?: string): void {
 
 function tryRun(command: string, args: string[]): void {
   spawnSync(command, args, { encoding: "utf8", stdio: "ignore" });
+}
+
+function stripWindowsSignature(executable: string): void {
+  const programFiles = process.env["ProgramFiles(x86)"];
+  if (programFiles === undefined) throw new Error("Missing 64-bit Windows SDK location.");
+  const script =
+    '$s=Get-ChildItem "$env:VAULT_WINDOWS_KITS\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1;if($null -eq $s){exit 1};& $s.FullName remove /s $env:VAULT_SIGN_PATH;exit $LASTEXITCODE';
+  run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: {
+      ...process.env,
+      VAULT_SIGN_PATH: executable,
+      VAULT_WINDOWS_KITS: join(programFiles, "Windows Kits", "10", "bin"),
+    },
+  });
 }
 
 function targetTriple(): string {
@@ -86,8 +108,16 @@ async function prepareSea(): Promise<{
 
 function injectSea(executable: string): void {
   if (process.platform === "darwin") tryRun("codesign", ["--remove-signature", executable]);
-  const executableName = process.platform === "win32" ? "postject.cmd" : "postject";
-  const postject = join(process.cwd(), "packages", "eval", "node_modules", ".bin", executableName);
+  if (process.platform === "win32") stripWindowsSignature(executable);
+  const postject = join(
+    process.cwd(),
+    "packages",
+    "eval",
+    "node_modules",
+    "postject",
+    "dist",
+    "cli.js",
+  );
   const args = [
     executable,
     "NODE_SEA_BLOB",
@@ -96,7 +126,7 @@ function injectSea(executable: string): void {
     "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
   ];
   if (process.platform === "darwin") args.push("--macho-segment-name", "NODE_SEA");
-  run(postject, args);
+  run(process.execPath, [postject, ...args]);
 }
 
 function signMac(executable: string): string {
@@ -107,8 +137,10 @@ function signMac(executable: string): string {
 
 function signWindows(executable: string): string {
   const script =
-    "$p=$args[0];$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint);if($null -eq $s.SignerCertificate -or $s.Status -eq 'HashMismatch'){exit 1}";
-  run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script, executable]);
+    "$p=$env:VAULT_SIGN_PATH;$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;try{Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$intact=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)};if(-not $intact){exit 1}";
+  run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: { ...process.env, VAULT_SIGN_PATH: executable },
+  });
   return "windows-ephemeral-self-signed";
 }
 
@@ -127,15 +159,17 @@ async function installForTauri(executable: string): Promise<string> {
   return destination;
 }
 
-function tauriExecutable(): string {
-  const executableName = process.platform === "win32" ? "tauri.cmd" : "tauri";
-  return join(process.cwd(), "node_modules", ".bin", executableName);
+function runTauri(args: string[]): void {
+  const cli = join(process.cwd(), "node_modules", "@tauri-apps", "cli", "tauri.js");
+  run(process.execPath, [cli, ...args], { cwd: smokeRoot });
+}
+
+function buildTauriIcons(): void {
+  runTauri(["icon", join(tauriRoot, "icons", "icon.svg"), "--output", join(tauriRoot, "icons")]);
 }
 
 function buildTauriShell(): void {
-  const tauri = tauriExecutable();
-  run(tauri, ["icon", join(tauriRoot, "icons", "icon.svg"), "--output", join(tauriRoot, "icons")]);
-  run(tauri, ["build", "--no-bundle", "--debug", "--ci"], smokeRoot);
+  runTauri(["build", "--no-bundle", "--debug", "--ci"]);
 }
 
 await rm(generatedRoot, { recursive: true, force: true });
@@ -146,6 +180,7 @@ injectSea(prepared.executable);
 await chmod(prepared.executable, 0o755);
 const signingMode = signExecutable(prepared.executable);
 const destination = await installForTauri(prepared.executable);
+buildTauriIcons();
 const record = {
   schemaVersion: 1,
   nodeVersion: process.version,

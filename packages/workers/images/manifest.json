@@ -32,9 +32,9 @@
     },
     "x86_64": {
       "kernelFile": "bzImage",
-      "kernelSha256": null,
+      "kernelSha256": "ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": null
+      "initramfsSha256": "8cb33d5265fe1cbf4233154e2a93496d295275356409af19386e913334b61f89"
     }
   }
 }

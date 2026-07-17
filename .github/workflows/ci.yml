@@ -26,7 +26,10 @@ jobs:
           node-version: 24.18.0
       - name: Use pnpm 11.13.1
         shell: bash
-        run: corepack prepare pnpm@11.13.1 --activate
+        run: |
+          corepack enable pnpm
+          corepack prepare pnpm@11.13.1 --activate
+          pnpm --version
       - name: Use Rust 1.97.0
         shell: bash
         run: rustup toolchain install 1.97.0 --profile minimal --component clippy --component rustfmt

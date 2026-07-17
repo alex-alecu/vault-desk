@@ -8,4 +8,4 @@ The build runs in Buildroot's release-pinned CI image locked by registry digest,
 
 Buildroot was selected over a general distribution image because it emits a smaller immutable root filesystem with an explicit package set. The GPL build system is not shipped, but the repository must retain its license/source-offer obligations for the GPL kernel and BusyBox contents when guest images are distributed.
 
-The manifest records the reproducible arm64 kernel and initramfs hashes certified on macOS. The x86_64 hashes remain `null` until the Windows checkpoint builds them twice and validates Hyper-V. A null digest is an open platform gate, never a silent skip.
+The manifest records reproducible arm64 and x86_64 kernel and initramfs hashes. The Windows checkpoint produced matching x86_64 outputs from two independent builds, including one build with Docker networking disabled. Recording a digest does not by itself certify the platform: the current host must still boot that exact guest and pass the Hyper-V socket no-NIC probe.
