@@ -1,4 +1,4 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, Listener};
 use tauri_plugin_shell::ShellExt;
 
 #[tauri::command]
@@ -18,6 +18,12 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![launch_test_sidecar])
+        .setup(|app| {
+            app.listen("m0-runtime-evidence", |event| {
+                println!("{}", event.payload());
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("M0 Tauri capability shell failed");
 }

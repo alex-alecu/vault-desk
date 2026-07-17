@@ -23,6 +23,13 @@ describe("M0 Tauri capability surface", () => {
     expect(source).toContain("process.argv.length !== 2");
   });
 
+  it("publishes bounded runtime evidence through the existing core event channel", async () => {
+    const source = await readFile(join(smokeRoot, "main.ts"), "utf8");
+    const host = await readFile(join(smokeRoot, "src-tauri/src/main.rs"), "utf8");
+    expect(source).toContain('.event.emit("m0-runtime-evidence", evidence)');
+    expect(host).toContain('app.listen("m0-runtime-evidence"');
+  });
+
   it("enforces the pinned Node version and records the source executable hash", async () => {
     const source = await readFile(join(smokeRoot, "build.ts"), "utf8");
     expect(source).toContain('expectedNodeVersion = "v24.18.0"');

@@ -16,6 +16,8 @@ Node SEA is still marked active development by Node. `postject` is an alpha-tagg
 
 The webview has only `core:default`. It has no shell, process, filesystem, dialog, HTTP, URL-opening, or environment plugin permission. The only application command is `launch_test_sidecar`; it accepts no executable, arguments, path, URL, endpoint, or model location. Rust resolves the single configured external binary by its fixed Tauri sidecar identity.
 
+After the runtime checks finish, the webview writes the bounded JSON evidence to its body and emits it through the existing `core:event:default` channel. The Rust test host listens only for `m0-runtime-evidence` and prints that payload, so platform automation can capture the result without screenshots, unrelated application access, or an added capability. A passing payload contains the fixed sidecar response and `arbitraryCommandDenied: true`.
+
 ## Commands
 
 - `pnpm tauri:build-sidecar` builds and signs the current-platform fixture.

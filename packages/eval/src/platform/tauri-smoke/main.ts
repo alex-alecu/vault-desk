@@ -1,5 +1,6 @@
 interface TauriGlobal {
   core: { invoke<T>(command: string, payload?: Record<string, unknown>): Promise<T> };
+  event: { emit(event: string, payload?: unknown): Promise<void> };
 }
 
 declare global {
@@ -18,7 +19,9 @@ async function capabilitySmoke(): Promise<void> {
   } catch {
     arbitraryCommandDenied = true;
   }
-  result.textContent = JSON.stringify({ sidecar: JSON.parse(sidecar), arbitraryCommandDenied });
+  const evidence = { sidecar: JSON.parse(sidecar), arbitraryCommandDenied };
+  result.textContent = JSON.stringify(evidence);
+  await window.__TAURI__.event.emit("m0-runtime-evidence", evidence);
 }
 
 void capabilitySmoke();

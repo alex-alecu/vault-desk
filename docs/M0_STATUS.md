@@ -37,8 +37,9 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
   - Kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
   - Initramfs SHA-256: `d7ea5c8df6da1faa9fd6aaf7109833be45dc3b208515977b0021ea478715e3c9`.
 - `pnpm model:fetch --id qwen3-embedding-0.6b-q8_0 --destination /tmp/qwen3-embedding-0.6b-q8_0.gguf` — downloaded the official immutable Qwen artifact and matched SHA-256 `06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439`.
-- `pnpm test:gate --milestone 0 --model /tmp/qwen3-embedding-0.6b-q8_0.gguf` — passed source limits, Biome, TypeScript, 16 unit assertions, two native assertions, SEA packaging/signing, Rust formatting/Clippy, Tauri build, real model load, and certified macOS guest boot.
+- `pnpm test:gate --milestone 0 --model /tmp/qwen3-embedding-0.6b-q8_0.gguf` — passed again after the Windows pull and final runtime-evidence change: source limits, Biome, TypeScript, 17 unit assertions, two native assertions, SEA packaging/signing, Rust formatting/Clippy, Tauri build, real model load, and certified macOS guest boot.
 - Platform result: `classification: certified`, `noNetworkDeviceConfigured: true`, `typedSocketConfigured: true`, `guestBooted: true`, `socketRoundTrip: true`, and guest non-loopback count `0`.
+- A real Mac webview launch emitted `{"arbitraryCommandDenied":true,"sidecar":{"capability":"fixed-sidecar","protocolVersion":1,"status":"ok"}}` through the existing core event channel.
 - `pnpm verify` and `pnpm tauri:check` — passed again after checkpoint review and the generated-icon policy fix.
 - `git diff --check` — passed before final staging.
 
@@ -69,13 +70,14 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 - The socket API asserted its dispatch queue. The Swift entrypoint and connection retry now run on the main actor.
 - Buildroot's QEMU kernel config creates `dummy0` by default. The boot command sets `dummy.numdummies=0`; the unchanged hashed guest then reported zero non-loopback devices.
 - HCS rejected the first hand-built configuration because of an extra JSON closing brace. The helper now prints its configuration for a Node JSON/no-network-adapter preflight before HCS receives it; the corrected elevated boot passed.
+- macOS Accessibility exposed the smoke window but not its webview body. The webview now emits bounded runtime evidence through the already-enabled core event channel, and the Rust test host prints only that named event; no capability or screen capture was added.
 
 ## Handoff
 
 - Objective and current state: M0 is complete on macOS and Windows with published CI evidence; M1 remains unauthorized.
 - Changed paths: root workspace and policy files, M0 `shared` and `eval` packages, the Tauri and microVM probes, Buildroot guest recipe, model/compliance manifests, CI, ADR 0017, and supporting M0 documentation.
 - Decisions and source links: use the official immutable Qwen Q8_0 artifact recorded in `assets/models.json`; use a reproducible Buildroot no-NIC guest with typed VSOCK IPC; keep generated guests, models, executables, and icons out of Git.
-- Commands and results: the exact Mac build, model, gate, platform, and post-review verification evidence is recorded above; all required Mac checks pass.
+- Commands and results: the exact Mac and Windows build, model, gate, platform, Tauri runtime, and post-review verification evidence is recorded above; all required M0 checks pass.
 - Failures and attempted fixes: the Docker bind-mount race, Virtualization.framework signing and dispatch issues, Buildroot `dummy0`, and generated-icon policy issue are resolved as recorded above.
 - Open risks or questions: accelerated Metal performance remains outside the proven M0 model-correctness evidence.
 - Windows state: the elevated HCS lifecycle, no-NIC assertion, guest report, and Hyper-V socket round trip pass.
