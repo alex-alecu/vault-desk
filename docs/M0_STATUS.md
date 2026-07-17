@@ -2,7 +2,7 @@
 
 Updated: 2026-07-17
 
-Milestone M0 is active. The Mac checkpoint passes and the non-privileged Windows checkpoint passes. M0 remains open until the privileged Windows HCS certification and published cross-platform CI gates pass. M1 is not authorized.
+Milestone M0 is active. The Mac checkpoint, non-privileged Windows checkpoint, and published cross-platform CI pass. M0 remains open until the privileged Windows HCS certification passes. M1 is not authorized.
 
 ## Change Brief
 
@@ -14,7 +14,7 @@ Milestone M0 is active. The Mac checkpoint passes and the non-privileged Windows
 
 ## Gate State
 
-- Overall status: not ready; privileged Windows HCS certification and published CI evidence remain open.
+- Overall status: not ready; only privileged Windows HCS certification remains open.
 - Mac checkpoint: pass on macOS 26.5.2 arm64.
 - Windows checkpoint: all non-privileged gates pass on Windows x64; HCS guest creation is blocked by host-process elevation.
 - M1 authorization: not granted.
@@ -25,7 +25,7 @@ Milestone M0 is active. The Mac checkpoint passes and the non-privileged Windows
 | Deterministic development and held-out corpora | Both corpora cover all six required classes; anchors are checked against decoded fixture content | Pass |
 | Model manifest and real load | Official Qwen Q8_0 exact bytes/SHA-256; 1,024-dimensional embedding smoke | Pass on Mac and Windows |
 | Local pinned workspace | Locked install and complete non-privileged verification | Pass on Mac and Windows |
-| macOS and Windows CI | Immutable action pins and `macos-26` / `windows-2025` jobs | First published run failed before install because the pnpm shim was not enabled; fix pending publish |
+| macOS and Windows CI | Immutable action pins and `macos-26` / `windows-2025` jobs | Pass in published run `29556828274` |
 | Tauri packaging and capability shell | Signed Node SEA, fixed sidecar identity, capability assertions, Rust Clippy, no-bundle build, runtime webview denial | Pass on Mac and Windows |
 | No-NIC microVM | Reproducible arm64/x86_64 hashes; exact guest boot; zero configured NICs; guest reports zero non-loopback devices; typed socket round trip | Certified on Mac; reproducible x86_64 guest passes, privileged Windows boot pending |
 | Knowledge Bundle decision | ADR 0017; deterministic tar and Ed25519 validation; selected TUF library loads | Pass for M0 scope |
@@ -53,11 +53,12 @@ Milestone M0 is active. The Mac checkpoint passes and the non-privileged Windows
 - The real model smoke loaded that GGUF and produced a 1,024-dimensional embedding.
 - `pnpm test:gate --milestone 0 --model packages/eval/.generated/qwen3-embedding-0.6b-q8_0.gguf` passed verification, Tauri build, and the real model smoke before stopping only at the privileged HCS gate.
 - `pnpm test:platform` reached HCS compute-system creation but returned `0x8037011B` from the non-elevated Codex host process. The privileged `--require-certified` run remains required.
+- GitHub Actions run `29556828274` passed the complete hosted `macos-26` and `windows-2025` jobs after fixing pnpm shim activation and Windows PowerShell module isolation.
 
 ## Caveats And Remaining Evidence
 
 - `node-llama-cpp` logged a Metal shader source compilation error, then successfully loaded the model and produced the expected embedding through fallback. M0 model correctness passes; accelerated Metal performance remains unproven.
-- The first GitHub-hosted run failed before dependency installation on both platforms because `corepack prepare` did not create a `pnpm` shim. The workflow now explicitly enables and version-checks that shim; the fix still requires a published run.
+- The first two GitHub-hosted attempts exposed pnpm shim activation and inherited PowerShell module-path defects. Both are fixed; published run `29556828274` passes on macOS and Windows.
 - Windows HCS lifecycle, Hyper-V socket round trip, and zero-NIC evidence require one administrator-level run on this host.
 - Guest artifacts and the model remain ignored development outputs and are not committed.
 
@@ -70,12 +71,12 @@ Milestone M0 is active. The Mac checkpoint passes and the non-privileged Windows
 
 ## Handoff
 
-- Objective and current state: Mac and non-privileged Windows checkpoints pass; full M0 is not ready until the privileged Windows HCS and published CI evidence pass.
+- Objective and current state: Mac, non-privileged Windows, and published CI checkpoints pass; full M0 is not ready until privileged Windows HCS certification passes.
 - Changed paths: root workspace and policy files, M0 `shared` and `eval` packages, the Tauri and microVM probes, Buildroot guest recipe, model/compliance manifests, CI, ADR 0017, and supporting M0 documentation.
 - Decisions and source links: use the official immutable Qwen Q8_0 artifact recorded in `assets/models.json`; use a reproducible Buildroot no-NIC guest with typed VSOCK IPC; keep generated guests, models, executables, and icons out of Git.
 - Commands and results: the exact Mac build, model, gate, platform, and post-review verification evidence is recorded above; all required Mac checks pass.
 - Failures and attempted fixes: the Docker bind-mount race, Virtualization.framework signing and dispatch issues, Buildroot `dummy0`, and generated-icon policy issue are resolved as recorded above.
-- Open risks or questions: privileged Windows HCS certification, published CI, and Metal acceleration evidence remain open.
+- Open risks or questions: privileged Windows HCS certification and Metal acceleration evidence remain open.
 - Windows next action: run `pnpm test:platform -- --require-certified` from an administrator PowerShell, then rerun the complete M0 gate.
-- Published CI next action: publish the Windows checkpoint and inspect both jobs; any failure keeps M0 open.
+- Published CI state: run `29556828274` passes both required jobs.
 - Completion rule: record M0 complete only after both supported platforms and CI pass. M1 still requires a separate explicit owner request.
