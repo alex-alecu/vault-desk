@@ -200,7 +200,7 @@ Scope:
 - Generate development and held-out fixture corpora with typed ground truth, permitted source anchors, and negative/adversarial cases.
 - Record dependency licenses and create the first machine-readable dependency/model inventory.
 - Validate maintained archive, TUF-style metadata, signature, and offline-verification libraries for Knowledge Bundles. Record the selected M5 reader and M10 import direction in `docs/adr/0017-knowledge-bundle-format-and-trust.md` and add it to the AGENTS.md documentation map; do not stabilize a transport format before that ADR is accepted.
-- Contribution activation is deferred to the v1 launch (after M11). Through v1, the repository owner commits directly to `main` without pull-request gates, keeping each commit small and leaving `pnpm verify` green. Implementation contributions remain closed; enable GitHub private vulnerability reporting early since it costs nothing and gates nothing.
+- External contribution activation is deferred to the v1 launch (after M11). M0 completed under the former direct-to-`main` workflow. Beginning with M1, the repository owner develops every implementation stage on a short-lived branch and merges it through a pull request, keeping each commit small and leaving `pnpm verify` green. External implementation contributions remain closed; enable GitHub private vulnerability reporting early since it costs nothing and gates nothing.
 - Resolve every item in IMPLEMENTATION_STRUCTURE.md's M0 open-item list and record each decision in the owning manifest, configuration, ADR, or blueprint before the gate closes.
 
 Gate:
@@ -439,7 +439,7 @@ This is the first milestone allowed to move Local 12, Local 16, and Community De
 
 ## V1 Launch And Contribution Activation
 
-The v1 launch follows M11 certification and is when the repository opens to collaborators. At launch, activate [the contribution workflow](../CONTRIBUTING.md): replace owner-only direct commits with human contributor authorship and DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off, and protect `main` with pull requests, required DCO and applicable CI checks, resolved conversations, and force-push and deletion denial. Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one gate report without requiring an approval count until a second maintainer exists.
+The v1 launch follows M11 certification and is when the repository opens to collaborators. Owner development already uses pull requests for every implementation stage. At launch, expand [the contribution workflow](../CONTRIBUTING.md) to external human contributors: require DCO 1.1 sign-off, install the repository-scoped DCO GitHub App, enable web commit sign-off, and add required DCO, maintainer review, resolved-conversation, force-push-denial, and deletion-denial rules to the existing pull-request-only `main` policy. Create the `ready-for-contribution` label and advertise only accepted, milestone-scoped issues with that label. Exercise contributor bootstrap, a failed and successful DCO check, the pull request template, `pnpm verify`, and one gate report without requiring an approval count until a second maintainer exists.
 
 ## Explicitly Deferred After M11
 
@@ -462,7 +462,7 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 - Use small, reviewable commits that each leave relevant fast checks green.
 - Tag or otherwise record milestone completion only after its full gate passes.
 - Do not combine unrelated refactors with milestone behavior.
-- Through the v1 launch, the repository owner commits directly to `main` without pull-request gates, following AGENTS.md's repository-owner-only authorship rule. After v1 contribution activation, human contributors author and DCO-sign every commit through pull requests; AI authorship, co-authorship, attribution trailers, and generated-by lines remain prohibited in both phases.
+- Beginning with M1, develop every implementation stage on a short-lived branch and merge it through a pull request before starting the next stage. Direct implementation pushes to `main` are prohibited. Through M11, the repository owner remains the sole commit author. After v1 contribution activation, external human contributors author and DCO-sign every commit through pull requests; AI authorship, co-authorship, attribution trailers, and generated-by lines remain prohibited in both phases.
 
 ## Revision History
 
@@ -480,3 +480,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |
 | 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 evaluation candidate, gated on stable upstream runtime support and the full model-certification suite. |
 | 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
+| 2026-07-17 | Required owner pull requests for every implementation stage from M1 onward while retaining post-M11 activation for external contributors. |

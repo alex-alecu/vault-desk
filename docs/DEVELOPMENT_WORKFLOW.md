@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. Milestone M0 is active; [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This document is the canonical implementation and contribution workflow for Vault Desk. Milestone M0 is complete and M1 is not yet active; [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
 
 ## Operating Principles
 
@@ -26,7 +26,7 @@ Before changing a file:
 4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 5. Stop if the requested implementation belongs to an inactive milestone.
 
-Roadmap presence is not authorization. M0 is active, and implementation outside its explicit scope must still be converted into an issue, design note, or plan rather than code.
+Roadmap presence is not authorization. M0 is complete, and M1 begins only on a new explicit owner request. Implementation outside an active milestone must be converted into an issue, design note, or plan rather than code.
 
 ### Change Brief
 
@@ -71,6 +71,8 @@ Select tests from the failure being prevented. Ask whether the change can:
 If yes, name the focused test or gate before implementation. If no, prefer the smallest relevant test and avoid broad snapshots or mock-heavy coverage.
 
 ## 4. Implement The Minimum Change
+
+Beginning with M1, create a short-lived branch and open a focused pull request for every implementation stage. Do not commit implementation work directly to `main`, and do not begin the next stage until the current stage's pull request is merged or explicitly closed. A milestone may use multiple stage pull requests when its accepted issue scope is divided into independently verifiable responsibilities.
 
 Follow the startup working agreement in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md):
 
@@ -154,7 +156,8 @@ A pull request is ready for maintainer review only when:
 - Dependency and redistribution impacts are documented.
 - Documentation and audit contracts are updated when behavior changes.
 - Unresolved risks and unrun checks are visible.
-- Every commit is authored only by its human owner; the repository owner commits directly to `main` through M11.
+- Every commit is authored only by its human owner.
+- The stage was developed on a short-lived branch and will merge through this pull request, never by a direct implementation push to `main`.
 
 There is no fixed line limit or coverage percentage. Reviewers may ask for a split when a pull request spans unrelated responsibilities or cannot be verified coherently.
 
@@ -178,7 +181,7 @@ Vault Desk explicitly does not adopt ECC's package, installers, global Codex syn
 
 ## V1 Contribution Activation
 
-Implementation contributions remain closed through M11. The repository owner commits directly to `main`, keeps each commit small, and leaves the active milestone gate green. The v1 launch gate activates human DCO sign-off, pull-request protection, contribution-ready issue labeling, maintainer review, and the contributor bootstrap described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
+External implementation contributions remain closed through M11. Beginning with M1, the repository owner develops every stage on a short-lived branch, opens a pull request, keeps each commit small, and leaves the active milestone gate green. Pull-request CI runs when a pull request is opened, reopened, or updated with pushed commits; direct pushes to `main` do not run it. The v1 launch gate activates external human DCO sign-off, contribution-ready issue labeling, maintainer review, and the contributor bootstrap described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
 
 AI assistants, models, coding agents, and tools are never authors or co-authors. Private vulnerability reporting may be enabled before v1 because it does not open implementation contributions or change milestone scope.
 
@@ -188,3 +191,4 @@ AI assistants, models, coding agents, and tools are never authors or co-authors.
 |---|---|
 | 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |
 | 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the post-M11 v1 gate. |
+| 2026-07-17 | Required a branch and pull request for every remaining implementation stage and moved CI from direct pushes to pull-request activity. |

@@ -4,7 +4,7 @@ Thank you for helping build Vault Desk. Contributions must preserve the project'
 
 ## Current Contribution Status
 
-Vault Desk does not invite implementation pull requests before its v1 launch. Through v1 the repository owner develops directly on `main`; external contributions open when v1 ships and the contribution workflow in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) is activated.
+Vault Desk does not invite external implementation pull requests before its v1 launch. Beginning with M1, the repository owner develops each implementation stage on a short-lived branch and merges it through a pull request. External contributions open when v1 ships and the contribution workflow in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) is activated.
 
 Until the v1 launch:
 
@@ -26,7 +26,7 @@ Security or architecture boundary changes require issue discussion and an accept
 
 ## Development Workflow
 
-Use a short-lived, focused branch. There is no required branch-name prefix, but the name should identify the change clearly.
+Use a short-lived, focused branch and open a pull request for every implementation stage. Do not push implementation commits directly to `main`. There is no required branch-name prefix, but the name should identify the change clearly.
 
 Each implementation change follows this sequence:
 
@@ -86,7 +86,7 @@ Never contribute customer documents, confidential data, employer-owned work, pri
 
 ## Pull Requests
 
-Keep each pull request tied to one accepted issue and one milestone-sized responsibility. The pull request must state:
+Keep each pull request tied to one accepted issue and one independently verifiable stage within the active milestone. Do not begin the next stage until the current pull request is merged or explicitly closed. The pull request must state:
 
 - The active milestone and linked issue.
 - What changed and what was intentionally excluded.
