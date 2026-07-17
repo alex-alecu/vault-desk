@@ -11,6 +11,12 @@ const frontendRoot = join(generatedRoot, "frontend");
 const tauriRoot = join(smokeRoot, "src-tauri");
 const expectedNodeVersion = "v24.18.0";
 
+function windowsPowerShell(): { executable: string; modulePath: string } {
+  const windowsRoot = process.env.WINDIR ?? "C:\\Windows";
+  const root = join(windowsRoot, "System32", "WindowsPowerShell", "v1.0");
+  return { executable: join(root, "powershell.exe"), modulePath: join(root, "Modules") };
+}
+
 function run(
   command: string,
   args: string[],
@@ -33,11 +39,13 @@ function tryRun(command: string, args: string[]): void {
 function stripWindowsSignature(executable: string): void {
   const programFiles = process.env["ProgramFiles(x86)"];
   if (programFiles === undefined) throw new Error("Missing 64-bit Windows SDK location.");
+  const powerShell = windowsPowerShell();
   const script =
     '$s=Get-ChildItem "$env:VAULT_WINDOWS_KITS\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1;if($null -eq $s){exit 1};& $s.FullName remove /s $env:VAULT_SIGN_PATH;exit $LASTEXITCODE';
-  run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+  run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
     env: {
       ...process.env,
+      PSModulePath: powerShell.modulePath,
       VAULT_SIGN_PATH: executable,
       VAULT_WINDOWS_KITS: join(programFiles, "Windows Kits", "10", "bin"),
     },
@@ -136,10 +144,15 @@ function signMac(executable: string): string {
 }
 
 function signWindows(executable: string): string {
+  const powerShell = windowsPowerShell();
   const script =
-    "$p=$env:VAULT_SIGN_PATH;$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;try{Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$intact=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)};if(-not $intact){exit 1}";
-  run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
-    env: { ...process.env, VAULT_SIGN_PATH: executable },
+    "$p=$env:VAULT_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M0 Smoke' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$intact=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $intact){exit 1}";
+  run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
+    env: {
+      ...process.env,
+      PSModulePath: powerShell.modulePath,
+      VAULT_SIGN_PATH: executable,
+    },
   });
   return "windows-ephemeral-self-signed";
 }
