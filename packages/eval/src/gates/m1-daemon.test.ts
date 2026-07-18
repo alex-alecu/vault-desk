@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 const temporaryRoots: string[] = [];
 
 interface WindowsPipeSecurityReport {
+  currentUserOnly: boolean;
   currentUserSid: string;
   restrictedConnectionDenied: boolean;
   sddl: string;
@@ -96,8 +97,9 @@ describe("M1 daemon and local transport", () => {
     if (process.platform === "win32") {
       expect(first.endpoint).toMatch(/^\\\\\.\\pipe\\vault-cored-/u);
       const security = windowsPipeSecurity(first.endpoint);
+      expect(security.currentUserOnly).toBe(true);
+      expect(security.currentUserSid).toMatch(/^S-1-/u);
       expect(security.restrictedConnectionDenied).toBe(true);
-      expect(security.sddl).toContain(security.currentUserSid);
       expect(security.sddl).not.toMatch(/;;;(?:AN|BU|WD)\)/u);
     } else {
       const state = await lstat(first.endpoint);

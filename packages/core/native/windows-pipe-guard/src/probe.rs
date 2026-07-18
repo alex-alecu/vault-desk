@@ -1,6 +1,6 @@
 use crate::security::{
-    Handle, Pointer, SecurityDescriptor, SidAndAttributes, current_token, invalid_handle,
-    last_error, sid_string, token_user, wide, wide_text,
+    Handle, Pointer, SecurityDescriptor, SidAndAttributes, current_token, current_user_descriptor,
+    invalid_handle, last_error, sid_string, token_user, wide, wide_text,
 };
 use std::error::Error;
 use std::ffi::OsStr;
@@ -68,6 +68,24 @@ unsafe extern "system" {
     fn RevertToSelf() -> i32;
 }
 
+fn descriptor_sddl(descriptor: Pointer) -> Result<String, Box<dyn Error>> {
+    let mut text = null_mut();
+    if unsafe {
+        ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            descriptor,
+            1,
+            DACL_SECURITY_INFORMATION,
+            &mut text,
+            null_mut(),
+        )
+    } == 0
+    {
+        return Err(last_error("pipe SDDL conversion"));
+    }
+    let text = SecurityDescriptor::new(text.cast());
+    Ok(wide_text(text.as_ptr().cast()))
+}
+
 fn pipe_sddl(endpoint: &str) -> Result<String, Box<dyn Error>> {
     let endpoint = wide(OsStr::new(endpoint));
     let pipe = Handle::new(
@@ -101,21 +119,7 @@ fn pipe_sddl(endpoint: &str) -> Result<String, Box<dyn Error>> {
         return Err(format!("pipe security query failed with {status}").into());
     }
     let descriptor = SecurityDescriptor::new(descriptor);
-    let mut text = null_mut();
-    if unsafe {
-        ConvertSecurityDescriptorToStringSecurityDescriptorW(
-            descriptor.as_ptr(),
-            1,
-            DACL_SECURITY_INFORMATION,
-            &mut text,
-            null_mut(),
-        )
-    } == 0
-    {
-        return Err(last_error("pipe SDDL conversion"));
-    }
-    let text = SecurityDescriptor::new(text.cast());
-    Ok(wide_text(text.as_ptr().cast()))
+    descriptor_sddl(descriptor.as_ptr())
 }
 
 fn restricted_connection_denied(
@@ -178,9 +182,11 @@ pub fn probe(endpoint: &str) -> Result<(), Box<dyn Error>> {
     let (_user, sid) = token_user(token.0)?;
     let current_user_sid = sid_string(sid)?;
     let sddl = pipe_sddl(endpoint)?;
+    let expected = current_user_descriptor()?;
+    let current_user_only = sddl == descriptor_sddl(expected.as_ptr())?;
     let restricted_denied = restricted_connection_denied(endpoint, token.0, sid)?;
     println!(
-        "{{\"currentUserSid\":\"{current_user_sid}\",\"restrictedConnectionDenied\":{restricted_denied},\"sddl\":\"{sddl}\"}}"
+        "{{\"currentUserOnly\":{current_user_only},\"currentUserSid\":\"{current_user_sid}\",\"restrictedConnectionDenied\":{restricted_denied},\"sddl\":\"{sddl}\"}}"
     );
     Ok(())
 }
