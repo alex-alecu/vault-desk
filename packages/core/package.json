@@ -1,0 +1,22 @@
+{
+  "name": "@vault/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "bin": {
+    "vault-cored": "./src/daemon/main.ts"
+  },
+  "dependencies": {
+    "@vault/shared": "workspace:*",
+    "better-sqlite3": "12.11.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13"
+  }
+}

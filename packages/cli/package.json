@@ -1,0 +1,12 @@
+{
+  "name": "@vault/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "vault": "./src/main.ts"
+  },
+  "dependencies": {
+    "@vault/shared": "workspace:*"
+  }
+}

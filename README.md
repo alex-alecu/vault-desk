@@ -7,7 +7,7 @@ Vault Desk is a local-first AI coworker for people who work with sensitive docum
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk completed implementation milestone M0 on 2026-07-17. The reproducible workspace and validation harness exist, but there is no product application or installer yet. M1 is not authorized; [the M0 status](docs/M0_STATUS.md) records the completed gates.
+> Vault Desk completed milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. M2 is not active, and there is no product application or installer yet. [The M1 status](docs/M1_STATUS.md) records the completed gates.
 
 ## Why
 
@@ -33,7 +33,7 @@ These are planned defaults behind replaceable adapters, not permanent coupling. 
 
 ## Open source and acknowledgements
 
-Vault Desk builds on open-source software. The current, pinned M0 dependencies, development tools, native components, versions, licenses, and uses are recorded in the [machine-readable compliance inventory](compliance/inventory.json); transitive JavaScript and Rust resolutions are owned by the repository lockfiles. The [M0 dependency review](docs/research/m0-dependency-review.md) explains why each adopted component is present. Planned or evaluated components named above are not necessarily installed dependencies.
+Vault Desk builds on open-source software. The current pinned dependencies, development tools, native components, versions, licenses, and uses are recorded in the [machine-readable compliance inventory](compliance/inventory.json); transitive JavaScript, Rust, and Swift package resolutions are owned by the repository lockfiles. The [M0 dependency review](docs/research/m0-dependency-review.md) explains the selected M1 foundations. Planned or evaluated components named above are not necessarily installed dependencies.
 
 The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), especially its research, verification, reusable-skill, review, and handoff practices. Vault Desk expresses those ideas in original project-specific instructions and does not include the ECC package or runtime. The exact adoption boundary and other reviewed projects are documented in [development workflow](docs/DEVELOPMENT_WORKFLOW.md#ecc-derived-workflow-review) and [research sources](docs/RESEARCH_SOURCES.md).
 

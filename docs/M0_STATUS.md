@@ -2,7 +2,7 @@
 
 Updated: 2026-07-17
 
-Milestone M0 is complete. The Mac and Windows checkpoints and published cross-platform CI pass. M1 is not authorized and still requires a separate explicit owner request.
+Milestone M0 is complete. The Mac and Windows checkpoints and published cross-platform CI pass. M1 subsequently completed across macOS and Windows on 2026-07-18; this file remains the historical M0 record.
 
 ## Change Brief
 
@@ -74,7 +74,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 
 ## Handoff
 
-- Objective and current state: M0 is complete on macOS and Windows with published CI evidence; M1 remains unauthorized.
+- Objective and current state: M0 is complete on macOS and Windows with published CI evidence; M1 subsequently completed across both platforms.
 - Changed paths: root workspace and policy files, M0 `shared` and `eval` packages, the Tauri and microVM probes, Buildroot guest recipe, model/compliance manifests, CI, ADR 0017, and supporting M0 documentation.
 - Decisions and source links: use the official immutable Qwen Q8_0 artifact recorded in `assets/models.json`; use a reproducible Buildroot no-NIC guest with typed VSOCK IPC; keep generated guests, models, executables, and icons out of Git.
 - Commands and results: the exact Mac and Windows build, model, gate, platform, Tauri runtime, and post-review verification evidence is recorded above; all required M0 checks pass.
@@ -82,4 +82,4 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 - Open risks or questions: accelerated Metal performance remains outside the proven M0 model-correctness evidence.
 - Windows state: the elevated HCS lifecycle, no-NIC assertion, guest report, and Hyper-V socket round trip pass.
 - Published CI state: run `29556828274` passes both required jobs.
-- Completion rule: satisfied on 2026-07-17. M1 still requires a separate explicit owner request.
+- Completion rule: satisfied on 2026-07-17. The separately authorized M1 milestone completed on 2026-07-18.

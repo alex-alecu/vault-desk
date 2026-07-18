@@ -8,5 +8,5 @@
     "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../shared" }]
+  "references": [{ "path": "../shared" }, { "path": "../workers" }, { "path": "../core" }]
 }

@@ -1,0 +1,57 @@
+# Milestone M1 Status
+
+Updated: 2026-07-18
+
+M1 is complete across macOS and Windows. M2 is not authorized.
+
+## Change Brief
+
+- Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
+- Authority: M1 was activated by the repository owner's explicit 2026-07-17 request and closed on 2026-07-18 after the final Windows daemon endpoint gate passed.
+- Product boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive already-authorized staged inputs and bounded scratch; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
+- Dependencies: `better-sqlite3` is the only consumed M1 package addition. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.
+- Excluded: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, and later-milestone behavior.
+
+## Gate State
+
+- Shared M1 implementation: pass.
+- macOS implementation and physical certification: pass.
+- Windows implementation and physical HCS certification: pass.
+- Windows daemon current-user endpoint gate: pass.
+- Full M1 milestone: complete.
+- M2 authorization: not granted.
+
+## Shared Evidence
+
+- Workspace gates cover traversal, symlink or junction escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, and hash-chain tamper detection.
+- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, same-user endpoint access, restart, abrupt kill, stale-lock recovery, and catalog reopening.
+- Worker gates reject non-schema forwarding frames and bound frame sizes.
+- `pnpm verify` passes source limits, Biome, TypeScript, 28 unit tests, two native tests, Rust formatting and Clippy, signed test-sidecar construction, all native helper builds, and platform-appropriate skips.
+
+## macOS Evidence
+
+- The production arm64 guest was built twice from Buildroot 2026.05 in disposable volumes; the second build had Docker networking disabled and matched the first byte-for-byte.
+  - kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
+  - initramfs SHA-256: `b63fd1a7677b7f6b3e3b7cd9c95eeba9c313f0f8a34f85457491f82a3334ed4e`.
+- The signed Swift helper booted the recorded guest with zero configured network devices, one VSOCK device, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and passing DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial probes.
+
+## Windows Evidence
+
+- The production x86_64 guest was built twice from Buildroot 2026.05 with matching output.
+  - kernel SHA-256: `ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45`.
+  - initramfs SHA-256: `cdf5a631ee8cc7aabb5def990de9beb922221acf5a46dc51ce2492498b225986`.
+- An elevated physical Windows x64 HCS boot returned `certified`: zero configured network devices, one fixed Hyper-V socket service, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and all network-denial probes passing. The platform project completed in about 31 seconds.
+- The signed pipe guard creates the named-pipe instance with `PIPE_REJECT_REMOTE_CLIENTS` and a protected DACL granting access only to the current user. It relays opaque bytes over inherited stdio and enforces the request ceiling supplied by TypeScript; TypeScript retains the limit definition, JSON parsing, RPC dispatch, and product policy.
+- Before enforcement, the live Node/libuv descriptor was `D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;S-1-5-21-2956651453-1646027870-1593765367-1001)(A;;FR;;;WD)(A;;FR;;;AN)` and exposed Everyone and Anonymous read ACEs.
+- After enforcement, the live descriptor is `D:P(A;;FA;;;S-1-5-21-2956651453-1646027870-1593765367-1001)`. A restricted token with the current-user SID disabled is denied, while same-user RPC, CLI status, EOF behavior, and daemon restart pass.
+- The pipe-guard dependency decision is recorded in [research/m1-windows-pipe-guard-dependency-review.md](research/m1-windows-pipe-guard-dependency-review.md); the HCS decision remains in [research/m1-windows-dependency-review.md](research/m1-windows-dependency-review.md).
+
+## Remaining Risks And Deferrals
+
+- Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
+- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
+- Hosted CI classifies each available platform backend but does not replace the recorded elevated physical-host HCS or macOS hardware certification.
+- Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
+- M2 and all later product behavior require a new explicit owner request.
+
+Conclusion: ready; M1 is complete and M2 remains unauthorized.

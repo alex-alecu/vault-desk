@@ -18,6 +18,7 @@
   "requiredKernelFeatures": [
     "CONFIG_VIRTIO",
     "CONFIG_VIRTIO_PCI",
+    "CONFIG_VIRTIO_BLK",
     "CONFIG_VIRTIO_VSOCKETS",
     "CONFIG_HYPERV",
     "CONFIG_HYPERV_VSOCKETS"
@@ -28,13 +29,13 @@
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "d7ea5c8df6da1faa9fd6aaf7109833be45dc3b208515977b0021ea478715e3c9"
+      "initramfsSha256": "b63fd1a7677b7f6b3e3b7cd9c95eeba9c313f0f8a34f85457491f82a3334ed4e"
     },
     "x86_64": {
       "kernelFile": "bzImage",
       "kernelSha256": "ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "8cb33d5265fe1cbf4233154e2a93496d295275356409af19386e913334b61f89"
+      "initramfsSha256": "cdf5a631ee8cc7aabb5def990de9beb922221acf5a46dc51ce2492498b225986"
     }
   }
 }

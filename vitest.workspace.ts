@@ -6,14 +6,35 @@ export default defineConfig({
       {
         test: {
           name: "unit",
-          include: ["packages/eval/src/gates/**/*.test.ts"],
-          exclude: ["**/node_modules/**", "packages/eval/src/gates/m0-native.test.ts"],
+          include: [
+            "packages/core/src/**/*.test.ts",
+            "packages/core/tests/**/*.test.ts",
+            "packages/workers/src/**/*.test.ts",
+            "packages/eval/src/gates/**/*.test.ts",
+          ],
+          exclude: [
+            "**/node_modules/**",
+            "packages/eval/src/gates/m0-native.test.ts",
+            "packages/eval/src/gates/m1-macos-native.test.ts",
+            "packages/eval/src/gates/m1-windows-native.test.ts",
+          ],
         },
       },
       {
         test: {
           name: "native",
           include: ["packages/eval/src/gates/m0-native.test.ts"],
+          exclude: ["**/node_modules/**"],
+          fileParallelism: false,
+        },
+      },
+      {
+        test: {
+          name: "platform",
+          include: [
+            "packages/eval/src/gates/m1-macos-native.test.ts",
+            "packages/eval/src/gates/m1-windows-native.test.ts",
+          ],
           exclude: ["**/node_modules/**"],
           fileParallelism: false,
         },

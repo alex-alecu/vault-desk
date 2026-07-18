@@ -1,3 +1,7 @@
+export * from "./audit.js";
+export * from "./errors.js";
+export * from "./ids.js";
+export * from "./jobs.js";
 export {
   type InstalledModelIdentity,
   InstalledModelIdentitySchema,
@@ -8,3 +12,7 @@ export {
   type ModelRedistributionStatus,
   ModelRedistributionStatusSchema,
 } from "./model.js";
+export * from "./policy.js";
+export * from "./rpc.js";
+export * from "./worker.js";
+export * from "./workspace.js";

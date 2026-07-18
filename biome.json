@@ -42,6 +42,18 @@
               {
                 "group": ["@vault/*/src/**", "../*/src/**"],
                 "message": "Import only another package's public export map."
+              },
+              {
+                "group": ["node:fs", "node:fs/promises"],
+                "message": "Direct filesystem access is limited to approved boundary modules."
+              },
+              {
+                "group": ["node:net"],
+                "message": "Local transport access is limited to daemon and client boundaries."
+              },
+              {
+                "group": ["node:child_process"],
+                "message": "Process spawning is limited to approved launcher, build, and verification boundaries."
               }
             ]
           }
@@ -50,6 +62,42 @@
     }
   },
   "overrides": [
+    {
+      "includes": [
+        "packages/core/src/workspace/catalog.ts",
+        "packages/core/src/workspace/artifacts.ts",
+        "packages/core/src/workspace/scope.ts",
+        "packages/core/src/daemon/server.ts",
+        "packages/core/src/daemon/windows-guard.ts",
+        "packages/core/native/windows-pipe-guard/build.ts",
+        "packages/cli/src/client.ts",
+        "packages/workers/src/microvm/macos.ts",
+        "packages/workers/src/microvm/windows.ts",
+        "packages/workers/src/microvm/guest/io.ts",
+        "packages/workers/images/build.ts",
+        "packages/workers/native/macos-vz-helper/build.ts",
+        "packages/workers/native/windows-hcs-helper/build.ts",
+        "packages/eval/src/**/*.ts",
+        "scripts/**/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@vault/*/src/**", "../*/src/**"],
+                    "message": "Import only another package's public export map."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     {
       "includes": ["packages/shared/src/**/*.ts"],
       "linter": {

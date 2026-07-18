@@ -4,7 +4,7 @@ function milestoneArgument(): string {
   const index = process.argv.indexOf("--milestone");
   const milestone = process.argv[index + 1];
   if (index === -1 || milestone === undefined) {
-    throw new Error("Usage: pnpm test:gate --milestone 0");
+    throw new Error("Usage: pnpm test:gate --milestone <0|1>");
   }
   return milestone;
 }
@@ -30,18 +30,22 @@ function requiredModelPath(): string {
   return path;
 }
 
-if (milestoneArgument() !== "0") {
-  throw new Error("Only the active M0 gate exists.");
+const milestone = milestoneArgument();
+if (milestone === "1") {
+  runPnpm(["verify"]);
+  runPnpm(["test:platform:gate"]);
+} else if (milestone === "0") {
+  const modelPath = requiredModelPath();
+  runPnpm(["verify"]);
+  runPnpm(["tauri:check"]);
+  run(process.execPath, [
+    "--import",
+    "tsx",
+    "packages/eval/src/gates/model-smoke.ts",
+    "--model",
+    modelPath,
+  ]);
+  runPnpm(["test:platform:m0", "--require-certified"]);
+} else {
+  throw new Error("Only milestone gates 0 and 1 exist.");
 }
-
-const modelPath = requiredModelPath();
-runPnpm(["verify"]);
-runPnpm(["tauri:check"]);
-run(process.execPath, [
-  "--import",
-  "tsx",
-  "packages/eval/src/gates/model-smoke.ts",
-  "--model",
-  modelPath,
-]);
-runPnpm(["test:platform", "--require-certified"]);

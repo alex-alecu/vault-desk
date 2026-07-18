@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. Milestone M0 is complete and M1 is not yet active; [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This document is the canonical implementation and contribution workflow for Vault Desk. M0 and M1 are complete, and no later milestone is active. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
 
 ## Operating Principles
 
@@ -26,7 +26,7 @@ Before changing a file:
 4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 5. Stop if the requested implementation belongs to an inactive milestone.
 
-Roadmap presence is not authorization. M0 is complete, and M1 begins only on a new explicit owner request. Implementation outside an active milestone must be converted into an issue, design note, or plan rather than code.
+Roadmap presence is not authorization. M2 begins only on a new explicit owner request; implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
 
 ### Change Brief
 
