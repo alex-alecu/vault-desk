@@ -2,12 +2,12 @@
 
 Updated: 2026-07-18
 
-M1 is complete and certified on macOS 26 Apple silicon and Windows x64 with Hyper-V. M2 is not authorized.
+The shared implementation and both platform microVMs are certified. M1 is not complete until Windows proves and, if required, enforces current-user-only daemon named-pipe access. M2 is not authorized.
 
 ## Change Brief
 
 - Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
-- Active milestone and issue: M1, activated by the repository owner's explicit 2026-07-17 request and completed by the owner's Windows continuation request on 2026-07-18; no separate issue was supplied.
+- Active milestone and issue: M1, activated by the repository owner's explicit 2026-07-17 request and narrowed on 2026-07-18 to the remaining Windows daemon endpoint permission gate; no separate issue was supplied.
 - Allowed scope: M1 shared contracts; transactional workspace catalog and single-writer lock; scoped filesystem and atomic artifacts; redacted hash-chained audit; durable job cancellation primitive; JSON-RPC daemon and CLI status; bounded worker frames; reproducible guests; signed macOS Virtualization.framework and Windows HCS helpers; platform launchers and gates.
 - Product contracts and boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive already-authorized staged inputs and bounded scratch; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
 - Dependencies affected: the M0-selected `better-sqlite3` binding is consumed by `@vault/core`; the Swift helper uses only Apple system frameworks; the Rust helper uses only the Rust standard library and Windows system APIs. No third-party runtime dependency was added.
@@ -15,16 +15,17 @@ M1 is complete and certified on macOS 26 Apple silicon and Windows x64 with Hype
 
 ## Gate State
 
-- Shared M1 implementation: complete.
+- Shared M1 implementation: complete except for Windows daemon endpoint permission evidence or enforcement.
 - macOS implementation and certification: pass.
-- Windows implementation and certification: pass.
-- Full M1 milestone: complete on 2026-07-18.
+- Windows microVM implementation and certification: pass.
+- Windows daemon current-user endpoint gate: not ready.
+- Full M1 milestone: not complete.
 - M2 authorization: not granted.
 
 ## Shared Evidence
 
 - Workspace gates cover traversal, symlink or junction escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, and hash-chain tamper detection.
-- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, current-user endpoint restriction, restart, abrupt kill, stale-lock recovery, and catalog reopening.
+- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, restart, abrupt kill, stale-lock recovery, and catalog reopening. macOS proves endpoint ownership and mode; the Windows test currently proves only the named-pipe shape and same-user RPC.
 - Worker gates reject non-schema forwarding frames and bound frame sizes.
 - `pnpm verify` passes source limits, Biome, TypeScript, 28 unit assertions, two native assertions, Rust formatting and Clippy, signed test-sidecar construction, both native helper builds, and platform-appropriate skips.
 - `pnpm test:gate --milestone 1` passes the cumulative M1 verification and certified current-platform gate.
@@ -50,8 +51,22 @@ M1 is complete and certified on macOS 26 Apple silicon and Windows x64 with Hype
 
 ## Remaining Risks And Deferrals
 
+- The Windows daemon uses Node's named-pipe listener without an explicit current-user SID-bound security descriptor. The existing Windows test checks only the pipe name and same-user RPC, so it does not satisfy the cross-user endpoint permission gate.
 - Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
 - M1 development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
 - Hosted CI classifies each available platform backend but does not substitute for elevated physical-host HCS certification or macOS hardware certification.
 - Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
 - M2 and all later product behavior require a new explicit owner request.
+
+## Handoff
+
+- Objective and current state: close M1 by proving and, if required, enforcing that only the current Windows user can use the daemon named pipe. The shared implementation, macOS gate, Windows HCS microVM gate, and hosted CI pass.
+- Active milestone and issue: M1 Windows daemon endpoint permission closure; no separate issue was supplied.
+- Changed paths: milestone-state documentation only in the handoff commit; the implementation under review is `packages/core/src/daemon/server.ts`, `packages/cli/src/client.ts`, and `packages/eval/src/gates/m1-daemon.test.ts`.
+- Decisions and source links: do not weaken the current-user-only contract in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#m1--workspace-state-core-security-primitives-daemon-skeleton-and-cli-health). Microsoft documents the default named-pipe descriptor in [Named Pipe Security and Access Rights](https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipe-security-and-access-rights); Node documents its IPC listener options in [the `node:net` API](https://nodejs.org/docs/latest-v24.x/api/net.html#serverlistenoptions-callback).
+- Commands run and results: `git pull --ff-only origin m1-macos-foundations` fast-forwarded to `1e57944`; `pnpm test:gate --milestone 1` passed on macOS with Node 24.18.0; both GitHub matrix jobs and `git diff --check` passed.
+- Failures and attempted fixes: an initial macOS gate invocation used stale Node 22 and failed the native SQLite ABI check; rerunning with the pinned Node 24.18.0 passed. No Windows endpoint fix was attempted on macOS because its effective access token and DACL behavior require Windows evidence.
+- Open risks or questions: determine whether Node's default named-pipe descriptor denies all usable access to another non-administrator user. If it does not meet the contract, select the smallest Windows implementation that applies a current-user SID-bound DACL without moving product policy into a native helper or adding an unreviewed dependency.
+- Next concrete action: on Windows, inspect the live pipe DACL and run an actual second-user or restricted-token connection test; add that focused test, implement explicit enforcement if it fails, then rerun `pnpm test:gate --milestone 1`, `git diff --check`, and the complete consistency search before marking M1 complete.
+
+Conclusion: not ready; the remaining work requires Windows.

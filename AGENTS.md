@@ -4,13 +4,13 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. No later milestone is active; M2 begins only on a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17. M1 remains active only for the Windows current-user named-pipe permission gate identified on 2026-07-18; the shared implementation, macOS certification, and Windows microVM certification are otherwise complete. M2 begins only after M1 closes and a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- M0 and M1 are complete. Do not begin M2 or later work without a new explicit owner request.
-- Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, signed macOS and Windows launchers, guest image, and cross-platform gates.
-- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completion record; later milestones may replace provisional surfaces only where the plan explicitly says so.
+- M0 is complete. M1 is active only to prove and, if required, enforce current-user-only access to the Windows daemon named pipe. Do not begin M2 or later work.
+- Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, signed macOS and Windows launchers, guest image, and passing platform evidence while closing that gate.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the current M1 evidence and handoff record; do not claim full completion until the remaining Windows endpoint test passes.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
