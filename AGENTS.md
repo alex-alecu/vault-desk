@@ -4,13 +4,13 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17. M1 is not authorized and begins only on a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17. The repository owner's explicit 2026-07-17 request activates M1 for macOS; Windows M1 work is reserved for the owner on a Windows machine.
 
 ## Current Phase Rules
 
-- M0 is complete, and no later milestone is active. Do not begin new implementation work without an explicit owner request for M1.
-- M0 may add the selected root license, pinned workspace and toolchain configuration, lockfiles, compliance and model manifests, the `@vault/shared` model contract, `@vault/eval` fixtures and gates, provisional platform probes, the test-only Tauri capability shell, guest-image metadata, and cross-platform CI.
-- Do not add M1 daemon, CLI, workspace, worker, persistence, RPC, or product behavior. M1 begins only on a new explicit owner request after the M0 gate is recorded complete.
+- M0 is complete. M1 is active for the macOS scope named in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md); do not begin M2 or later work.
+- M1 may add the shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, macOS Virtualization.framework launcher, guest probe/image integration, and macOS gates named by the milestone.
+- Do not implement or claim the Windows M1 backend in this macOS stage. Windows code and evidence will be completed separately by the owner on Windows before the full M1 gate can close.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by M0 and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
@@ -98,6 +98,7 @@ Architecture:
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
+- [docs/M1_STATUS.md](docs/M1_STATUS.md) - macOS M1 implementation evidence and the remaining Windows checkpoint.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.

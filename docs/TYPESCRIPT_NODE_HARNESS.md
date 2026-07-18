@@ -259,11 +259,11 @@ Future tests should cover:
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
-## Active M0 Constraint
+## Active M1 Constraint
 
-The explicit owner request on 2026-07-16 lifted the former no-code constraint for milestone M0 only. M0 may add the minimal pinned workspace, shared model contract, evaluation fixtures and gates, provisional platform validation harnesses, compliance records, guest-image metadata, and CI named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+M0 completed on 2026-07-17. The explicit owner request on 2026-07-17 activates the M1 daemon, CLI health path, workspace state, persistence, RPC, common worker protocol, and macOS microVM runtime named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Windows M1 work is reserved for a separate Windows stage.
 
-Do not add M1 daemon, CLI, workspace-state, persistence, RPC, worker-runtime, or product behavior until M0 is complete and the owner explicitly starts M1. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
+Do not add M2 inference behavior or later product behavior. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 

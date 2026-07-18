@@ -1,4 +1,4 @@
-name: M0 CI
+name: M1 macOS foundations CI
 
 on:
   pull_request:
@@ -42,5 +42,5 @@ jobs:
         run: pnpm verify
       - name: Build the capability-scoped Tauri smoke shell
         run: pnpm tauri:check
-      - name: Classify the provisional microVM backend
+      - name: Classify the active platform backend
         run: pnpm test:platform

@@ -10,6 +10,7 @@
   "sourceOfTruth": {
     "javascriptResolution": "pnpm-lock.yaml",
     "rustResolution": "packages/eval/src/platform/tauri-smoke/src-tauri/Cargo.lock",
+    "swiftResolution": "packages/workers/native/macos-vz-helper/Package.resolved",
     "models": "assets/models.json",
     "guestImage": "packages/workers/images/manifest.json"
   },
@@ -34,7 +35,12 @@
     },
     { "name": "@types/node", "version": "24.13.3", "license": "MIT", "use": "development" },
     { "name": "@types/tar-stream", "version": "3.1.4", "license": "MIT", "use": "development" },
-    { "name": "better-sqlite3", "version": "12.11.1", "license": "MIT", "use": "native_smoke" },
+    {
+      "name": "better-sqlite3",
+      "version": "12.11.1",
+      "license": "MIT",
+      "use": "workspace_catalog_and_native_smoke"
+    },
     { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "development" },
     { "name": "node-llama-cpp", "version": "3.19.0", "license": "MIT", "use": "native_smoke" },
     { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "development" },
@@ -63,6 +69,12 @@
   "toolsAndInputs": [
     { "name": "Node.js", "version": "24.18.0", "license": "MIT", "use": "runtime_and_sidecar" },
     { "name": "pnpm", "version": "11.13.1", "license": "MIT", "use": "package_manager" },
+    {
+      "name": "Apple Swift",
+      "version": "6.3.3",
+      "license": "Apache-2.0",
+      "use": "macos_virtualization_helper_toolchain"
+    },
     {
       "name": "Rust",
       "version": "1.97.0",

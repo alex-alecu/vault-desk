@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document defines the implementation quality constraints for Vault Desk. M0 is active under the milestone-scoped authority in [AGENTS.md](../AGENTS.md); this quality bar does not authorize work beyond the active milestone.
+This document defines the implementation quality constraints for Vault Desk. M1 is active for macOS under the milestone-scoped authority in [AGENTS.md](../AGENTS.md); this quality bar does not authorize Windows implementation or work beyond M1.
 
 The goal is the least amount of new code and the least amount of tests that still protects the product's privacy, correctness, auditability, and local performance promises.
 

@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <linux/reboot.h>
 #include <linux/vm_sockets.h>
+#include <netdb.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +15,7 @@
 #include <unistd.h>
 
 #define PROBE_PORT 4050U
-#define MAX_FRAME_BYTES 256U
+#define MAX_FRAME_BYTES 1024U
 
 static int read_all(int descriptor, uint8_t *buffer, size_t length) {
   size_t offset = 0;
@@ -87,7 +88,9 @@ static int open_listener(void) {
 }
 
 static int receive_probe(int descriptor) {
-  static const char expected[] = "{\"operation\":\"probe\",\"protocolVersion\":1}";
+  static const char expected[] =
+      "{\"jobId\":\"00000000-0000-4000-8000-000000000001\","
+      "\"operation\":\"probe\",\"protocolVersion\":1,\"requestId\":\"m1-probe\"}";
   uint8_t header[4];
   uint8_t payload[MAX_FRAME_BYTES + 1U];
   if (read_all(descriptor, header, sizeof(header)) != 0) return -1;
@@ -101,10 +104,24 @@ static int receive_probe(int descriptor) {
 static int send_result(int descriptor, unsigned int interface_count) {
   char payload[MAX_FRAME_BYTES];
   uint8_t header[4];
-  int length = snprintf(payload, sizeof(payload),
-                        "{\"nonLoopbackNetworkDeviceCount\":%u,\"protocolVersion\":1,"
-                        "\"status\":\"ok\",\"transport\":\"vsock\"}",
-                        interface_count);
+  struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM};
+  struct addrinfo *addresses = NULL;
+  int dns = getaddrinfo("vault-network-probe.invalid", "443", &hints, &addresses);
+  if (addresses != NULL) freeaddrinfo(addresses);
+  int ipv4 = socket(AF_INET, SOCK_DGRAM, 0);
+  int ipv6 = socket(AF_INET6, SOCK_DGRAM, 0);
+  if (ipv4 >= 0) close(ipv4);
+  if (ipv6 >= 0) close(ipv6);
+  int length = snprintf(
+      payload, sizeof(payload),
+      "{\"nonLoopbackNetworkDeviceCount\":%u,\"probes\":{\"dnsBlocked\":%s,"
+      "\"hostBlocked\":%s,\"ipv4Blocked\":%s,\"ipv6Blocked\":%s,"
+      "\"lanBlocked\":%s,\"multicastBlocked\":%s},\"protocolVersion\":1,"
+      "\"requestId\":\"m1-probe\",\"status\":\"ok\",\"transport\":\"vsock\"}",
+      interface_count, dns != 0 ? "true" : "false", ipv4 < 0 ? "true" : "false",
+      ipv4 < 0 ? "true" : "false",
+      ipv6 < 0 ? "true" : "false", ipv4 < 0 ? "true" : "false",
+      ipv4 < 0 ? "true" : "false");
   if (length <= 0 || (size_t)length >= sizeof(payload)) return -1;
   encode_u32((uint32_t)length, header);
   if (write_all(descriptor, header, sizeof(header)) != 0) return -1;

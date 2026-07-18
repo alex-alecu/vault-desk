@@ -2,7 +2,7 @@
 
 Created: 2026-07-13
 
-This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M0 is active; later milestone paths remain blueprints rather than implementation authority.
+This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 is active for macOS; the Windows M1 backend and all later milestone paths remain blueprints rather than implementation authority.
 
 ## Startup Working Agreement
 
@@ -64,7 +64,7 @@ Reviewed 2026-07-13 against IMPLEMENTATION_PLAN.md, TYPESCRIPT_NODE_HARNESS.md, 
 
 Only the following adapter seams exist in the first implementation. Each is justified by multiple platform implementations, a third-party dependency fixed behind a replacement boundary, or an ADR-mandated security seam:
 
-- **Local RPC contract** in `shared/rpc.ts` (M1): versioned request, response, notification, cancellation, backpressure, and local-endpoint records used by `core/daemon/server.ts` and `cli/client.ts`. The operating-system endpoint changes; the product protocol does not.
+- **Local RPC contract** in `shared/rpc.ts` (M1): versioned request/response, request IDs, cancellation, bounded transport, and local-endpoint records used by `core/daemon/server.ts` and `cli/client.ts`. The operating-system endpoint changes; the product protocol does not.
 - **`ScopedFileSystem`** in `core/workspace/scope.ts` (M1): initially resolves authorized workspace paths and stages scoped inputs. M8 adds validated atomic writes to explicit export destinations; M10 adds staging from an explicit user-selected bundle-import path. Every operation canonicalizes and rechecks its path at use time, and the adapter never exposes a generic filesystem object to a model or worker.
 - **`MicrovmLauncher`** in `workers/microvm/launcher.ts` (M1): start one immutable guest role with staged inputs and limits, exchange typed frames, cancel it, and tear it down. The macOS and Windows launchers implement it.
 - **`NativeWorkerLauncher`** in `workers/native/launcher.ts` (M2): start one allowlisted host-native accelerator process under the platform capability boundary, expose only typed stdio or a private supervisor-created local endpoint, report termination and resource state, and force teardown. The macOS and Windows launchers implement it.
@@ -276,7 +276,7 @@ The M8 comparisons do not leave parallel production stacks. Reproducible compari
 ```text
 src/
   main.ts                     subcommand dispatch, argument parsing, exit codes      M1
-  client.ts                   JSON-RPC client over socket/pipe, streaming            M1
+  client.ts                   bounded JSON-RPC client over socket/pipe               M1
   output.ts                   --json single-document stdout, progress on stderr      M1
   commands.ts                 full-slice command functions once M8 forces the split  M8
 ```
