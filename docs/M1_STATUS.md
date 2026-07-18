@@ -2,71 +2,56 @@
 
 Updated: 2026-07-18
 
-The shared implementation and both platform microVMs are certified. M1 is not complete until Windows proves and, if required, enforces current-user-only daemon named-pipe access. M2 is not authorized.
+M1 is complete across macOS and Windows. M2 is not authorized.
 
 ## Change Brief
 
 - Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
-- Active milestone and issue: M1, activated by the repository owner's explicit 2026-07-17 request and narrowed on 2026-07-18 to the remaining Windows daemon endpoint permission gate; no separate issue was supplied.
-- Allowed scope: M1 shared contracts; transactional workspace catalog and single-writer lock; scoped filesystem and atomic artifacts; redacted hash-chained audit; durable job cancellation primitive; JSON-RPC daemon and CLI status; bounded worker frames; reproducible guests; signed macOS Virtualization.framework and Windows HCS helpers; platform launchers and gates.
-- Product contracts and boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive already-authorized staged inputs and bounded scratch; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
-- Dependencies affected: the M0-selected `better-sqlite3` binding is consumed by `@vault/core`; the Swift helper uses only Apple system frameworks; the Rust helper uses only the Rust standard library and Windows system APIs. No third-party runtime dependency was added.
-- Explicitly not doing: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, or later-milestone behavior.
+- Authority: M1 was activated by the repository owner's explicit 2026-07-17 request and closed on 2026-07-18 after the final Windows daemon endpoint gate passed.
+- Product boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive already-authorized staged inputs and bounded scratch; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
+- Dependencies: `better-sqlite3` is the only consumed M1 package addition. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.
+- Excluded: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, and later-milestone behavior.
 
 ## Gate State
 
-- Shared M1 implementation: complete except for Windows daemon endpoint permission evidence or enforcement.
-- macOS implementation and certification: pass.
-- Windows microVM implementation and certification: pass.
-- Windows daemon current-user endpoint gate: not ready.
-- Full M1 milestone: not complete.
+- Shared M1 implementation: pass.
+- macOS implementation and physical certification: pass.
+- Windows implementation and physical HCS certification: pass.
+- Windows daemon current-user endpoint gate: pass.
+- Full M1 milestone: complete.
 - M2 authorization: not granted.
 
 ## Shared Evidence
 
 - Workspace gates cover traversal, symlink or junction escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, and hash-chain tamper detection.
-- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, restart, abrupt kill, stale-lock recovery, and catalog reopening. macOS proves endpoint ownership and mode; the Windows test currently proves only the named-pipe shape and same-user RPC.
+- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, same-user endpoint access, restart, abrupt kill, stale-lock recovery, and catalog reopening.
 - Worker gates reject non-schema forwarding frames and bound frame sizes.
-- `pnpm verify` passes source limits, Biome, TypeScript, 28 unit assertions, two native assertions, Rust formatting and Clippy, signed test-sidecar construction, both native helper builds, and platform-appropriate skips.
-- `pnpm test:gate --milestone 1` passes the cumulative M1 verification and certified current-platform gate.
+- `pnpm verify` passes source limits, Biome, TypeScript, 28 unit tests, two native tests, Rust formatting and Clippy, signed test-sidecar construction, all native helper builds, and platform-appropriate skips.
 
 ## macOS Evidence
 
-- The production arm64 guest was built twice from Buildroot 2026.05 in disposable volumes. The second build had Docker networking disabled and matched the first byte-for-byte.
+- The production arm64 guest was built twice from Buildroot 2026.05 in disposable volumes; the second build had Docker networking disabled and matched the first byte-for-byte.
   - kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
   - initramfs SHA-256: `b63fd1a7677b7f6b3e3b7cd9c95eeba9c313f0f8a34f85457491f82a3334ed4e`.
-- The ad-hoc signed Swift helper booted the recorded guest with zero configured network devices, one VSOCK device, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and successful DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial results.
-- The helper source configures no generic proxy or virtual network adapter. Schema-invalid worker frames and arbitrary forwarding operations are rejected.
+- The signed Swift helper booted the recorded guest with zero configured network devices, one VSOCK device, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and passing DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial probes.
 
 ## Windows Evidence
 
-- The signed Rust helper uses the pinned Rust 1.97.0 toolchain, raw `computecore.dll`, Winsock, and Windows ACL APIs, with a zero-third-party `Cargo.lock`. It grants only the ephemeral Hyper-V VM identity access to already-authorized staged attachments.
-- The production x86_64 guest was built twice from Buildroot 2026.05. The second build had Docker networking disabled and matched the first byte-for-byte.
+- The production x86_64 guest was built twice from Buildroot 2026.05 with matching output.
   - kernel SHA-256: `ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45`.
   - initramfs SHA-256: `cdf5a631ee8cc7aabb5def990de9beb922221acf5a46dc51ce2492498b225986`.
-- An elevated physical Windows x64 HCS boot of those exact artifacts returned `certified`: zero configured network devices, one fixed Hyper-V socket service, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and successful DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial results.
-- The configuration gate parses the HCS document before boot and proves there is no `NetworkAdapters` property, inputs are read-only, scratch is writable, and the only host/guest transport is the fixed Hyper-V socket service.
-- The launcher uses a 60-second cold-boot budget on Windows and retries teardown only while HCS releases attachment handles; the authoritative milestone gate completed the platform project in about 31 seconds.
-- The Windows dependency decision and primary sources are recorded in [research/m1-windows-dependency-review.md](research/m1-windows-dependency-review.md).
+- An elevated physical Windows x64 HCS boot returned `certified`: zero configured network devices, one fixed Hyper-V socket service, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and all network-denial probes passing. The platform project completed in about 31 seconds.
+- The signed pipe guard creates the named-pipe instance with `PIPE_REJECT_REMOTE_CLIENTS` and a protected DACL granting access only to the current user. It relays opaque bytes over inherited stdio and enforces the request ceiling supplied by TypeScript; TypeScript retains the limit definition, JSON parsing, RPC dispatch, and product policy.
+- Before enforcement, the live Node/libuv descriptor was `D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;S-1-5-21-2956651453-1646027870-1593765367-1001)(A;;FR;;;WD)(A;;FR;;;AN)` and exposed Everyone and Anonymous read ACEs.
+- After enforcement, the live descriptor is `D:P(A;;FA;;;S-1-5-21-2956651453-1646027870-1593765367-1001)`. A restricted token with the current-user SID disabled is denied, while same-user RPC, CLI status, EOF behavior, and daemon restart pass.
+- The pipe-guard dependency decision is recorded in [research/m1-windows-pipe-guard-dependency-review.md](research/m1-windows-pipe-guard-dependency-review.md); the HCS decision remains in [research/m1-windows-dependency-review.md](research/m1-windows-dependency-review.md).
 
 ## Remaining Risks And Deferrals
 
-- The Windows daemon uses Node's named-pipe listener without an explicit current-user SID-bound security descriptor. The existing Windows test checks only the pipe name and same-user RPC, so it does not satisfy the cross-user endpoint permission gate.
 - Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
-- M1 development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
-- Hosted CI classifies each available platform backend but does not substitute for elevated physical-host HCS certification or macOS hardware certification.
+- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
+- Hosted CI classifies each available platform backend but does not replace the recorded elevated physical-host HCS or macOS hardware certification.
 - Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
 - M2 and all later product behavior require a new explicit owner request.
 
-## Handoff
-
-- Objective and current state: close M1 by proving and, if required, enforcing that only the current Windows user can use the daemon named pipe. The shared implementation, macOS gate, Windows HCS microVM gate, and hosted CI pass.
-- Active milestone and issue: M1 Windows daemon endpoint permission closure; no separate issue was supplied.
-- Changed paths: milestone-state documentation only in the handoff commit; the implementation under review is `packages/core/src/daemon/server.ts`, `packages/cli/src/client.ts`, and `packages/eval/src/gates/m1-daemon.test.ts`.
-- Decisions and source links: do not weaken the current-user-only contract in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#m1--workspace-state-core-security-primitives-daemon-skeleton-and-cli-health). Microsoft documents the default named-pipe descriptor in [Named Pipe Security and Access Rights](https://learn.microsoft.com/en-us/windows/win32/ipc/named-pipe-security-and-access-rights); Node documents its IPC listener options in [the `node:net` API](https://nodejs.org/docs/latest-v24.x/api/net.html#serverlistenoptions-callback).
-- Commands run and results: `git pull --ff-only origin m1-macos-foundations` fast-forwarded to `1e57944`; `pnpm test:gate --milestone 1` passed on macOS with Node 24.18.0; both GitHub matrix jobs and `git diff --check` passed.
-- Failures and attempted fixes: an initial macOS gate invocation used stale Node 22 and failed the native SQLite ABI check; rerunning with the pinned Node 24.18.0 passed. No Windows endpoint fix was attempted on macOS because its effective access token and DACL behavior require Windows evidence.
-- Open risks or questions: determine whether Node's default named-pipe descriptor denies all usable access to another non-administrator user. If it does not meet the contract, select the smallest Windows implementation that applies a current-user SID-bound DACL without moving product policy into a native helper or adding an unreviewed dependency.
-- Next concrete action: on Windows, inspect the live pipe DACL and run an actual second-user or restricted-token connection test; add that focused test, implement explicit enforcement if it fails, then rerun `pnpm test:gate --milestone 1`, `git diff --check`, and the complete consistency search before marking M1 complete.
-
-Conclusion: not ready; the remaining work requires Windows.
+Conclusion: ready; M1 is complete and M2 remains unauthorized.

@@ -2,7 +2,7 @@
 
 Created: 2026-07-13
 
-This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 remains active only for the Windows current-user named-pipe permission gate; all later milestone paths remain blueprints rather than implementation authority.
+This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 is complete; all later milestone paths remain blueprints rather than implementation authority.
 
 ## Startup Working Agreement
 
@@ -49,7 +49,7 @@ How each principle binds to this blueprint:
 
 Reviewed 2026-07-13 against IMPLEMENTATION_PLAN.md, TYPESCRIPT_NODE_HARNESS.md, IMPLEMENTATION_QUALITY_BAR.md, and ADRs 0010–0015. The milestone sequence, the package boundaries, and the security boundaries stand unchanged. What this review fixes is how small each subsystem is allowed to be:
 
-- **Daemon protocol** — hand-rolled JSON-RPC 2.0 over `node:net`; the Unix socket and named pipe differ only in the endpoint path behind one connect function. No RPC or IPC framework. One server file plus one method table.
+- **Daemon protocol** — hand-rolled JSON-RPC 2.0 over a Unix socket or Windows named pipe. TypeScript owns parsing and dispatch. The signed Windows pipe helper owns only a current-user DACL-bound pipe instance and opaque stdio relay because `node:net` cannot supply the descriptor. No RPC or IPC framework.
 - **Workspace catalog** — one embedded SQLite binding (selected in M0; better-sqlite3 is the candidate) with numbered `.sql` migration files applied in order inside a transaction, backup-before-migrate. `catalog.ts` owns the connection, transaction, migration, lock, and idempotency primitives; typed persistence commands and queries live with the product module that owns the records. There is no ORM, migration framework, or generic repository layer.
 - **Schemas** — defined once as Zod schemas in `@vault/shared`; TypeScript types, JSON-RPC validation, and llama.cpp grammars all derive from the same definition. No parallel JSON Schema files.
 - **Workers** — host-native accelerator processes use `child_process` only through `NativeWorkerLauncher`; microVM workers use the selected platform launcher. Vault Desk-owned worker and guest entries use one length-prefixed typed JSON frame protocol over their constrained channels. Supervised llama-server is the sole fixed local-HTTP exception and is translated immediately to shared vision payloads inside `workers/vision/client.ts`; its endpoint is not exposed beyond that adapter. No worker framework, message bus, dependency-injection container, or event-emitter hierarchy.
@@ -151,6 +151,7 @@ src/
   daemon/
     main.ts                   daemon arguments, signals, and composition-root startup M1
     server.ts                 socket/pipe lifecycle, framing, current-user check     M1
+    windows-guard.ts          secure Windows pipe byte-relay lifecycle adapter        M1
     methods.ts                RPC method table mapping requests to facade calls      M1
   workspace/
     catalog.ts                SQLite connection, transactions, migrations, writer lock M1
@@ -224,6 +225,12 @@ src/
     summaries.ts              anchored summary-tree construction and invalidation    M9
     compact.ts                threshold triggers, replay, invalidation               M9
 tests/                        public-surface integration tests added with each milestone M1+
+native/
+  windows-pipe-guard/         signed current-user pipe owner; opaque stdio relay      M1
+    Cargo.toml                zero-third-party Rust manifest                          M1
+    Cargo.lock                pinned empty Rust resolution                            M1
+    build.ts                  release build and development signing                   M1
+    src/{main,security,probe,server}.rs Windows ACL, probe, and pipe lifecycle         M1
 ```
 
 ### `packages/workers` — `@vault/workers`, process entries and isolation
@@ -339,7 +346,7 @@ The M10 product shell must cover every M0 Tauri capability assertion before the 
 ## Module Rules
 
 - **Dependency direction:** `shared` depends only on Zod. `workers`, `cli`, and `desktop` depend on public `shared` contracts and never on `core`. Product modules inside `core` depend on `shared` plus local ports; only `core/src/compose.ts` may import public host-side clients from `workers`. `eval` may import public exports from any package for gates, but never private source paths. Package export maps, TypeScript project references, and path-scoped Biome restricted-import rules enforce these edges without a custom dependency checker.
-- **Filesystem, local transport, and process access:** direct Node `fs`, `net`, and `child_process` imports are denied by default. Approved host `fs`/`net` boundaries are `core/workspace/{scope,artifacts,catalog}.ts`, `core/runtime/models.ts`, `core/bundles/{reader,catalog,store}.ts`, `core/daemon/server.ts`, `cli/client.ts`, `workers/ipc.ts`, `workers/microvm/{launcher,macos,windows}.ts`, the files under `workers/native`, `workers/images/build.ts`, the development-only model fetcher and fixture/platform harnesses under `eval`, and the root verification scripts. Host `child_process` is narrower: only the microVM/native launchers, guest-image build, and development platform harnesses may spawn. Inside a guest, only `workers/microvm/guest/io.ts` may touch staged input, bounded scratch, or the typed socket; parser and bundle code receive typed handles or bytes from it. `workers/microvm/guest/interpreter.ts` is the sole product exception allowed to spawn pinned offline interpreters, and only inside the disposable guest. The M0 Tauri harness and M10 Rust host are instead constrained by their Cargo dependencies, Tauri capability allowlist, fixed commands, and capability-denial gates.
+- **Filesystem, local transport, and process access:** direct Node `fs`, `net`, and `child_process` imports are denied by default. Approved host `fs`/`net` boundaries are `core/workspace/{scope,artifacts,catalog}.ts`, `core/runtime/models.ts`, `core/bundles/{reader,catalog,store}.ts`, `core/daemon/server.ts`, `cli/client.ts`, `workers/ipc.ts`, `workers/microvm/{launcher,macos,windows}.ts`, the files under `workers/native`, `workers/images/build.ts`, the development-only model fetcher and fixture/platform harnesses under `eval`, and the root verification scripts. Host `child_process` is narrower: only `core/daemon/windows-guard.ts`, native-helper build scripts, microVM/native launchers, guest-image build, and development platform harnesses may spawn. Inside a guest, only `workers/microvm/guest/io.ts` may touch staged input, bounded scratch, or the typed socket; parser and bundle code receive typed handles or bytes from it. `workers/microvm/guest/interpreter.ts` is the sole product exception allowed to spawn pinned offline interpreters, and only inside the disposable guest. The M0 Tauri harness and M10 Rust host are instead constrained by their Cargo dependencies, Tauri capability allowlist, fixed commands, and capability-denial gates.
 - **External network access:** no product module may call a generic fetch primitive or accept an arbitrary HTTP destination. The hash-pinned `eval/models.ts` fetcher is the only application-authored development exception. `workers/vision/client.ts` may use the standard-library HTTP client only for the opaque loopback endpoint returned by `NativeWorkerLauncher`, with a fixed API path and OS-enforced external-network denial; this is local worker IPC, not an integration surface. Package-manager, CI, code-signing, and release-upload traffic belongs to build infrastructure, not a runtime capability. A future approved integration requires the separately designed broker.
 - **Mechanical tripwires and review limits:**
   - **File length:** `scripts/check-source-limits.ts` enforces a 300-line maximum for every committed hand-written `.ts`, `.tsx`, and `.rs` file, including tests and platform harnesses. Generated outputs are not committed. Hitting the cap forces a responsibility split; there are no product-code exemptions.
@@ -411,7 +418,7 @@ Cross-platform validation evidence remains tracked in [M0_STATUS.md](M0_STATUS.m
 - SQLite: `better-sqlite3` 12.11.1 under Node 24.18.0, with macOS and Windows native load smoke tests.
 - Quality tooling: Biome 2.5.4 with restricted imports, 40 function-body lines, cognitive complexity 10, and four parameters; nesting depth remains human-reviewed.
 - Node sidecar: Node 24 SEA plus `postject` 1.0.0-alpha.6, signed only after injection; exact build and signing evidence is defined in the Tauri smoke README.
-- microVM native boundaries: signed Swift helper at `packages/workers/native/macos-vz-helper/` with a SwiftPM lock, and signed Rust helper at `packages/workers/native/windows-hcs-helper/` with a Cargo lock; both follow the lifecycle-only contract stated above.
+- native boundaries: signed Rust current-user pipe owner at `packages/core/native/windows-pipe-guard/` with a Cargo lock; signed Swift microVM helper at `packages/workers/native/macos-vz-helper/` with a SwiftPM lock; and signed Rust microVM helper at `packages/workers/native/windows-hcs-helper/` with a Cargo lock. All follow the narrow capability and lifecycle contract stated above.
 - CLI: hand-rolled argument dispatch in M1; no parser dependency.
 - Guest image: pinned Buildroot input and deterministic root filesystem recipe, documented in `packages/workers/images/README.md`.
 - Knowledge Bundles: uncompressed deterministic tar inspected with `tar-stream` 3.2.0, TUF metadata verified with `tuf-js` 6.0.0, and detached Ed25519 signatures verified with Node `crypto`, per ADR 0017.

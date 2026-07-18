@@ -4,13 +4,13 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17. M1 remains active only for the Windows current-user named-pipe permission gate identified on 2026-07-18; the shared implementation, macOS certification, and Windows microVM certification are otherwise complete. M2 begins only after M1 closes and a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. M2 begins only on a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- M0 is complete. M1 is active only to prove and, if required, enforce current-user-only access to the Windows daemon named pipe. Do not begin M2 or later work.
-- Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, signed macOS and Windows launchers, guest image, and passing platform evidence while closing that gate.
-- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the current M1 evidence and handoff record; do not claim full completion until the remaining Windows endpoint test passes.
+- M0 and M1 are complete. Do not begin M2 or later work without a new explicit owner request.
+- Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completed M1 evidence record.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
@@ -33,7 +33,7 @@ The v1 launch (after milestone M11) replaces the owner-only portion of this rule
 
 ## Implementation Rule
 
-Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Platform microVM launchers may invoke two signed native helpers introduced in M1: the Swift helper rooted at `packages/workers/native/macos-vz-helper/` with `Package.swift` and `Package.resolved`, and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/` with `Cargo.toml` and `Cargo.lock`. These helpers own only native VM lifecycle, no-NIC configuration, resource limits, per-VM access grants for already-authorized staged attachments, virtio/Hyper-V socket transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
+Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. The signed Rust helper rooted at `packages/core/native/windows-pipe-guard/` may own the current-user-only Windows named-pipe instance and relay opaque request and response bytes over inherited stdio because Node cannot supply its security descriptor; TypeScript retains endpoint naming, RPC parsing, limits, dispatch, and policy. Platform microVM launchers may invoke the Swift helper rooted at `packages/workers/native/macos-vz-helper/` and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/`. Native helpers may own only their named OS capability, lifecycle, resource limits, scoped attachment access, typed transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, product parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
 Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
 

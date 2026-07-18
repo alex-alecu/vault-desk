@@ -4,6 +4,7 @@ import { createConnection, createServer, type Server, type Socket } from "node:n
 import { join, resolve } from "node:path";
 import type { VaultCore } from "../facade.js";
 import { dispatchRpc } from "./methods.js";
+import { startWindowsPipeGuard } from "./windows-guard.js";
 
 const MAX_REQUEST_BYTES = 1024 * 1024;
 
@@ -63,6 +64,20 @@ async function secureEndpointDirectory(path: string): Promise<void> {
   await chmod(path, 0o700);
 }
 
+async function respond(core: VaultCore, request: Buffer): Promise<Buffer> {
+  if (request.byteLength > MAX_REQUEST_BYTES) return Buffer.alloc(0);
+  const newline = request.indexOf("\n");
+  if (newline === -1) return Buffer.alloc(0);
+  let input: unknown;
+  try {
+    input = JSON.parse(request.subarray(0, newline).toString("utf8"));
+  } catch {
+    input = undefined;
+  }
+  const response = await dispatchRpc(core, input);
+  return Buffer.from(`${JSON.stringify(response)}\n`);
+}
+
 function serveSocket(core: VaultCore, socket: Socket): void {
   let pending = "";
   socket.setEncoding("utf8");
@@ -93,24 +108,30 @@ function listen(server: Server, endpoint: string): Promise<void> {
   });
 }
 
+function closeServer(server: Server): Promise<void> {
+  return new Promise((accept, reject) => {
+    server.close((error) => (error === undefined ? accept() : reject(error)));
+  });
+}
+
 export async function startDaemon(core: VaultCore, workspaceDir: string): Promise<VaultDaemon> {
   const endpoint = daemonEndpoint(workspaceDir);
-  if (process.platform !== "win32") {
-    await secureEndpointDirectory(join(resolve(workspaceDir), ".vault"));
-    await removeStaleSocket(endpoint);
+  if (process.platform === "win32") {
+    const guard = await startWindowsPipeGuard(endpoint, MAX_REQUEST_BYTES, (request) =>
+      respond(core, request),
+    );
+    return { endpoint, close: () => guard.close() };
   }
+  await secureEndpointDirectory(join(resolve(workspaceDir), ".vault"));
+  await removeStaleSocket(endpoint);
   const server = createServer((socket) => serveSocket(core, socket));
   await listen(server, endpoint);
-  if (process.platform !== "win32") await chmod(endpoint, 0o600);
+  await chmod(endpoint, 0o600);
   return {
     endpoint,
-    close: () =>
-      new Promise((accept, reject) => {
-        server.close(async (error) => {
-          if (error !== undefined) return reject(error);
-          if (process.platform !== "win32") await unlink(endpoint).catch(() => undefined);
-          accept();
-        });
-      }),
+    close: async () => {
+      await closeServer(server);
+      await unlink(endpoint).catch(() => undefined);
+    },
   };
 }

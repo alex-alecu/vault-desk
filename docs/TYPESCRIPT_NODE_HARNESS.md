@@ -259,11 +259,11 @@ Future tests should cover:
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
-## Active M1 Constraint
+## Completed M1 Constraint
 
-M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 remains active only until Windows proves and, if required, enforces current-user-only access to the daemon named pipe named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate.
 
-M2 begins only after M1 closes and a new explicit owner request. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
+M2 begins only on a new explicit owner request. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 

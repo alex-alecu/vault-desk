@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { access, lstat, mkdtemp, rm } from "node:fs/promises";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
@@ -8,6 +8,12 @@ import { PROTOCOL_VERSION, type RpcResponse, RpcResponseSchema } from "@vault/sh
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+
+interface WindowsPipeSecurityReport {
+  currentUserSid: string;
+  restrictedConnectionDenied: boolean;
+  sddl: string;
+}
 
 async function temporaryRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "vault-m1-daemon-"));
@@ -41,6 +47,16 @@ function rpc(endpoint: string, protocolVersion: number = PROTOCOL_VERSION): Prom
       }
     });
   });
+}
+
+function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
+  const helper = join(
+    process.cwd(),
+    "packages/core/native/windows-pipe-guard/.generated/vault-pipe-guard.exe",
+  );
+  const result = spawnSync(helper, ["probe", endpoint], { encoding: "utf8" });
+  if (result.status !== 0) throw new Error(result.stderr || "Windows pipe security probe failed.");
+  return JSON.parse(result.stdout) as WindowsPipeSecurityReport;
 }
 
 async function waitForEndpoint(endpoint: string): Promise<void> {
@@ -79,6 +95,10 @@ describe("M1 daemon and local transport", () => {
     const first = await startDaemon(core, root);
     if (process.platform === "win32") {
       expect(first.endpoint).toMatch(/^\\\\\.\\pipe\\vault-cored-/u);
+      const security = windowsPipeSecurity(first.endpoint);
+      expect(security.restrictedConnectionDenied).toBe(true);
+      expect(security.sddl).toContain(security.currentUserSid);
+      expect(security.sddl).not.toMatch(/;;;(?:AN|BU|WD)\)/u);
     } else {
       const state = await lstat(first.endpoint);
       expect(state.mode & 0o777).toBe(0o600);
