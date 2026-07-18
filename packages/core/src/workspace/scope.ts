@@ -8,6 +8,7 @@ function inside(root: string, candidate: string): boolean {
 }
 
 async function syncDirectory(path: string): Promise<void> {
+  if (process.platform === "win32") return;
   const handle = await open(path, constants.O_RDONLY);
   try {
     await handle.sync();

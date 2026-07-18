@@ -16,6 +16,7 @@ export default defineConfig({
             "**/node_modules/**",
             "packages/eval/src/gates/m0-native.test.ts",
             "packages/eval/src/gates/m1-macos-native.test.ts",
+            "packages/eval/src/gates/m1-windows-native.test.ts",
           ],
         },
       },
@@ -30,7 +31,10 @@ export default defineConfig({
       {
         test: {
           name: "platform",
-          include: ["packages/eval/src/gates/m1-macos-native.test.ts"],
+          include: [
+            "packages/eval/src/gates/m1-macos-native.test.ts",
+            "packages/eval/src/gates/m1-windows-native.test.ts",
+          ],
           exclude: ["**/node_modules/**"],
           fileParallelism: false,
         },

@@ -7,7 +7,7 @@ Vault Desk is a local-first AI coworker for people who work with sensitive docum
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk completed implementation milestone M0 on 2026-07-17. M1 is active for macOS foundations; Windows M1 work will follow separately. There is no product application or installer yet. [The M0 status](docs/M0_STATUS.md) records the completed gates.
+> Vault Desk completed milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. M2 is not active, and there is no product application or installer yet. [The M1 status](docs/M1_STATUS.md) records the completed gates.
 
 ## Why
 

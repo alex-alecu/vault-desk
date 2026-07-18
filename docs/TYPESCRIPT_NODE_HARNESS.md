@@ -259,11 +259,11 @@ Future tests should cover:
 
 See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minimal-code and minimal-test policy.
 
-## Active M1 Constraint
+## Completed M1 Constraint
 
-M0 completed on 2026-07-17. The explicit owner request on 2026-07-17 activates the M1 daemon, CLI health path, workspace state, persistence, RPC, common worker protocol, and macOS microVM runtime named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Windows M1 work is reserved for a separate Windows stage.
+M0 completed on 2026-07-17. M1 completed across macOS and Windows on 2026-07-18, including the daemon, CLI health path, workspace state, persistence, RPC, common worker protocol, and certified platform microVM runtimes named in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
-Do not add M2 inference behavior or later product behavior. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
+M2 begins only on a new explicit owner request. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 

@@ -1,4 +1,4 @@
-name: M1 macOS foundations CI
+name: M1 cross-platform foundations CI
 
 on:
   pull_request:

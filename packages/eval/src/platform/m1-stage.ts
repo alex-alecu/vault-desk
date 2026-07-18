@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MacOsMicroVmLauncher } from "@vault/workers";
+import { MacOsMicroVmLauncher, WindowsMicroVmLauncher } from "@vault/workers";
 
 async function macReport(): Promise<unknown> {
   const helper = join(
@@ -37,11 +37,51 @@ async function macReport(): Promise<unknown> {
   }
 }
 
+async function windowsReport(): Promise<unknown> {
+  const helper = join(
+    process.cwd(),
+    "packages/workers/native/windows-hcs-helper/.generated/vault-hcs-helper.exe",
+  );
+  const artifacts = join(process.cwd(), "packages/workers/images/.generated/artifacts/x86_64");
+  if (!existsSync(helper) || !existsSync(artifacts)) {
+    return {
+      classification: "compatible_unverified",
+      reason: "Build the signed HCS helper and pinned x86_64 guest before certification.",
+    };
+  }
+  const root = await mkdtemp(join(tmpdir(), "vault-m1-platform-"));
+  try {
+    const input = join(root, "input.txt");
+    await writeFile(input, "probe input");
+    try {
+      return await new WindowsMicroVmLauncher(helper).launchProbe({
+        jobId: randomUUID(),
+        readonlyInputs: [input],
+        limits: {
+          wallTimeMs: 60_000,
+          memoryBytes: 256 * 1024 * 1024,
+          scratchBytes: 8 * 1024 * 1024,
+          outputBytes: 4096,
+          cpuCount: 1,
+        },
+      });
+    } catch (error) {
+      return {
+        classification: "compatible_unverified",
+        reason: error instanceof Error ? error.message : "Windows HCS probe failed.",
+      };
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
 async function stageReport(): Promise<unknown> {
   if (process.platform === "darwin" && process.arch === "arm64") return await macReport();
+  if (process.platform === "win32" && process.arch === "x64") return await windowsReport();
   return {
     classification: "unsupported",
-    reason: "This stage implements M1 certification only for macOS on Apple silicon.",
+    reason: "M1 certification supports macOS Apple silicon and Windows x64 with Hyper-V.",
   };
 }
 

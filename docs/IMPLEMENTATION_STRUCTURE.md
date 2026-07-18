@@ -2,7 +2,7 @@
 
 Created: 2026-07-13
 
-This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 is active for macOS; the Windows M1 backend and all later milestone paths remain blueprints rather than implementation authority.
+This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 is complete across macOS and Windows; all later milestone paths remain blueprints rather than implementation authority.
 
 ## Startup Working Agreement
 
@@ -53,7 +53,7 @@ Reviewed 2026-07-13 against IMPLEMENTATION_PLAN.md, TYPESCRIPT_NODE_HARNESS.md, 
 - **Workspace catalog** — one embedded SQLite binding (selected in M0; better-sqlite3 is the candidate) with numbered `.sql` migration files applied in order inside a transaction, backup-before-migrate. `catalog.ts` owns the connection, transaction, migration, lock, and idempotency primitives; typed persistence commands and queries live with the product module that owns the records. There is no ORM, migration framework, or generic repository layer.
 - **Schemas** — defined once as Zod schemas in `@vault/shared`; TypeScript types, JSON-RPC validation, and llama.cpp grammars all derive from the same definition. No parallel JSON Schema files.
 - **Workers** — host-native accelerator processes use `child_process` only through `NativeWorkerLauncher`; microVM workers use the selected platform launcher. Vault Desk-owned worker and guest entries use one length-prefixed typed JSON frame protocol over their constrained channels. Supervised llama-server is the sole fixed local-HTTP exception and is translated immediately to shared vision payloads inside `workers/vision/client.ts`; its endpoint is not exposed beyond that adapter. No worker framework, message bus, dependency-injection container, or event-emitter hierarchy.
-- **MicroVM launchers** — the thinnest per-OS shim that satisfies the common launcher contract. M0 confirmed two native call boundaries: a signed Swift Virtualization.framework helper at `packages/workers/native/macos-vz-helper/`, pinned by `Package.swift` and `Package.resolved`, and a signed Rust HCS/Hyper-V-socket helper at `packages/workers/native/windows-hcs-helper/`, pinned by `Cargo.toml` and `Cargo.lock`. Each owns only VM lifecycle, empty network-device configuration, resource limits, typed host/guest socket transport, and teardown. Neither contains product policy, filesystem authorization, network brokerage, parsing, or workflow logic.
+- **MicroVM launchers** — the thinnest per-OS shim that satisfies the common launcher contract. M0 confirmed two native call boundaries: a signed Swift Virtualization.framework helper at `packages/workers/native/macos-vz-helper/`, pinned by `Package.swift` and `Package.resolved`, and a signed Rust HCS/Hyper-V-socket helper at `packages/workers/native/windows-hcs-helper/`, pinned by `Cargo.toml` and `Cargo.lock`. Each owns only VM lifecycle, empty network-device configuration, resource limits, per-VM access grants for already-authorized staged attachments, typed host/guest socket transport, and teardown. Neither contains product policy, product filesystem authorization, network brokerage, parsing, or workflow logic.
 - **Read-tool loop** — `core/tools/loop.ts` owns Vault Desk policy and orchestration. M8 starts with Vercel AI SDK over a thin local `InferencePort` adapter, with no cloud provider, telemetry, or network path, compares it with a thin explicit loop, and keeps the SDK only if it preserves policy, approval, audit, and cancellation while deleting more maintained code than it adds.
 - **Code-interpreter guest loop** — `workers/microvm/guest/interpreter.ts` is a separate bounded guest responsibility. OpenCode is evaluated once at M8 against that guest loop and adopted only if it passes the no-NIC, typed-inference, resource, audit, and packaging gates while deleting more maintained code than it adds.
 - **External-connection broker** — not built. No external integration ships in M0 through M11, so the boundary is satisfied by writing no external-network product code at all. The only application-authored fetcher in this implementation is development-only code in `@vault/eval`; package managers and CI acquisition are build tooling, not product capabilities. The broker module is created when the first real integration is approved after M11, not before.
@@ -298,10 +298,6 @@ src/
     read-loop.ts              reproducible Vercel-versus-explicit comparison          M8
     code-loop.ts              reproducible OpenCode-versus-owned comparison            M8
   platform/
-    microvm-smoke/
-      README.md               findings and selected launcher/image-build decision     M0
-      build.ts                provisional minimal probe-image build                   M0
-      probe.ts                macOS/Windows boot, socket, and zero-NIC checks          M0
     tauri-smoke/
       README.md               pinned Node sidecar packaging/signing decision          M0
       index.html, main.ts     no-product-UI capability test webview                   M0
@@ -314,7 +310,7 @@ src/
   bench.ts                    hardware bench and soak harness for Local 12/16        M11
 ```
 
-The provisional microVM smoke tree is removed only after the M1 production launcher and guest-image build gates cover the same assertions. The entire test-only Tauri tree is removed only after M10 reaches equivalent product-shell coverage.
+The provisional microVM smoke tree was removed after the M1 production launchers and guest-image gates covered the same assertions. The entire test-only Tauri tree is removed only after M10 reaches equivalent product-shell coverage.
 
 ### `packages/desktop` — `@vault/desktop`, Tauri shell (all M10)
 

@@ -4,15 +4,15 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17. The repository owner's explicit 2026-07-17 request activates M1 for macOS; Windows M1 work is reserved for the owner on a Windows machine.
+Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. No later milestone is active; M2 begins only on a new explicit owner request under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- M0 is complete. M1 is active for the macOS scope named in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md); do not begin M2 or later work.
-- M1 may add the shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, macOS Virtualization.framework launcher, guest probe/image integration, and macOS gates named by the milestone.
-- Do not implement or claim the Windows M1 backend in this macOS stage. Windows code and evidence will be completed separately by the owner on Windows before the full M1 gate can close.
+- M0 and M1 are complete. Do not begin M2 or later work without a new explicit owner request.
+- Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, common microVM protocol, signed macOS and Windows launchers, guest image, and cross-platform gates.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completion record; later milestones may replace provisional surfaces only where the plan explicitly says so.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
-- Install and execute only dependencies consumed by M0 and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
+- Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
 - Do not introduce employer-owned, confidential, or third-party proprietary content.
 - If research claims are carried forward from source material, mark them as research-derived until independently validated.
@@ -33,7 +33,7 @@ The v1 launch (after milestone M11) replaces the owner-only portion of this rule
 
 ## Implementation Rule
 
-Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Platform microVM launchers may invoke two signed native helpers introduced in M1: the Swift helper rooted at `packages/workers/native/macos-vz-helper/` with `Package.swift` and `Package.resolved`, and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/` with `Cargo.toml` and `Cargo.lock`. These helpers own only native VM lifecycle, no-NIC configuration, resource limits, virtio/Hyper-V socket transport, and teardown. They may not contain product policy, filesystem authorization, network brokering, parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
+Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. Platform microVM launchers may invoke two signed native helpers introduced in M1: the Swift helper rooted at `packages/workers/native/macos-vz-helper/` with `Package.swift` and `Package.resolved`, and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/` with `Cargo.toml` and `Cargo.lock`. These helpers own only native VM lifecycle, no-NIC configuration, resource limits, per-VM access grants for already-authorized staged attachments, virtio/Hyper-V socket transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
 Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
 
@@ -98,7 +98,7 @@ Architecture:
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
-- [docs/M1_STATUS.md](docs/M1_STATUS.md) - macOS M1 implementation evidence and the remaining Windows checkpoint.
+- [docs/M1_STATUS.md](docs/M1_STATUS.md) - completed cross-platform M1 implementation and certification evidence.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.

@@ -5,11 +5,8 @@ import { join } from "node:path";
 import { MacOsMicroVmLauncher } from "@vault/workers";
 import { describe, expect, it } from "vitest";
 
-function requireMac(): void {
-  if (process.platform !== "darwin" || process.arch !== "arm64") {
-    throw new Error("This M1 stage requires macOS on Apple silicon.");
-  }
-}
+const describeMac =
+  process.platform === "darwin" && process.arch === "arm64" ? describe : describe.skip;
 
 function limits(scratchBytes: number) {
   return {
@@ -44,9 +41,8 @@ const fakeNetworkedReport = {
   },
 };
 
-describe("M1 certified macOS microVM", () => {
+describeMac("M1 certified macOS microVM", () => {
   it("boots the immutable no-NIC guest with typed IPC and bounded attachments", async () => {
-    requireMac();
     const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-m1-native-"));
     try {
       const input = join(temporaryRoot, "input.img");
@@ -73,9 +69,8 @@ describe("M1 certified macOS microVM", () => {
   }, 60_000);
 });
 
-describe("M1 microVM certification classification", () => {
+describeMac("M1 microVM certification classification", () => {
   it("cannot report a process-only or network-configured result as certified", async () => {
-    requireMac();
     const root = await mkdtemp(join(tmpdir(), "vault-m1-fake-helper-"));
     try {
       const helper = join(root, "fake-helper");

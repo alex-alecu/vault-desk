@@ -2,41 +2,56 @@
 
 Updated: 2026-07-18
 
-M1 is implemented and certified for macOS 26 on Apple silicon. The full cross-platform milestone remains open until the repository owner completes the Windows HCS/Hyper-V helper and records Windows evidence on a Windows machine. M2 is not authorized.
+M1 is complete and certified on macOS 26 Apple silicon and Windows x64 with Hyper-V. M2 is not authorized.
 
 ## Change Brief
 
-- Goal: implement the smallest M1 workspace, security, daemon, CLI health, worker-protocol, and macOS microVM foundations.
-- Active milestone and issue: M1, activated by the repository owner's explicit 2026-07-17 request; no separate issue was supplied.
-- Allowed scope: M1 shared contracts; transactional workspace catalog and single-writer lock; scoped filesystem and atomic artifacts; redacted hash-chained audit; durable job cancellation primitive; JSON-RPC daemon and CLI status; bounded worker frames; reproducible guest build; signed macOS Virtualization.framework helper and launcher; macOS gates.
-- Product contracts and boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive staged inputs and bounded scratch; the certified guest has no virtual NIC and accepts only the fixed typed VSOCK protocol.
-- Risks: Windows remains incomplete; generated guest artifacts and the signed helper are local build outputs; packaging and notarization remain M10 work.
-- Acceptance evidence: focused M1 unit and platform gates, complete `pnpm verify`, deterministic double guest build, exact manifest hashes, daemon/CLI lifecycle tests, and macOS guest boot evidence.
-- Dependencies affected: the M0-selected `better-sqlite3` binding is now consumed by `@vault/core`; the native helper uses only Apple Swift, Foundation, and Virtualization.framework; no new third-party runtime dependency was added.
-- Explicitly not doing: Windows M1 implementation, M2 inference, parsers, product UI, external networking, model acquisition, packaging, or later-milestone behavior.
+- Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
+- Active milestone and issue: M1, activated by the repository owner's explicit 2026-07-17 request and completed by the owner's Windows continuation request on 2026-07-18; no separate issue was supplied.
+- Allowed scope: M1 shared contracts; transactional workspace catalog and single-writer lock; scoped filesystem and atomic artifacts; redacted hash-chained audit; durable job cancellation primitive; JSON-RPC daemon and CLI status; bounded worker frames; reproducible guests; signed macOS Virtualization.framework and Windows HCS helpers; platform launchers and gates.
+- Product contracts and boundaries: Vault Core alone owns authoritative workspace mutation; local RPC is current-user-only and has no TCP mode; workers receive already-authorized staged inputs and bounded scratch; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
+- Dependencies affected: the M0-selected `better-sqlite3` binding is consumed by `@vault/core`; the Swift helper uses only Apple system frameworks; the Rust helper uses only the Rust standard library and Windows system APIs. No third-party runtime dependency was added.
+- Explicitly not doing: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, or later-milestone behavior.
 
-## Current Gate State
+## Gate State
 
-- macOS implementation: complete.
-- macOS certification: pass.
-- Windows implementation and certification: pending owner work on Windows.
-- Full M1 milestone: open.
+- Shared M1 implementation: complete.
+- macOS implementation and certification: pass.
+- Windows implementation and certification: pass.
+- Full M1 milestone: complete on 2026-07-18.
 - M2 authorization: not granted.
+
+## Shared Evidence
+
+- Workspace gates cover traversal, symlink or junction escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, and hash-chain tamper detection.
+- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, current-user endpoint restriction, restart, abrupt kill, stale-lock recovery, and catalog reopening.
+- Worker gates reject non-schema forwarding frames and bound frame sizes.
+- `pnpm verify` passes source limits, Biome, TypeScript, 28 unit assertions, two native assertions, Rust formatting and Clippy, signed test-sidecar construction, both native helper builds, and platform-appropriate skips.
+- `pnpm test:gate --milestone 1` passes the cumulative M1 verification and certified current-platform gate.
 
 ## macOS Evidence
 
-- Workspace gates cover traversal, symlink escape, captured-file replacement, single-writer refusal, stable identity, immutable atomic artifact writes, killed SQLite transaction rollback, audit redaction, and hash-chain tamper detection.
-- Daemon gates cover start, health, `vault status --json`, exact single-document stdout, protocol incompatibility, endpoint mode `0600`, restart, abrupt kill, stale-lock recovery, and catalog reopening.
-- Worker gates reject non-schema forwarding frames and bound frame sizes.
-- The production guest was built twice from Buildroot 2026.05 in disposable volumes. The second build had Docker networking disabled and matched the first byte-for-byte.
-  - arm64 kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
-  - arm64 initramfs SHA-256: `b63fd1a7677b7f6b3e3b7cd9c95eeba9c313f0f8a34f85457491f82a3334ed4e`.
-- The ad-hoc signed helper booted the exact recorded guest with zero configured network devices, one VSOCK device, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and successful DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial results.
+- The production arm64 guest was built twice from Buildroot 2026.05 in disposable volumes. The second build had Docker networking disabled and matched the first byte-for-byte.
+  - kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
+  - initramfs SHA-256: `b63fd1a7677b7f6b3e3b7cd9c95eeba9c313f0f8a34f85457491f82a3334ed4e`.
+- The ad-hoc signed Swift helper booted the recorded guest with zero configured network devices, one VSOCK device, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and successful DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial results.
 - The helper source configures no generic proxy or virtual network adapter. Schema-invalid worker frames and arbitrary forwarding operations are rejected.
 
-## Windows Handoff
+## Windows Evidence
 
-- Implement `packages/workers/native/windows-hcs-helper/` and `packages/workers/src/microvm/windows.ts` against the already-committed shared launcher and frame contracts.
-- Rebuild the x86_64 guest after reconciling the M1 worker frame and update only reproducible manifest hashes.
-- Replace the provisional M0 HCS probe with the production helper, prove zero adapters and typed Hyper-V socket confinement, and add the Windows M1 gate.
-- Run `pnpm verify` and `pnpm test:gate --milestone 1` on Windows without treating macOS-only evidence or a process fallback as a pass.
+- The signed Rust helper uses the pinned Rust 1.97.0 toolchain, raw `computecore.dll`, Winsock, and Windows ACL APIs, with a zero-third-party `Cargo.lock`. It grants only the ephemeral Hyper-V VM identity access to already-authorized staged attachments.
+- The production x86_64 guest was built twice from Buildroot 2026.05. The second build had Docker networking disabled and matched the first byte-for-byte.
+  - kernel SHA-256: `ec0364eab93e9a12e4f5ef3008207331b03ef32a23dd9b0fc0f8c197fb126e45`.
+  - initramfs SHA-256: `cdf5a631ee8cc7aabb5def990de9beb922221acf5a46dc51ce2492498b225986`.
+- An elevated physical Windows x64 HCS boot of those exact artifacts returned `certified`: zero configured network devices, one fixed Hyper-V socket service, one read-only staged input, 8 MiB bounded scratch, zero guest non-loopback interfaces, and successful DNS, IPv4, IPv6, LAN, multicast, and host-reachability denial results.
+- The configuration gate parses the HCS document before boot and proves there is no `NetworkAdapters` property, inputs are read-only, scratch is writable, and the only host/guest transport is the fixed Hyper-V socket service.
+- The launcher uses a 60-second cold-boot budget on Windows and retries teardown only while HCS releases attachment handles; the authoritative milestone gate completed the platform project in about 31 seconds.
+- The Windows dependency decision and primary sources are recorded in [research/m1-windows-dependency-review.md](research/m1-windows-dependency-review.md).
+
+## Remaining Risks And Deferrals
+
+- Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
+- M1 development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
+- Hosted CI classifies each available platform backend but does not substitute for elevated physical-host HCS certification or macOS hardware certification.
+- Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
+- M2 and all later product behavior require a new explicit owner request.

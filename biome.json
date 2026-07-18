@@ -70,9 +70,11 @@
         "packages/core/src/daemon/server.ts",
         "packages/cli/src/client.ts",
         "packages/workers/src/microvm/macos.ts",
+        "packages/workers/src/microvm/windows.ts",
         "packages/workers/src/microvm/guest/io.ts",
         "packages/workers/images/build.ts",
         "packages/workers/native/macos-vz-helper/build.ts",
+        "packages/workers/native/windows-hcs-helper/build.ts",
         "packages/eval/src/**/*.ts",
         "scripts/**/*.ts"
       ],

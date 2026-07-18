@@ -20,6 +20,20 @@ async function temporaryRoot(): Promise<string> {
   return root;
 }
 
+async function createEscapeLink(parent: string, root: string): Promise<string> {
+  if (process.platform === "win32") {
+    const outside = join(parent, "outside");
+    await mkdir(outside);
+    await writeFile(join(outside, "outside.txt"), "outside");
+    await symlink(outside, join(root, "escape"), "junction");
+    return "escape/outside.txt";
+  }
+  const outside = join(parent, "outside.txt");
+  await writeFile(outside, "outside");
+  await symlink(outside, join(root, "escape.txt"));
+  return "escape.txt";
+}
+
 afterEach(async () => {
   await Promise.all(
     temporaryRoots.splice(0).map((path) => rm(path, { recursive: true, force: true })),
@@ -30,14 +44,12 @@ describe("M1 workspace path and artifact security", () => {
   it("rejects traversal, symlink escape, and changed file identities", async () => {
     const parent = await temporaryRoot();
     const root = join(parent, "workspace");
-    const outside = join(parent, "outside.txt");
     await mkdir(root);
-    await writeFile(outside, "outside");
     await writeFile(join(root, "input.txt"), "first");
-    await symlink(outside, join(root, "escape.txt"));
+    const escapePath = await createEscapeLink(parent, root);
     const files = new ScopedFileSystem(await WorkspaceScope.create(root));
     await expect(files.read("../outside.txt")).rejects.toThrow("path_out_of_scope");
-    await expect(files.read("escape.txt")).rejects.toThrow("path_out_of_scope");
+    await expect(files.read(escapePath)).rejects.toThrow("path_out_of_scope");
     const snapshot = await files.snapshot("input.txt");
     await rename(join(root, "input.txt"), join(root, "old.txt"));
     await writeFile(join(root, "input.txt"), "replacement");
@@ -77,7 +89,7 @@ describe("M1 internal workspace path security", () => {
     const outside = join(parent, "outside");
     await mkdir(root);
     await mkdir(outside);
-    await symlink(outside, join(root, ".vault"), "dir");
+    await symlink(outside, join(root, ".vault"), process.platform === "win32" ? "junction" : "dir");
     await expect(createVaultCore({ workspaceDir: root })).rejects.toThrow(
       "workspace_directory_unsafe",
     );
