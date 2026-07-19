@@ -161,9 +161,42 @@ describe("M1 audit integrity", () => {
     expect(audit.verify()).toBe(false);
     database.close();
   });
+
+  it("detects a truncated audit tail and refuses to extend it", async () => {
+    const root = await temporaryRoot();
+    const core = await createVaultCore({ workspaceDir: root });
+    await core.close();
+    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const audit = new AuditLog(database);
+    expect(audit.verify()).toBe(true);
+    database.exec("DROP TRIGGER audit_events_no_delete");
+    database.exec(
+      "DELETE FROM audit_events WHERE sequence = (SELECT max(sequence) FROM audit_events)",
+    );
+    expect(audit.verify()).toBe(false);
+    expect(() =>
+      audit.append({ type: "core.reopened", outcome: "succeeded", metadata: {} }),
+    ).toThrow("audit_chain_invalid");
+    database.close();
+  });
 });
 
 describe("M1 workspace migration", () => {
+  it("anchors an existing version-one audit chain", async () => {
+    const root = await temporaryRoot();
+    const first = await createVaultCore({ workspaceDir: root });
+    await first.close();
+    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    database.exec(
+      "DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
+    );
+    database.close();
+    const migrated = await createVaultCore({ workspaceDir: root });
+    expect((await migrated.status()).catalogSchemaVersion).toBe(2);
+    expect(await migrated.verifyAudit()).toBe(true);
+    await migrated.close();
+  });
+
   it("creates a consistent backup before applying a numbered migration", async () => {
     const root = await temporaryRoot();
     const internalRoot = join(root, ".vault");
@@ -174,6 +207,7 @@ describe("M1 workspace migration", () => {
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
     const core = await createVaultCore({ workspaceDir: root });
+    expect((await core.status()).catalogSchemaVersion).toBe(2);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>
       name.startsWith("catalog.sqlite.pre-migration-v0-"),

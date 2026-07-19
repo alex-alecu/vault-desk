@@ -8,6 +8,10 @@ import {
 import type Database from "better-sqlite3";
 
 type AuditValue = string | number | boolean | null;
+interface AuditHead {
+  sequence: number;
+  hash: string;
+}
 const SENSITIVE_KEY = /body|content|document|password|prompt|secret|text|token/iu;
 
 function safeMetadata(metadata: Record<string, AuditValue>): Record<string, AuditValue> {
@@ -34,6 +38,12 @@ function eventHash(event: Omit<AuditEvent, "hash">): `sha256:${string}` {
 export class AuditLog {
   constructor(private readonly database: Database.Database) {}
 
+  private head(): AuditHead | undefined {
+    return this.database
+      .prepare("SELECT sequence, hash FROM audit_head WHERE singleton = 1")
+      .get() as AuditHead | undefined;
+  }
+
   private events(): AuditEvent[] {
     const rows = this.database
       .prepare("SELECT event_json FROM audit_events ORDER BY sequence")
@@ -43,34 +53,54 @@ export class AuditLog {
 
   append(input: AuditEventInput): AuditEvent {
     const parsed = AuditEventInputSchema.parse(input);
-    const existing = this.events();
-    const previous = existing.at(-1);
-    const unsigned = {
-      schemaVersion: 1 as const,
-      sequence: existing.length,
-      timestamp: new Date().toISOString(),
-      previousHash: previous?.hash ?? null,
-      type: parsed.type,
-      outcome: parsed.outcome,
-      metadata: safeMetadata(parsed.metadata),
-    };
-    const event = AuditEventSchema.parse({ ...unsigned, hash: eventHash(unsigned) });
-    this.database
-      .prepare("INSERT INTO audit_events (sequence, event_json) VALUES (?, ?)")
-      .run(event.sequence, JSON.stringify(event));
-    return event;
+    return this.database.transaction(() => {
+      const existing = this.events();
+      if (!this.validChain(existing)) throw new Error("audit_chain_invalid");
+      const previous = existing.at(-1);
+      const unsigned = {
+        schemaVersion: 1 as const,
+        sequence: existing.length,
+        timestamp: new Date().toISOString(),
+        previousHash: previous?.hash ?? null,
+        type: parsed.type,
+        outcome: parsed.outcome,
+        metadata: safeMetadata(parsed.metadata),
+      };
+      const event = AuditEventSchema.parse({ ...unsigned, hash: eventHash(unsigned) });
+      this.database
+        .prepare("INSERT INTO audit_events (sequence, event_json) VALUES (?, ?)")
+        .run(event.sequence, JSON.stringify(event));
+      this.database
+        .prepare(
+          "INSERT INTO audit_head VALUES (1, ?, ?) ON CONFLICT(singleton) DO UPDATE SET sequence = excluded.sequence, hash = excluded.hash",
+        )
+        .run(event.sequence, event.hash);
+      return event;
+    })();
+  }
+
+  private validChain(events: AuditEvent[]): boolean {
+    const head = this.head();
+    const chainIsValid = events.every((event, index) => {
+      const { hash, ...unsigned } = event;
+      return (
+        unsigned.sequence === index &&
+        hash === eventHash(unsigned) &&
+        unsigned.previousHash === (events[index - 1]?.hash ?? null)
+      );
+    });
+    const tail = events.at(-1);
+    return (
+      chainIsValid &&
+      (tail === undefined
+        ? head === undefined
+        : head?.sequence === tail.sequence && head.hash === tail.hash)
+    );
   }
 
   verify(): boolean {
     try {
-      const events = this.events();
-      return events.every((event, index) => {
-        const { hash, ...unsigned } = event;
-        return (
-          hash === eventHash(unsigned) &&
-          unsigned.previousHash === (events[index - 1]?.hash ?? null)
-        );
-      });
+      return this.validChain(this.events());
     } catch {
       return false;
     }

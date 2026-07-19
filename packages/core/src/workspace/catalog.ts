@@ -15,6 +15,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 
+const LATEST_SCHEMA_VERSION = 2;
+
 export interface WorkspaceCatalog {
   database: Database.Database;
   schemaVersion: number;
@@ -82,15 +84,20 @@ function migrate(
   catalogExisted: boolean,
 ): number {
   const current = database.pragma("user_version", { simple: true }) as number;
-  if (current > 1) throw new Error(`Unsupported workspace schema version ${current}.`);
-  if (current === 1) return current;
+  if (current > LATEST_SCHEMA_VERSION)
+    throw new Error(`Unsupported workspace schema version ${current}.`);
+  if (current === LATEST_SCHEMA_VERSION) return current;
   if (catalogExisted) {
     const backup = `${databasePath}.pre-migration-v${current}-${Date.now()}.bak`;
     database.exec(`VACUUM INTO '${backup.replaceAll("'", "''")}'`);
   }
-  const migrationPath = fileURLToPath(new URL("./migrations/0001-initial.sql", import.meta.url));
-  const migration = readFileSync(migrationPath, "utf8");
-  database.transaction(() => database.exec(migration))();
+  database.transaction(() => {
+    for (let version = current + 1; version <= LATEST_SCHEMA_VERSION; version += 1) {
+      const name = `${String(version).padStart(4, "0")}-${version === 1 ? "initial" : "audit-head"}.sql`;
+      const path = fileURLToPath(new URL(`./migrations/${name}`, import.meta.url));
+      database.exec(readFileSync(path, "utf8"));
+    }
+  })();
   return database.pragma("user_version", { simple: true }) as number;
 }
 
