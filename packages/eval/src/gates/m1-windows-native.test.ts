@@ -19,6 +19,8 @@ function helperPath(): string {
 function limits(scratchBytes: number) {
   return {
     wallTimeMs: 60_000,
+    inputCount: 1,
+    inputBytes: 16 * 1024 * 1024,
     memoryBytes: 256 * 1024 * 1024,
     scratchBytes,
     outputBytes: 4096,

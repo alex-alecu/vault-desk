@@ -4,6 +4,12 @@ import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const WorkerLimitsSchema = z.object({
   wallTimeMs: z.number().int().positive().max(300_000),
+  inputCount: z.number().int().nonnegative().max(32),
+  inputBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(8 * 1024 * 1024 * 1024),
   memoryBytes: z
     .number()
     .int()

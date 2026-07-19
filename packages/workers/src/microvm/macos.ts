@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, mkdtemp, open, readFile, rm, stat, truncate } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, truncate } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@vault/shared";
 import type { MicroVmLauncher, MicroVmLaunchRequest, MicroVmLaunchResult } from "./launcher.js";
+import { copyBoundedInput, launchSignal } from "./staging.js";
 
 interface ImageManifest {
   outputs: {
@@ -37,13 +38,24 @@ async function digest(path: string): Promise<string> {
     .digest("hex");
 }
 
-async function stageInputs(paths: string[], root: string): Promise<string[]> {
+async function stageInputs(
+  paths: string[],
+  root: string,
+  request: MicroVmLaunchRequest,
+  signal: AbortSignal,
+): Promise<string[]> {
+  if (paths.length > request.limits.inputCount) throw new Error("worker_input_limit_exceeded");
   const staged: string[] = [];
+  let remaining = request.limits.inputBytes;
   for (const [index, source] of paths.entries()) {
+    signal.throwIfAborted();
     const destination = join(root, `input-${index}-${basename(source)}.img`);
-    await copyFile(source, destination);
-    const size = (await stat(destination)).size;
-    await truncate(destination, Math.max(4096, Math.ceil(size / 4096) * 4096));
+    const sourceBytes = (await stat(source)).size;
+    const stagedBytes = Math.max(4096, Math.ceil(sourceBytes / 4096) * 4096);
+    if (stagedBytes > remaining) throw new Error("worker_input_limit_exceeded");
+    await copyBoundedInput(source, destination, stagedBytes, signal);
+    await truncate(destination, stagedBytes);
+    remaining -= stagedBytes;
     staged.push(destination);
   }
   return staged;
@@ -71,13 +83,17 @@ function helperArguments(input: {
   return args;
 }
 
-function runHelper(helper: string, args: string[], request: MicroVmLaunchRequest): Promise<string> {
+function runHelper(
+  helper: string,
+  args: string[],
+  request: MicroVmLaunchRequest,
+  signal: AbortSignal,
+): Promise<string> {
   return new Promise((accept, reject) => {
     const child = spawn(helper, args, {
-      signal: request.signal,
+      signal,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const timeout = setTimeout(() => child.kill("SIGKILL"), request.limits.wallTimeMs);
     let output = "";
     let errorOutput = "";
     child.stdout.on("data", (chunk) => {
@@ -90,7 +106,6 @@ function runHelper(helper: string, args: string[], request: MicroVmLaunchRequest
     });
     child.once("error", reject);
     child.once("close", (code) => {
-      clearTimeout(timeout);
       if (code === 0) accept(output);
       else reject(new Error(errorOutput.trim() || `macOS helper exited with ${code}.`));
     });
@@ -106,14 +121,18 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
     }
     JobIdSchema.parse(request.jobId);
     WorkerLimitsSchema.parse(request.limits);
+    const signal = launchSignal(request.signal, request.limits.wallTimeMs);
+    signal.throwIfAborted();
     const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-worker-${request.jobId}-`));
     try {
-      const inputs = await stageInputs(request.readonlyInputs, temporaryRoot);
+      const inputs = await stageInputs(request.readonlyInputs, temporaryRoot, request, signal);
       const scratch = join(temporaryRoot, "scratch.img");
       const scratchHandle = await open(scratch, "wx", 0o600);
       await scratchHandle.close();
       await truncate(scratch, request.limits.scratchBytes);
+      signal.throwIfAborted();
       const artifacts = await verifiedArtifacts();
+      signal.throwIfAborted();
       const args = helperArguments({
         artifacts,
         inputs,
@@ -121,7 +140,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
         scratch,
       });
       const result = MicroVmProbeReportSchema.parse(
-        JSON.parse(await runHelper(this.helperPath, args, request)),
+        JSON.parse(await runHelper(this.helperPath, args, request, signal)),
       );
       const certified =
         result.networkDeviceCount === 0 &&
