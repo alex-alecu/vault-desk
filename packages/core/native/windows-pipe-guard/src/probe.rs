@@ -15,6 +15,7 @@ const GENERIC_READ: u32 = 0x8000_0000;
 const GENERIC_WRITE: u32 = 0x4000_0000;
 const OPEN_EXISTING: u32 = 3;
 const DACL_SECURITY_INFORMATION: u32 = 4;
+const OWNER_SECURITY_INFORMATION: u32 = 1;
 const SE_KERNEL_OBJECT: u32 = 6;
 const ERROR_ACCESS_DENIED: u32 = 5;
 
@@ -66,6 +67,12 @@ unsafe extern "system" {
     ) -> i32;
     fn ImpersonateLoggedOnUser(token: Pointer) -> i32;
     fn RevertToSelf() -> i32;
+    fn EqualSid(first: Pointer, second: Pointer) -> i32;
+}
+
+pub(crate) struct PipeSecurity {
+    pub(crate) current_user_owned_and_only: bool,
+    pub(crate) sddl: String,
 }
 
 fn descriptor_sddl(descriptor: Pointer) -> Result<String, Box<dyn Error>> {
@@ -86,7 +93,37 @@ fn descriptor_sddl(descriptor: Pointer) -> Result<String, Box<dyn Error>> {
     Ok(wide_text(text.as_ptr().cast()))
 }
 
-fn pipe_sddl(endpoint: &str) -> Result<String, Box<dyn Error>> {
+pub(crate) fn pipe_security(pipe: Pointer) -> Result<PipeSecurity, Box<dyn Error>> {
+    let token = current_token(TOKEN_QUERY)?;
+    let (_user, current_user_sid) = token_user(token.0)?;
+    let expected = current_user_descriptor()?;
+    let mut owner = null_mut();
+    let mut descriptor = null_mut();
+    let status = unsafe {
+        GetSecurityInfo(
+            pipe,
+            SE_KERNEL_OBJECT,
+            OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
+            &mut owner,
+            null_mut(),
+            null_mut(),
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if status != 0 {
+        return Err(format!("pipe security query failed with {status}").into());
+    }
+    let descriptor = SecurityDescriptor::new(descriptor);
+    let sddl = descriptor_sddl(descriptor.as_ptr())?;
+    Ok(PipeSecurity {
+        current_user_owned_and_only: unsafe { EqualSid(owner, current_user_sid) } != 0
+            && sddl == descriptor_sddl(expected.as_ptr())?,
+        sddl,
+    })
+}
+
+fn endpoint_security(endpoint: &str) -> Result<PipeSecurity, Box<dyn Error>> {
     let endpoint = wide(OsStr::new(endpoint));
     let pipe = Handle::new(
         unsafe {
@@ -102,24 +139,7 @@ fn pipe_sddl(endpoint: &str) -> Result<String, Box<dyn Error>> {
         },
         "pipe security open",
     )?;
-    let mut descriptor = null_mut();
-    let status = unsafe {
-        GetSecurityInfo(
-            pipe.0,
-            SE_KERNEL_OBJECT,
-            DACL_SECURITY_INFORMATION,
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            &mut descriptor,
-        )
-    };
-    if status != 0 {
-        return Err(format!("pipe security query failed with {status}").into());
-    }
-    let descriptor = SecurityDescriptor::new(descriptor);
-    descriptor_sddl(descriptor.as_ptr())
+    pipe_security(pipe.0)
 }
 
 fn restricted_connection_denied(
@@ -181,9 +201,9 @@ pub fn probe(endpoint: &str) -> Result<(), Box<dyn Error>> {
     let token = current_token(TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_IMPERSONATE)?;
     let (_user, sid) = token_user(token.0)?;
     let current_user_sid = sid_string(sid)?;
-    let sddl = pipe_sddl(endpoint)?;
-    let expected = current_user_descriptor()?;
-    let current_user_only = sddl == descriptor_sddl(expected.as_ptr())?;
+    let security = endpoint_security(endpoint)?;
+    let sddl = security.sddl;
+    let current_user_only = security.current_user_owned_and_only;
     let restricted_denied = restricted_connection_denied(endpoint, token.0, sid)?;
     println!(
         "{{\"currentUserOnly\":{current_user_only},\"currentUserSid\":\"{current_user_sid}\",\"restrictedConnectionDenied\":{restricted_denied},\"sddl\":\"{sddl}\"}}"

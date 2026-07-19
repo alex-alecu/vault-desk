@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
-import { createConnection } from "node:net";
+import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createVaultCore, daemonEndpoint, startDaemon } from "@vault/core";
@@ -8,6 +8,7 @@ import { PROTOCOL_VERSION, type RpcResponse, RpcResponseSchema } from "@vault/sh
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+const itWindows = process.platform === "win32" ? it : it.skip;
 
 interface WindowsPipeSecurityReport {
   currentUserOnly: boolean;
@@ -125,6 +126,24 @@ describe("M1 daemon endpoint identity", () => {
     expect(JSON.parse(cli.stdout).status).toBe("ok");
     await daemon.close();
     await core.close();
+  });
+});
+
+describe("M1 Windows daemon authentication", () => {
+  itWindows("rejects a spoofed Windows daemon pipe", async () => {
+    const root = await temporaryRoot();
+    const endpoint = daemonEndpoint(root);
+    const server = createServer((socket) => socket.end("{}\n"));
+    await new Promise<void>((accept, reject) => {
+      server.once("error", reject);
+      server.listen(endpoint, accept);
+    });
+    const cli = await runStatusCli(root);
+    expect(cli.code).toBe(1);
+    expect(cli.stderr).toContain("not restricted to the current user");
+    await new Promise<void>((accept, reject) =>
+      server.close((error) => (error === undefined ? accept() : reject(error))),
+    );
   });
 });
 

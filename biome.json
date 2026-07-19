@@ -72,6 +72,7 @@
         "packages/core/native/windows-pipe-guard/build.ts",
         "packages/cli/src/client.ts",
         "packages/cli/src/endpoint.ts",
+        "packages/cli/src/windows-client.ts",
         "packages/workers/src/microvm/macos.ts",
         "packages/workers/src/microvm/staging.ts",
         "packages/workers/src/microvm/staging.test.ts",
