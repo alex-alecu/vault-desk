@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { access, lstat, mkdtemp, rm } from "node:fs/promises";
+import { access, lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,8 +16,8 @@ interface WindowsPipeSecurityReport {
   sddl: string;
 }
 
-async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "vault-m1-daemon-"));
+async function temporaryRoot(prefix = "vault-m1-daemon-"): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), prefix));
   temporaryRoots.push(root);
   return root;
 }
@@ -88,6 +88,27 @@ function runStatusCli(
     child.once("close", (code) => accept({ code, stdout, stderr }));
   });
 }
+
+describe("M1 daemon endpoint identity", () => {
+  it("uses one endpoint for equivalent workspace paths", async () => {
+    const parent = await temporaryRoot("v-");
+    const root = join(parent, "workspace");
+    const alias = join(parent, "workspace-alias");
+    await mkdir(root);
+    await symlink(root, alias, process.platform === "win32" ? "junction" : "dir");
+    expect(daemonEndpoint(alias)).toBe(daemonEndpoint(root));
+    if (process.platform === "win32") {
+      expect(daemonEndpoint(root.toUpperCase())).toBe(daemonEndpoint(root));
+    }
+    const core = await createVaultCore({ workspaceDir: root });
+    const daemon = await startDaemon(core, root);
+    const cli = await runStatusCli(alias);
+    expect(cli.code).toBe(0);
+    expect(JSON.parse(cli.stdout).status).toBe("ok");
+    await daemon.close();
+    await core.close();
+  });
+});
 
 describe("M1 daemon and local transport", () => {
   it("starts, negotiates versions, restricts its endpoint, and restarts", async () => {

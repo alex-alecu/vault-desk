@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { createHash } from "node:crypto";
-import { join, resolve } from "node:path";
 import { request } from "./client.js";
+import { daemonEndpoint } from "./endpoint.js";
 import { writeError, writeResult } from "./output.js";
 
 function option(args: string[], name: string): string | undefined {
@@ -16,11 +15,7 @@ async function main(args: string[]): Promise<number> {
     writeError("Usage: vault status --workspace <directory> [--json]");
     return 2;
   }
-  const endpoint =
-    process.platform === "win32"
-      ? `\\\\.\\pipe\\vault-cored-${createHash("sha256").update(resolve(workspace)).digest("hex").slice(0, 32)}`
-      : join(resolve(workspace), ".vault", "vault-cored.sock");
-  const response = await request(endpoint, {
+  const response = await request(daemonEndpoint(workspace), {
     id: crypto.randomUUID(),
     method: "status",
     params: {},
