@@ -1,4 +1,6 @@
 #[cfg(windows)]
+mod client;
+#[cfg(windows)]
 mod probe;
 #[cfg(windows)]
 mod security;
@@ -18,12 +20,18 @@ fn run() -> Result<(), Box<dyn Error>> {
         arguments.next(),
         arguments.next(),
         arguments.next(),
+        arguments.next(),
     ) {
-        (Some("serve"), Some(endpoint), Some(maximum), None) => {
-            server::serve(&endpoint, maximum.parse()?)
+        (Some("serve"), Some(endpoint), Some(maximum), Some(parent), None) => {
+            server::serve(&endpoint, maximum.parse()?, parent.parse()?)
         }
-        (Some("probe"), Some(endpoint), None, None) => probe::probe(&endpoint),
-        _ => Err("Usage: vault-pipe-guard <serve ENDPOINT MAXIMUM|probe ENDPOINT>.".into()),
+        (Some("request"), Some(endpoint), Some(maximum), None, None) => {
+            client::request(&endpoint, maximum.parse()?)
+        }
+        (Some("probe"), Some(endpoint), None, None, None) => probe::probe(&endpoint),
+        _ => Err(
+            "Usage: vault-pipe-guard <serve ENDPOINT MAXIMUM PARENT_PID|request ENDPOINT MAXIMUM|probe ENDPOINT>.".into(),
+        ),
     }
 }
 

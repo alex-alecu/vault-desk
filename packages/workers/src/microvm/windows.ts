@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { copyFile, mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@vault/shared";
 import type { MicroVmLauncher, MicroVmLaunchRequest, MicroVmLaunchResult } from "./launcher.js";
+import { copyBoundedInput, launchSignal } from "./staging.js";
 
 const SECTOR_BYTES = 512;
 const MINIMUM_INPUT_BYTES = 4 * 1024 * 1024;
@@ -79,9 +80,8 @@ function fixedVhdFooter(capacity: number): Buffer {
   return footer;
 }
 
-async function createFixedVhd(path: string, capacity: number, source?: string): Promise<void> {
-  if (source !== undefined) await copyFile(source, path);
-  const handle = await open(path, source === undefined ? "wx+" : "r+");
+async function createFixedVhd(path: string, capacity: number): Promise<void> {
+  const handle = await open(path, "wx+");
   try {
     await handle.truncate(capacity + SECTOR_BYTES);
     await handle.write(fixedVhdFooter(capacity), 0, SECTOR_BYTES, capacity);
@@ -90,13 +90,31 @@ async function createFixedVhd(path: string, capacity: number, source?: string): 
   }
 }
 
-async function stageInputs(paths: string[], root: string): Promise<string[]> {
+async function stageInputs(
+  paths: string[],
+  root: string,
+  request: MicroVmLaunchRequest,
+  signal: AbortSignal,
+): Promise<string[]> {
+  if (paths.length > request.limits.inputCount) throw new Error("worker_input_limit_exceeded");
   const staged: string[] = [];
+  let remaining = request.limits.inputBytes;
   for (const [index, source] of paths.entries()) {
+    signal.throwIfAborted();
     const destination = join(root, `input-${index}-${basename(source)}.vhd`);
     const size = (await stat(source)).size;
     const capacity = Math.max(MINIMUM_INPUT_BYTES, Math.ceil(size / SECTOR_BYTES) * SECTOR_BYTES);
-    await createFixedVhd(destination, capacity, source);
+    const stagedBytes = capacity + SECTOR_BYTES;
+    if (stagedBytes > remaining) throw new Error("worker_input_limit_exceeded");
+    await copyBoundedInput(source, destination, capacity, signal);
+    const handle = await open(destination, "r+");
+    try {
+      await handle.truncate(stagedBytes);
+      await handle.write(fixedVhdFooter(capacity), 0, SECTOR_BYTES, capacity);
+    } finally {
+      await handle.close();
+    }
+    remaining -= stagedBytes;
     staged.push(destination);
   }
   return staged;
@@ -125,13 +143,17 @@ function helperArguments(input: {
   return args;
 }
 
-function runHelper(helper: string, args: string[], request: MicroVmLaunchRequest): Promise<string> {
+function runHelper(
+  helper: string,
+  args: string[],
+  request: MicroVmLaunchRequest,
+  signal: AbortSignal,
+): Promise<string> {
   return new Promise((accept, reject) => {
     const child = spawn(helper, args, {
-      signal: request.signal,
+      signal,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const timeout = setTimeout(() => child.kill(), request.limits.wallTimeMs);
     let output = "";
     let errorOutput = "";
     child.stdout.on("data", (chunk) => {
@@ -144,7 +166,6 @@ function runHelper(helper: string, args: string[], request: MicroVmLaunchRequest
     });
     child.once("error", reject);
     child.once("close", (code) => {
-      clearTimeout(timeout);
       if (code === 0) accept(output);
       else reject(new Error(errorOutput.trim() || `Windows helper exited with ${code}.`));
     });
@@ -161,19 +182,24 @@ export class WindowsMicroVmLauncher implements MicroVmLauncher {
     WorkerLimitsSchema.parse(request.limits);
     if (request.limits.scratchBytes % SECTOR_BYTES !== 0)
       throw new Error("Windows scratch size must be aligned to 512 bytes.");
+    const signal = launchSignal(request.signal, request.limits.wallTimeMs);
+    signal.throwIfAborted();
     const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-worker-${request.jobId}-`));
     try {
-      const inputs = await stageInputs(request.readonlyInputs, temporaryRoot);
+      const inputs = await stageInputs(request.readonlyInputs, temporaryRoot, request, signal);
       const scratch =
         request.limits.scratchBytes === 0 ? undefined : join(temporaryRoot, "scratch.vhd");
       if (scratch !== undefined) await createFixedVhd(scratch, request.limits.scratchBytes);
+      signal.throwIfAborted();
       const artifacts = await verifiedArtifacts();
+      signal.throwIfAborted();
       const result = MicroVmProbeReportSchema.parse(
         JSON.parse(
           await runHelper(
             this.helperPath,
             helperArguments({ artifacts, inputs, request, scratch }),
             request,
+            signal,
           ),
         ),
       );

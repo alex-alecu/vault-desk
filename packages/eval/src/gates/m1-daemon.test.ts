@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
-import { access, lstat, mkdtemp, rm } from "node:fs/promises";
-import { createConnection } from "node:net";
+import { lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createVaultCore, daemonEndpoint, startDaemon } from "@vault/core";
@@ -8,6 +8,7 @@ import { PROTOCOL_VERSION, type RpcResponse, RpcResponseSchema } from "@vault/sh
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
+const itWindows = process.platform === "win32" ? it : it.skip;
 
 interface WindowsPipeSecurityReport {
   currentUserOnly: boolean;
@@ -16,8 +17,8 @@ interface WindowsPipeSecurityReport {
   sddl: string;
 }
 
-async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "vault-m1-daemon-"));
+async function temporaryRoot(prefix = "vault-m1-daemon-"): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), prefix));
   temporaryRoots.push(root);
   return root;
 }
@@ -28,11 +29,16 @@ afterEach(async () => {
   );
 });
 
-function rpc(endpoint: string, protocolVersion: number = PROTOCOL_VERSION): Promise<RpcResponse> {
+function rpc(
+  endpoint: string,
+  protocolVersion: number = PROTOCOL_VERSION,
+  timeoutMs = 5000,
+): Promise<RpcResponse> {
   return new Promise((accept, reject) => {
     const socket = createConnection(endpoint);
     let output = "";
     socket.setEncoding("utf8");
+    socket.setTimeout(timeoutMs, () => socket.destroy(new Error("RPC timed out.")));
     socket.on("data", (chunk) => (output += chunk));
     socket.once("error", reject);
     socket.once("connect", () => {
@@ -60,16 +66,29 @@ function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   return JSON.parse(result.stdout) as WindowsPipeSecurityReport;
 }
 
-async function waitForEndpoint(endpoint: string): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+async function waitForRpc(endpoint: string): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     try {
-      await access(endpoint);
+      await rpc(endpoint, PROTOCOL_VERSION, 100);
       return;
     } catch {
       await new Promise((accept) => setTimeout(accept, 25));
     }
   }
-  throw new Error("Daemon endpoint did not appear.");
+  throw new Error("Daemon did not become responsive.");
+}
+
+async function restartDaemon(core: Awaited<ReturnType<typeof createVaultCore>>, root: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      return await startDaemon(core, root);
+    } catch (error) {
+      lastError = error;
+      await new Promise((accept) => setTimeout(accept, 25));
+    }
+  }
+  throw lastError;
 }
 
 function runStatusCli(
@@ -88,6 +107,45 @@ function runStatusCli(
     child.once("close", (code) => accept({ code, stdout, stderr }));
   });
 }
+
+describe("M1 daemon endpoint identity", () => {
+  it("uses one endpoint for equivalent workspace paths", async () => {
+    const parent = await temporaryRoot("v-");
+    const root = join(parent, "workspace");
+    const alias = join(parent, "workspace-alias");
+    await mkdir(root);
+    await symlink(root, alias, process.platform === "win32" ? "junction" : "dir");
+    expect(daemonEndpoint(alias)).toBe(daemonEndpoint(root));
+    if (process.platform === "win32") {
+      expect(daemonEndpoint(root.toUpperCase())).toBe(daemonEndpoint(root));
+    }
+    const core = await createVaultCore({ workspaceDir: root });
+    const daemon = await startDaemon(core, root);
+    const cli = await runStatusCli(alias);
+    expect(cli.code).toBe(0);
+    expect(JSON.parse(cli.stdout).status).toBe("ok");
+    await daemon.close();
+    await core.close();
+  });
+});
+
+describe("M1 Windows daemon authentication", () => {
+  itWindows("rejects a spoofed Windows daemon pipe", async () => {
+    const root = await temporaryRoot();
+    const endpoint = daemonEndpoint(root);
+    const server = createServer((socket) => socket.end("{}\n"));
+    await new Promise<void>((accept, reject) => {
+      server.once("error", reject);
+      server.listen(endpoint, accept);
+    });
+    const cli = await runStatusCli(root);
+    expect(cli.code).toBe(1);
+    expect(cli.stderr).toContain("not restricted to the current user");
+    await new Promise<void>((accept, reject) =>
+      server.close((error) => (error === undefined ? accept() : reject(error))),
+    );
+  });
+});
 
 describe("M1 daemon and local transport", () => {
   it("starts, negotiates versions, restricts its endpoint, and restarts", async () => {
@@ -132,19 +190,17 @@ describe("M1 daemon and local transport", () => {
 
 describe("M1 daemon recovery", () => {
   it("recovers the writer lock and catalog after abrupt daemon termination", async () => {
-    if (process.platform === "win32") return;
     const root = await temporaryRoot();
     const child = spawn(
       process.execPath,
       ["--import", "tsx", "packages/core/src/daemon/main.ts", "--workspace", root],
       { cwd: process.cwd(), stdio: "ignore" },
     );
-    await waitForEndpoint(daemonEndpoint(root));
-    expect("result" in (await rpc(daemonEndpoint(root)))).toBe(true);
+    await waitForRpc(daemonEndpoint(root));
     child.kill("SIGKILL");
     await new Promise((accept) => child.once("close", accept));
     const core = await createVaultCore({ workspaceDir: root });
-    const daemon = await startDaemon(core, root);
+    const daemon = await restartDaemon(core, root);
     expect("result" in (await rpc(daemon.endpoint))).toBe(true);
     await daemon.close();
     await core.close();

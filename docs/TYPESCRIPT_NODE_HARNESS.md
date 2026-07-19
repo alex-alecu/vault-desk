@@ -261,7 +261,7 @@ See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minim
 
 ## Completed M1 Constraint
 
-M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate.
+M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate. The 2026-07-19 follow-up authenticates the pipe owner and DACL from the client handle, canonicalizes endpoint identity, anchors audit tails across schema migration, bounds and cancels input staging, and ties the pipe helper to daemon lifetime.
 
 M2 begins only on a new explicit owner request. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
@@ -279,3 +279,4 @@ M2 begins only on a new explicit owner request. Generated binaries, downloaded m
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
 | 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
+| 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |

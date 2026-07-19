@@ -26,6 +26,8 @@ async function macReport(): Promise<unknown> {
       readonlyInputs: [input],
       limits: {
         wallTimeMs: 30_000,
+        inputCount: 1,
+        inputBytes: 16 * 1024 * 1024,
         memoryBytes: 256 * 1024 * 1024,
         scratchBytes: 8 * 1024 * 1024,
         outputBytes: 4096,
@@ -59,6 +61,8 @@ async function windowsReport(): Promise<unknown> {
         readonlyInputs: [input],
         limits: {
           wallTimeMs: 60_000,
+          inputCount: 1,
+          inputBytes: 16 * 1024 * 1024,
           memoryBytes: 256 * 1024 * 1024,
           scratchBytes: 8 * 1024 * 1024,
           outputBytes: 4096,

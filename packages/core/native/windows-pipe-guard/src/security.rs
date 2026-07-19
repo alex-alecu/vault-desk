@@ -144,7 +144,8 @@ pub(crate) fn sid_string(sid: Pointer) -> Result<String, Box<dyn Error>> {
 pub fn current_user_descriptor() -> Result<SecurityDescriptor, Box<dyn Error>> {
     let token = current_token(TOKEN_QUERY)?;
     let (_user, sid) = token_user(token.0)?;
-    let sddl = wide(OsStr::new(&format!("D:P(A;;FA;;;{})", sid_string(sid)?)));
+    let sid = sid_string(sid)?;
+    let sddl = wide(OsStr::new(&format!("O:{sid}D:P(A;;FA;;;{sid})")));
     let mut descriptor = null_mut();
     if unsafe {
         ConvertStringSecurityDescriptorToSecurityDescriptorW(
