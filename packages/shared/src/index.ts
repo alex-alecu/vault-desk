@@ -1,10 +1,13 @@
 export * from "./audit.js";
 export * from "./errors.js";
 export * from "./ids.js";
+export * from "./inference.js";
 export * from "./jobs.js";
 export {
   type InstalledModelIdentity,
   InstalledModelIdentitySchema,
+  type InstalledModelStore,
+  InstalledModelStoreSchema,
   type ModelAsset,
   ModelAssetSchema,
   type ModelManifest,

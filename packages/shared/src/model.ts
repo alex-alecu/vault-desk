@@ -94,8 +94,15 @@ export const InstalledModelIdentitySchema = z
     sha256: Sha256Schema,
     byteLength: z.number().int().positive(),
     runtimeBuild: z.string().min(1),
-    storeKey: z.string().min(1),
+    storeKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u),
     installedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export const InstalledModelStoreSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    models: z.array(InstalledModelIdentitySchema),
   })
   .strict();
 
@@ -103,3 +110,4 @@ export type ModelRedistributionStatus = z.infer<typeof ModelRedistributionStatus
 export type ModelAsset = z.infer<typeof ModelAssetSchema>;
 export type ModelManifest = z.infer<typeof ModelManifestSchema>;
 export type InstalledModelIdentity = z.infer<typeof InstalledModelIdentitySchema>;
+export type InstalledModelStore = z.infer<typeof InstalledModelStoreSchema>;

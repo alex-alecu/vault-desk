@@ -2,7 +2,7 @@
 
 Created: 2026-07-11
 
-This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. M0 completed on 2026-07-17 and cross-platform M1 completed on 2026-07-18. M2 remains unauthorized.
+This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. M0 completed on 2026-07-17 and cross-platform M1 completed on 2026-07-18. The repository owner activated M2 on 2026-07-19; M3 remains unauthorized.
 
 Component choices follow the verified default stack in [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) and the principles in [TYPESCRIPT_NODE_HARNESS.md](TYPESCRIPT_NODE_HARNESS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DOCUMENT_ENGINE.md](DOCUMENT_ENGINE.md), [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md), [SECURITY.md](SECURITY.md), [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md), and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 

@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 const itWindows = process.platform === "win32" ? it : it.skip;
+
+async function createTestCore(workspaceDir: string) {
+  const modelStoreDir = join(workspaceDir, ".test-models");
+  await mkdir(modelStoreDir, { recursive: true });
+  await writeFile(
+    join(modelStoreDir, "installed-models.json"),
+    JSON.stringify({ schemaVersion: 1, models: [] }),
+  );
+  return createVaultCore({ workspaceDir, modelStoreDir, profile: "local12" });
+}
 
 interface WindowsPipeSecurityReport {
   currentUserOnly: boolean;
@@ -119,7 +129,7 @@ describe("M1 daemon endpoint identity", () => {
     if (process.platform === "win32") {
       expect(daemonEndpoint(root.toUpperCase())).toBe(daemonEndpoint(root));
     }
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     const daemon = await startDaemon(core, root);
     const cli = await runStatusCli(alias);
     expect(cli.code).toBe(0);
@@ -150,7 +160,7 @@ describe("M1 Windows daemon authentication", () => {
 describe("M1 daemon and local transport", () => {
   it("starts, negotiates versions, restricts its endpoint, and restarts", async () => {
     const root = await temporaryRoot();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     const first = await startDaemon(core, root);
     if (process.platform === "win32") {
       expect(first.endpoint).toMatch(/^\\\\\.\\pipe\\vault-cored-/u);
@@ -191,15 +201,31 @@ describe("M1 daemon and local transport", () => {
 describe("M1 daemon recovery", () => {
   it("recovers the writer lock and catalog after abrupt daemon termination", async () => {
     const root = await temporaryRoot();
+    const modelStore = join(root, "models");
+    await mkdir(modelStore);
+    await writeFile(
+      join(modelStore, "installed-models.json"),
+      JSON.stringify({ schemaVersion: 1, models: [] }),
+    );
     const child = spawn(
       process.execPath,
-      ["--import", "tsx", "packages/core/src/daemon/main.ts", "--workspace", root],
+      [
+        "--import",
+        "tsx",
+        "packages/core/src/daemon/main.ts",
+        "--workspace",
+        root,
+        "--model-store",
+        modelStore,
+        "--profile",
+        "local12",
+      ],
       { cwd: process.cwd(), stdio: "ignore" },
     );
     await waitForRpc(daemonEndpoint(root));
     child.kill("SIGKILL");
     await new Promise((accept) => child.once("close", accept));
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     const daemon = await restartDaemon(core, root);
     expect("result" in (await rpc(daemon.endpoint))).toBe(true);
     await daemon.close();

@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
-    "@vault/shared": "workspace:*"
+    "@vault/shared": "workspace:*",
+    "node-llama-cpp": "3.19.0"
   }
 }

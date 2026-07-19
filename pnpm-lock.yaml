@@ -38,6 +38,9 @@ importers:
       '@vault/shared':
         specifier: workspace:*
         version: link:../shared
+      '@vault/workers':
+        specifier: workspace:*
+        version: link:../workers
       better-sqlite3:
         specifier: 12.11.1
         version: 12.11.1
@@ -94,6 +97,9 @@ importers:
       '@vault/shared':
         specifier: workspace:*
         version: link:../shared
+      node-llama-cpp:
+        specifier: 3.19.0
+        version: 3.19.0(typescript@7.0.2)
 
 packages:
 

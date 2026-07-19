@@ -17,6 +17,7 @@ export default defineConfig({
             "packages/eval/src/gates/m0-native.test.ts",
             "packages/eval/src/gates/m1-macos-native.test.ts",
             "packages/eval/src/gates/m1-windows-native.test.ts",
+            "packages/eval/src/gates/m2-macos-native.test.ts",
           ],
         },
       },
@@ -35,6 +36,14 @@ export default defineConfig({
             "packages/eval/src/gates/m1-macos-native.test.ts",
             "packages/eval/src/gates/m1-windows-native.test.ts",
           ],
+          exclude: ["**/node_modules/**"],
+          fileParallelism: false,
+        },
+      },
+      {
+        test: {
+          name: "m2-native",
+          include: ["packages/eval/src/gates/m2-macos-native.test.ts"],
           exclude: ["**/node_modules/**"],
           fileParallelism: false,
         },

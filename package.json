@@ -14,6 +14,8 @@
     "typecheck": "tsc -b packages/shared packages/workers packages/core packages/cli packages/eval",
     "test": "vitest run --config vitest.workspace.ts --project unit",
     "test:native": "vitest run --config vitest.workspace.ts --project native",
+    "test:native:m2": "vitest run --config vitest.workspace.ts --project m2-native",
+    "test:m2:macos": "node --import tsx packages/eval/src/gates/m2-macos-canary.ts",
     "test:platform:gate": "vitest run --config vitest.workspace.ts --project platform",
     "test:gate": "node --import tsx packages/eval/src/gates/run.ts",
     "test:platform:m0": "node --import tsx packages/eval/src/platform/m1-stage.ts",
