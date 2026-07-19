@@ -52,10 +52,14 @@ export function startWindowsPipeGuard(
   respond: (request: Buffer) => Promise<Buffer>,
 ): Promise<WindowsPipeGuard> {
   return new Promise((accept, reject) => {
-    const child = spawn(windowsPipeGuardPath(), ["serve", endpoint, String(maximumRequestBytes)], {
-      stdio: ["pipe", "pipe", "pipe"],
-      windowsHide: true,
-    });
+    const child = spawn(
+      windowsPipeGuardPath(),
+      ["serve", endpoint, String(maximumRequestBytes), String(process.pid)],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true,
+      },
+    );
     let errorOutput = "";
     let settled = false;
     const timeout = setTimeout(

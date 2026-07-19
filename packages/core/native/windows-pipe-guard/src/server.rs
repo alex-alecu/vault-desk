@@ -11,6 +11,8 @@ type Pointer = *mut c_void;
 const PIPE_ACCESS_DUPLEX: u32 = 3;
 const FILE_FLAG_FIRST_PIPE_INSTANCE: u32 = 0x0008_0000;
 const PIPE_REJECT_REMOTE_CLIENTS: u32 = 8;
+const SYNCHRONIZE: u32 = 0x0010_0000;
+const INFINITE: u32 = u32::MAX;
 const ERROR_PIPE_CONNECTED: u32 = 535;
 const ERROR_BROKEN_PIPE: u32 = 109;
 const ERROR_NO_DATA: u32 = 232;
@@ -54,6 +56,8 @@ unsafe extern "system" {
     fn FlushFileBuffers(pipe: Pointer) -> i32;
     fn CloseHandle(handle: Pointer) -> i32;
     fn GetLastError() -> u32;
+    fn OpenProcess(access: u32, inherit: i32, process_id: u32) -> Pointer;
+    fn WaitForSingleObject(handle: Pointer, milliseconds: u32) -> u32;
 }
 
 struct Pipe(Pointer);
@@ -70,6 +74,27 @@ fn invalid_handle() -> Pointer {
 
 fn wide(value: &OsStr) -> Vec<u16> {
     value.encode_wide().chain(Some(0)).collect()
+}
+
+fn exit_with_parent(parent_pid: u32) -> Result<(), Box<dyn Error>> {
+    let parent = unsafe { OpenProcess(SYNCHRONIZE, 0, parent_pid) };
+    if parent.is_null() {
+        return Err(format!(
+            "parent process open failed: {}",
+            std::io::Error::last_os_error()
+        )
+        .into());
+    }
+    let parent_address = parent as usize;
+    std::thread::spawn(move || {
+        let parent = parent_address as Pointer;
+        unsafe {
+            WaitForSingleObject(parent, INFINITE);
+            CloseHandle(parent);
+        }
+        std::process::exit(0);
+    });
+    Ok(())
 }
 
 fn create_pipe(endpoint: &str) -> Result<Pipe, Box<dyn Error>> {
@@ -189,10 +214,11 @@ fn exchange(pipe: Pointer, maximum_bytes: usize) -> Result<bool, Box<dyn Error>>
     Ok(true)
 }
 
-pub fn serve(endpoint: &str, maximum_bytes: usize) -> Result<(), Box<dyn Error>> {
+pub fn serve(endpoint: &str, maximum_bytes: usize, parent_pid: u32) -> Result<(), Box<dyn Error>> {
     if maximum_bytes == 0 {
         return Err("maximum request bytes must be positive".into());
     }
+    exit_with_parent(parent_pid)?;
     let mut pipe = create_pipe(endpoint)?;
     eprintln!("ready");
     std::io::stderr().flush()?;

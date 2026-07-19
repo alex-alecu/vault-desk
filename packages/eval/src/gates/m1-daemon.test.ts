@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { access, lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,11 +28,16 @@ afterEach(async () => {
   );
 });
 
-function rpc(endpoint: string, protocolVersion: number = PROTOCOL_VERSION): Promise<RpcResponse> {
+function rpc(
+  endpoint: string,
+  protocolVersion: number = PROTOCOL_VERSION,
+  timeoutMs = 5000,
+): Promise<RpcResponse> {
   return new Promise((accept, reject) => {
     const socket = createConnection(endpoint);
     let output = "";
     socket.setEncoding("utf8");
+    socket.setTimeout(timeoutMs, () => socket.destroy(new Error("RPC timed out.")));
     socket.on("data", (chunk) => (output += chunk));
     socket.once("error", reject);
     socket.once("connect", () => {
@@ -60,16 +65,29 @@ function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   return JSON.parse(result.stdout) as WindowsPipeSecurityReport;
 }
 
-async function waitForEndpoint(endpoint: string): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+async function waitForRpc(endpoint: string): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     try {
-      await access(endpoint);
+      await rpc(endpoint, PROTOCOL_VERSION, 100);
       return;
     } catch {
       await new Promise((accept) => setTimeout(accept, 25));
     }
   }
-  throw new Error("Daemon endpoint did not appear.");
+  throw new Error("Daemon did not become responsive.");
+}
+
+async function restartDaemon(core: Awaited<ReturnType<typeof createVaultCore>>, root: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      return await startDaemon(core, root);
+    } catch (error) {
+      lastError = error;
+      await new Promise((accept) => setTimeout(accept, 25));
+    }
+  }
+  throw lastError;
 }
 
 function runStatusCli(
@@ -153,19 +171,17 @@ describe("M1 daemon and local transport", () => {
 
 describe("M1 daemon recovery", () => {
   it("recovers the writer lock and catalog after abrupt daemon termination", async () => {
-    if (process.platform === "win32") return;
     const root = await temporaryRoot();
     const child = spawn(
       process.execPath,
       ["--import", "tsx", "packages/core/src/daemon/main.ts", "--workspace", root],
       { cwd: process.cwd(), stdio: "ignore" },
     );
-    await waitForEndpoint(daemonEndpoint(root));
-    expect("result" in (await rpc(daemonEndpoint(root)))).toBe(true);
+    await waitForRpc(daemonEndpoint(root));
     child.kill("SIGKILL");
     await new Promise((accept) => child.once("close", accept));
     const core = await createVaultCore({ workspaceDir: root });
-    const daemon = await startDaemon(core, root);
+    const daemon = await restartDaemon(core, root);
     expect("result" in (await rpc(daemon.endpoint))).toBe(true);
     await daemon.close();
     await core.close();
