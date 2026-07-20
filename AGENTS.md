@@ -4,13 +4,13 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. The repository owner activated M2 on 2026-07-19. The macOS implementation is the current stage; Windows completion remains a separate platform handoff under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. The macOS M2 inference foundation was implemented on 2026-07-19. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20 and folded the remaining Windows inference work into its cross-platform gate.
 
 ## Current Phase Rules
 
-- M0 and M1 are complete. M2 is active only for supervised inference and its named gate. Do not begin M3 or later work without a new explicit owner request.
+- M0 and M1 are complete. M3 is active only for the generic offline dev-agent desktop and its named gate. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
-- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completed M1 evidence record and [docs/M2_STATUS.md](docs/M2_STATUS.md) as the active M2 evidence and Windows handoff record.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completed M1 evidence record, [docs/M2_STATUS.md](docs/M2_STATUS.md) as the historical macOS inference-stage record, and [docs/M3_STATUS.md](docs/M3_STATUS.md) as the active product and platform evidence record.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
@@ -29,13 +29,13 @@ Minimum implementation does not mean incomplete implementation. Keep required se
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
 
-The v1 launch (after milestone M11) replaces the owner-only portion of this rule when external implementation contributions open. Beginning with M1, the repository owner develops every implementation stage on a short-lived branch and merges it through a pull request; direct implementation commits to `main` are prohibited. Until v1, every commit remains authored solely by the owner. From contribution activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
+The v1 launch follows milestone M3. External contribution activation remains a separate owner decision. Beginning with M1, the repository owner develops every implementation stage on a short-lived branch and merges it through a pull request; direct implementation commits to `main` are prohibited. Until contribution activation, every commit remains authored solely by the owner. From contribution activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Implementation Rule
 
 Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. The signed Rust helper rooted at `packages/core/native/windows-pipe-guard/` may own the current-user-only Windows named-pipe instance, authenticate the owner and DACL from the client handle, and relay opaque request and response bytes over inherited stdio because Node cannot supply or inspect the required security descriptor; TypeScript retains canonical endpoint naming, RPC parsing, limits, dispatch, and policy. Platform microVM launchers may invoke the Swift helper rooted at `packages/workers/native/macos-vz-helper/` and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/`. Native helpers may own only their named OS capability, lifecycle, resource limits, scoped attachment access, typed transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, product parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
+Implementation must follow [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, a no-NIC dev-agent microVM plus a narrow native inference worker), the pnpm/Cargo workspace boundaries, the cross-platform daemon test harness, the M3 desktop/session/agent product slice, recovery requirements, and its macOS and Windows acceptance gate.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -96,10 +96,11 @@ Architecture:
 - [docs/KNOWLEDGE_BUNDLES.md](docs/KNOWLEDGE_BUNDLES.md) - passive, signed, domain-scoped offline reference libraries, provenance, storage, retrieval, and updates.
 - [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - first Tauri desktop layout, folder/session navigation, model presentation, and UI security rules.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
-- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - implementation sequence through M3 Desktop V1 and its cross-platform test gate.
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
 - [docs/M1_STATUS.md](docs/M1_STATUS.md) - completed cross-platform M1 implementation and certification evidence.
-- [docs/M2_STATUS.md](docs/M2_STATUS.md) - active M2 macOS evidence, remaining Windows work, and milestone gate state.
+- [docs/M2_STATUS.md](docs/M2_STATUS.md) - historical M2 macOS inference evidence and the Windows handoff absorbed by M3.
+- [docs/M3_STATUS.md](docs/M3_STATUS.md) - active generic offline dev-agent desktop evidence and gate state.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -109,7 +110,7 @@ Workflows:
 
 - [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) - milestone-scoped planning, research, verification, review, and handoff process.
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - workflow architecture and priorities.
-- [docs/workflows/accounting.md](docs/workflows/accounting.md) - first vertical workflow target.
+- [docs/workflows/accounting.md](docs/workflows/accounting.md) - possible post-V1 accounting workflow research.
 - [docs/workflows/legal.md](docs/workflows/legal.md) - legal workflow target.
 - [docs/workflows/medical-admin.md](docs/workflows/medical-admin.md) - later medical administration target.
 
@@ -140,6 +141,7 @@ Architecture decision records:
 - [docs/adr/0015-deterministic-document-tools-and-code-fallback.md](docs/adr/0015-deterministic-document-tools-and-code-fallback.md)
 - [docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)
 - [docs/adr/0017-knowledge-bundle-format-and-trust.md](docs/adr/0017-knowledge-bundle-format-and-trust.md)
+- [docs/adr/0018-offline-dev-agent-first.md](docs/adr/0018-offline-dev-agent-first.md)
 
 Research:
 
@@ -182,7 +184,7 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 
 - Treat model, document reader, tool loop, and UI as separate subsystems.
 - Prefer parsing, OCR, layout extraction, retrieval, and citations before model-only reasoning.
-- Implement common document operations as typed deterministic tools; use generated code only as a policy-selected fallback in a disposable no-NIC microVM.
+- For V1, run generic agent-authored Python and Node.js only in a disposable no-NIC microVM with read-only host inputs and bounded guest scratch. Add deterministic document operations later only when measured value justifies them.
 - Keep destructive or consequential actions approval-gated.
 - Keep filesystem access scoped through typed, policy-controlled adapters.
 - Run hostile document processing and executable tools in a certified no-NIC microVM; do not treat command, URL, domain, address, or protocol matching as network isolation.

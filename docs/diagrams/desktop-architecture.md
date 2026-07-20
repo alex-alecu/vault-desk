@@ -1,56 +1,43 @@
 # Desktop Architecture Diagram
 
-Created: 2026-07-10
+Updated: 2026-07-20
 
 ```mermaid
 flowchart TD
     UI["Tauri webview: React and TypeScript"] --> Host["Minimal Tauri Rust host"]
-    Host --> API["Vault Core local API"]
-    API --> Session["Session manager"]
-    API --> Workspace["Workspace manager"]
-    API --> Jobs["Job queue"]
-    API --> Policy["Policy engine"]
-    API --> Audit["Audit log"]
+    Host --> Core["Vault Core local daemon"]
+    Host --> Dialogs["Native folder and file dialogs"]
+    Dialogs --> Grants["Opaque folder grants and attachments"]
+    Grants --> Core
 
-    Jobs --> Docs["Document pipeline"]
-    Jobs --> Router["Model router"]
-    Jobs --> Tools["Tool registry"]
+    Core --> Sessions["Folder-grouped sessions and New chat"]
+    Core --> Jobs["Jobs, cancellation, and recovery"]
+    Core --> Policy["Policy and audit"]
+    Core --> Agent["Core-owned agent loop"]
 
-    Docs --> MicroVM["No-NIC microVM"]
-    MicroVM --> Extract["Native extraction"]
-    MicroVM --> Layout["Layout parser"]
-    MicroVM --> OCR["OCR fallback"]
-    MicroVM --> Code["Bounded code interpreter"]
-    Docs --> Deterministic["Deterministic document tools"]
-    Docs --> Index["Hybrid index"]
+    Agent --> Inference["Constrained host-native inference"]
+    Agent --> VM["Disposable no-NIC microVM"]
+    VM --> Inputs["Read-only selected inputs"]
+    VM --> Scratch["Bounded ephemeral scratch"]
+    VM --> Python["Fixed Python and libraries"]
+    VM --> Node["Fixed Node.js runtime"]
+    VM --> Agent
 
-    Index --> Retrieval["Retriever and reranker"]
-    Retrieval --> Router
-
-    Router --> Runtime["Local model runtime adapter"]
-    Runtime --> Stream["Streaming answer"]
-    Stream --> UI
-
-    Tools --> Approval["Approval flow"]
-    Approval --> Sandbox["Typed tool boundary"]
-    Sandbox --> MicroVM
-    Sandbox --> Export["Scoped exports and file operations"]
-    Sandbox --> NetworkBroker["Typed external-connection broker"]
-    Sandbox --> Audit
+    Sessions --> UI
+    Jobs --> UI
+    Policy --> UI
 ```
 
 ## Notes
 
-- This is a logical architecture, not an implementation folder map.
-- The future orchestration harness should be TypeScript under Node.
-- Rust is limited to the thin Tauri host; product behavior remains in Vault Core.
-- The microVM has no virtual NIC; authorized external access cannot pass through it.
-- Deterministic tools handle supported document operations before the code-interpreter fallback is considered.
+- The webview has no unrestricted filesystem, shell, process, environment, endpoint, or network capability.
+- Vault Core owns grants, sessions, model mediation, limits, cancellation, audit, and result validation.
+- The microVM has zero virtual NICs and cannot write to the selected host folder.
+- Post-V1 document intelligence may add deterministic fast paths without changing these boundaries.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
-| 2026-07-10 | Initial desktop architecture diagram created. |
-| 2026-07-12 | Added the no-NIC microVM and separate external-connection broker boundaries. |
-| 2026-07-13 | Replaced the generic desktop shell with Tauri and added deterministic document tools plus the bounded code interpreter. |
+| 2026-07-10 | Created the initial desktop architecture diagram. |
+| 2026-07-20 | Reframed the desktop around folder sessions and the generic offline dev-agent microVM. |

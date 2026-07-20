@@ -64,7 +64,7 @@ Vault Core exposes no generic network service to the guest. Explicit external in
 
 Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
-Generated code uses a separate immutable guest role under the same no-NIC microVM contract. Each job receives explicit read-only inputs, pinned offline interpreters and libraries, bounded scratch space, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records the code and execution trace, validates results, and destroys the guest after the job. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
+Agent-authored code uses a separate immutable guest role under the same no-NIC microVM contract. Each job receives explicit read-only inputs, pinned offline interpreters and libraries, bounded scratch space, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable code and execution activity, validates results, and destroys the guest after the job. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
 
 ## Local Process Boundary
 
@@ -169,7 +169,7 @@ The harness should persist a document-set manifest so huge folder jobs can resum
 
 ## Hybrid Execution Principle
 
-Do not use model-generated scripts for common supported document work. Vault Core should expose typed deterministic operations over canonical documents for exact search, filtering, sorting, joins, comparisons, aggregation, arithmetic, extraction, and export. A folder-wide XLSX search must operate over preserved sheet/cell data and return exact anchors without invoking the model or code interpreter.
+For V1, use the generic offline dev agent for folder and attachment work. Add typed deterministic operations after V1 only when measurements prove that a maintained operation materially improves speed, accuracy, evidence quality, or model cost. Such operations remain Vault Core-owned and cannot weaken guest isolation or grant host-write authority.
 
 Only a request that cannot be expressed through supported operations may be routed by policy to the bounded code-interpreter microVM. Generated code is untrusted input to the verifier, not product authority. Its source, environment, inputs, outputs, logs, resource use, and termination are auditable, and any workspace write or export still crosses normal policy and approval boundaries.
 
@@ -263,7 +263,7 @@ See [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) for the minim
 
 M0 completed on 2026-07-17. The M1 daemon, CLI health path, workspace state, persistence, RPC, current-user local transports, common worker protocol, and platform microVM runtimes are implemented, and both platform microVMs are certified. M1 completed on 2026-07-18 after the Windows named pipe was bound to the current user and verified with a restricted-token denial gate. The 2026-07-19 follow-up authenticates the pipe owner and DACL from the client handle, canonicalizes endpoint identity, anchors audit tails across schema migration, bounds and cancels input staging, and ties the pipe helper to daemon lifetime.
 
-M2 was activated by the repository owner on 2026-07-19. M3 begins only on a new explicit owner request. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
+The macOS M2 inference foundation was implemented on 2026-07-19. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20 and folded the remaining Windows inference work into its cross-platform gate. Generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, and dependency directories remain uncommitted artifacts.
 
 ## Revision History
 
@@ -277,6 +277,7 @@ M2 was activated by the repository owner on 2026-07-19. M3 begins only on a new 
 | 2026-07-11 | Added the early daemon boundary, authoritative workspace-state model, supervised worker isolation, single first runtime, and explicit-workflow-first rule from ADRs 0010-0013. |
 | 2026-07-12 | Made the no-NIC microVM the hostile-work boundary, retained a narrow host-native accelerator exception, and prohibited command matching as network isolation. |
 | 2026-07-13 | Replaced Electron with a thin Tauri v2 shell and added deterministic document tools with a bounded no-NIC code-interpreter fallback. |
+| 2026-07-20 | Made the generic offline dev agent the V1 execution path and moved deterministic document specialization after launch. |
 | 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
 | 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |

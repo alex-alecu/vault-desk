@@ -2,7 +2,7 @@
 
 Created: 2026-07-15
 
-This document is the canonical implementation and contribution workflow for Vault Desk. M0 and M1 are complete, and M2 is active. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
+This document is the canonical implementation and contribution workflow for Vault Desk. M0 and M1 are complete, the macOS M2 inference foundation is implemented, and M3 Offline Dev-Agent Desktop V1 is active. [AGENTS.md](../AGENTS.md) remains authoritative, followed by accepted architecture decision records, [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), and this workflow.
 
 ## Operating Principles
 
@@ -26,7 +26,7 @@ Before changing a file:
 4. Read the relevant ADRs and the folder ownership rules in [IMPLEMENTATION_STRUCTURE.md](IMPLEMENTATION_STRUCTURE.md).
 5. Stop if the requested implementation belongs to an inactive milestone.
 
-Roadmap presence is not authorization. The owner activated M2 on 2026-07-19; M3 begins only on a new explicit owner request. Implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
+Roadmap presence is not authorization. The owner activated M3 on 2026-07-20. The post-V1 document-intelligence follow-up and all later work require a new explicit owner request. Implementation outside the active scope must be converted into an issue, design note, or plan rather than code.
 
 ### Change Brief
 
@@ -64,7 +64,7 @@ Select tests from the failure being prevented. Ask whether the change can:
 - Leak data or create an undeclared network path.
 - Bypass policy, approval, workspace scope, or a process boundary.
 - Lose evidence, citations, audit history, authoritative state, or recovery state.
-- Route deterministic work to a model or code interpreter unnecessarily.
+- Add a purpose-built document subsystem before post-V1 measurements justify it.
 - Corrupt an export, package, migration, or platform lifecycle.
 - Break a user-visible milestone behavior.
 
@@ -181,7 +181,7 @@ Vault Desk explicitly does not adopt ECC's package, installers, global Codex syn
 
 ## V1 Contribution Activation
 
-External implementation contributions remain closed through M11. Beginning with M1, the repository owner develops every stage on a short-lived branch, opens a pull request, keeps each commit small, and leaves the active milestone gate green. Pull-request CI runs when a pull request is opened, reopened, or updated with pushed commits; direct pushes to `main` do not run it. The v1 launch gate activates external human DCO sign-off, contribution-ready issue labeling, maintainer review, and the contributor bootstrap described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
+External implementation contributions remain closed through the M3 V1 launch unless the owner separately activates them. Beginning with M1, the repository owner develops every stage on a short-lived branch, opens a pull request, keeps each commit small, and leaves the active milestone gate green. Pull-request CI runs when a pull request is opened, reopened, or updated with pushed commits; direct pushes to `main` do not run it. Contribution activation is described in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#v1-launch-and-contribution-activation).
 
 AI assistants, models, coding agents, and tools are never authors or co-authors. Private vulnerability reporting may be enabled before v1 because it does not open implementation contributions or change milestone scope.
 
@@ -190,5 +190,6 @@ AI assistants, models, coding agents, and tools are never authors or co-authors.
 | Date | Change |
 |---|---|
 | 2026-07-15 | Added the milestone-scoped, research-first, risk-gated implementation and contribution workflow. |
-| 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the post-M11 v1 gate. |
+| 2026-07-16 | Activated the M0 workflow and aligned contribution activation with the original v1 gate. |
+| 2026-07-20 | Activated M3 Desktop V1, moved document intelligence after launch, and decoupled contribution activation from product certification. |
 | 2026-07-17 | Required a branch and pull request for every remaining implementation stage and moved CI from direct pushes to pull-request activity. |

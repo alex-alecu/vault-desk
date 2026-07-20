@@ -95,7 +95,7 @@ Product implication:
 
 ### EmbeddingGemma Is A Good Family Fit, But Hybrid Search Still Wins
 
-EmbeddingGemma is small enough to run locally and stays inside the Gemma family. Professional documents still require exact matching for names, dates, amounts, invoice numbers, clause references, and account IDs.
+EmbeddingGemma is small enough to run locally and stays inside the Gemma family. Professional documents still require exact matching for names, dates, amounts, record identifiers, clause references, and account IDs.
 
 Product implication:
 

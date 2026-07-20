@@ -2,9 +2,9 @@
 
 Created: 2026-07-10
 
-Accounting is the recommended first vertical for Vault Desk.
+Accounting is a possible post-V1 workflow pack. It is not part of the desktop V1 gate.
 
-## Why Accounting First
+## Why Accounting Is A Candidate
 
 Accounting firms and bookkeeping teams have:
 
@@ -16,13 +16,13 @@ Accounting firms and bookkeeping teams have:
 - Measurable ROI.
 - Lower regulatory exposure than medical decision support.
 
-## Candidate MVP Workflow
+## Candidate Follow-up Workflow
 
-Invoice folder review:
+Records reconciliation:
 
-1. User selects a folder of invoices and a reference spreadsheet.
-2. Vault Desk ingests documents and extracts supplier, invoice number, dates, totals, tax, and line items.
-3. Vault Desk identifies duplicates, missing fields, and inconsistent totals.
+1. User selects a folder of transaction records and a reference spreadsheet.
+2. Vault Desk extracts counterparties, record identifiers, dates, totals, tax, and line items.
+3. Vault Desk identifies duplicate records, missing fields, and inconsistent totals.
 4. Vault Desk compares extracted values to spreadsheet rows.
 5. Vault Desk creates an exception queue with citations.
 6. User reviews and approves an export.
@@ -67,3 +67,4 @@ Development fixtures and held-out acceptance documents must use different templa
 |---|---|
 | 2026-07-10 | Initial accounting workflow document created. |
 | 2026-07-11 | Added held-out variation and blinded human-review requirements for pilot readiness. |
+| 2026-07-20 | Removed the pre-V1 review slice and retained generic reconciliation only as a post-V1 candidate. |

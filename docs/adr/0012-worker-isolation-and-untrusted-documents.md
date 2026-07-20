@@ -18,7 +18,7 @@ The certified hostile-work boundary is a disposable microVM. Document parsing an
 
 The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Inputs arrive as job-scoped bytes, read-only staged storage, or explicit brokered handles. The guest root is immutable, writable scratch storage is ephemeral and bounded, and the whole microVM is terminated and discarded at job completion or forced cancellation.
 
-The bounded code interpreter defined by [ADR 0015](0015-deterministic-document-tools-and-code-fallback.md) is an executable-tool guest role under this boundary. Every code job starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. The guest may request only schema-bounded model completions through typed Vault Core mediation to the host-native inference worker. It receives no generic model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
+The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every code job starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. The guest may request only schema-bounded model completions through typed Vault Core mediation to the host-native inference worker. It receives no generic model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
 
 The first platform backends to validate are research-derived until M0 proves their packaging and lifecycle behavior:
 
@@ -84,3 +84,4 @@ Negative:
 | 2026-07-11 | Accepted supervised, capability-scoped worker isolation and untrusted-document handling requirements. |
 | 2026-07-12 | Replaced process-only network policy with a certified no-NIC microVM boundary, typed host/guest socket IPC, explicit platform targets, and a narrower native accelerator exception. |
 | 2026-07-13 | Applied the same boundary to the generated-code fallback and added typed host-mediated inference plus code-specific limits. |
+| 2026-07-20 | Applied the boundary to the V1 generic offline dev agent under ADR 0018. |

@@ -10,6 +10,7 @@
   "sourceOfTruth": {
     "javascriptResolution": "pnpm-lock.yaml",
     "rustResolution": "packages/eval/src/platform/tauri-smoke/src-tauri/Cargo.lock",
+    "desktopRustResolution": "packages/desktop/src-tauri/Cargo.lock",
     "windowsPipeGuardRustResolution": "packages/core/native/windows-pipe-guard/Cargo.lock",
     "windowsHelperRustResolution": "packages/workers/native/windows-hcs-helper/Cargo.lock",
     "swiftResolution": "packages/workers/native/macos-vz-helper/Package.resolved",
@@ -30,6 +31,30 @@
       "use": "development"
     },
     {
+      "name": "@tauri-apps/api",
+      "version": "2.11.1",
+      "license": "Apache-2.0 OR MIT",
+      "use": "desktop_typed_ipc"
+    },
+    {
+      "name": "@types/react",
+      "version": "19.2.17",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "6.0.3",
+      "license": "MIT",
+      "use": "development"
+    },
+    {
       "name": "@types/better-sqlite3",
       "version": "7.6.13",
       "license": "MIT",
@@ -43,29 +68,49 @@
       "license": "MIT",
       "use": "workspace_catalog_and_native_smoke"
     },
-    { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "development" },
+    { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "sidecar_bundle_build" },
     { "name": "node-llama-cpp", "version": "3.19.0", "license": "MIT", "use": "native_smoke" },
-    { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "development" },
+    { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
+    { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
+    { "name": "react-dom", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
     { "name": "tar-stream", "version": "3.2.0", "license": "MIT", "use": "development_validation" },
     { "name": "tsx", "version": "4.23.1", "license": "MIT", "use": "development" },
     { "name": "tuf-js", "version": "6.0.0", "license": "MIT", "use": "development_validation" },
     { "name": "typescript", "version": "7.0.2", "license": "Apache-2.0", "use": "development" },
+    { "name": "vite", "version": "8.1.4", "license": "MIT", "use": "development" },
     { "name": "vitest", "version": "4.1.10", "license": "MIT", "use": "development" },
     { "name": "zod", "version": "4.4.3", "license": "MIT", "use": "runtime_schema" }
   ],
   "nativeDependencies": [
-    { "name": "tauri", "version": "2.11.5", "license": "Apache-2.0 OR MIT", "use": "test_shell" },
+    {
+      "name": "serde_json",
+      "version": "1.0.149",
+      "license": "MIT OR Apache-2.0",
+      "use": "desktop_core_rpc_envelopes"
+    },
+    {
+      "name": "tauri",
+      "version": "2.11.5",
+      "license": "Apache-2.0 OR MIT",
+      "use": "test_and_product_shell"
+    },
     {
       "name": "tauri-build",
       "version": "2.6.3",
       "license": "Apache-2.0 OR MIT",
-      "use": "test_shell_build"
+      "use": "test_and_product_shell_build"
+    },
+    {
+      "name": "tauri-plugin-dialog",
+      "version": "2.7.2",
+      "license": "Apache-2.0 OR MIT",
+      "use": "product_native_folder_dialog"
     },
     {
       "name": "tauri-plugin-shell",
       "version": "2.3.5",
       "license": "Apache-2.0 OR MIT",
-      "use": "allowlisted_sidecar"
+      "use": "test_and_product_exact_sidecar"
     }
   ],
   "toolsAndInputs": [

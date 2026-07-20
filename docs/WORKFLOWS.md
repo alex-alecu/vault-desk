@@ -1,147 +1,61 @@
 # Workflows
 
-Created: 2026-07-10
+Updated: 2026-07-20
 
-Vault Desk should sell professional outcomes, not AI configuration.
+Vault Desk V1 is a general-purpose local file agent rather than a collection of predefined professional workflows.
 
-The workflow layer is where the product becomes more than local chat with files.
+## V1 Interaction
 
-## Workflow Principles
+Users ask for an outcome in ordinary language. The agent may inspect selected inputs, write Python or Node.js, execute it in a disposable offline microVM, observe the bounded result, and continue until it completes, fails, or reaches its limits.
 
-- Users ask for work outcomes.
-- The system chooses the document strategy.
-- Supported operations use deterministic typed tools before model reasoning or generated code.
-- Evidence is visible.
-- Actions are previewable.
-- File changes are reversible.
-- Exported outputs are structured and auditable.
-- Human approval is required for consequential actions.
+Examples:
 
-## Strategy Selection
+- Explore a folder and explain its structure.
+- Compare several files and summarize differences.
+- Clean, join, or visualize CSV data.
+- Extract information from a set of documents.
+- Inspect images and build a derived artifact in guest scratch.
+- Diagnose a small code project without changing it.
 
-The user should not choose between OCR, retrieval, summarization, full-context reading, spreadsheet processing, or image understanding.
+## Workflow Invariants
 
-The workflow engine should decide based on:
+- A folder session receives only a verified read-only snapshot of its selected folder.
+- A New chat session receives only its explicit attachments.
+- Agent-authored code runs only in a fresh no-NIC microVM.
+- The immutable guest image contains the only available Python, Node.js, and library versions.
+- Package installation and runtime network access are unavailable.
+- The guest can write only to bounded scratch and cannot change host source files.
+- Vault Core mediates model completions, limits, cancellation, audit, and results.
+- Generated artifacts are proposals, not silent host mutations.
+- Observable code and activity are reviewable; hidden reasoning is not persisted.
 
-- File type.
-- Text extraction confidence.
-- Layout complexity.
-- Table density.
-- Spreadsheet formulas.
-- Document count.
-- Workspace policy.
-- Hardware capability.
-- Required output.
-- Availability of a verified deterministic operation.
+## Session Model
 
-Generated code is selected only when no supported typed operation can express the requested transformation. It runs in a disposable no-NIC microVM and its result remains subject to verification and approval.
+Each folder is a sidebar group. Its five newest sessions are immediately visible and older sessions load through Show more. New chat is a separate global area for conversations with optional file attachments and no implicit folder grant.
 
-## First Workflow Family
+Sessions persist user messages, assistant messages, observable agent activity, artifact metadata, warnings, drafts, and terminal outcomes. They do not persist hidden model reasoning.
 
-The first MVP workflow family should be single-user offline document QA, extraction, comparison, and export.
+## Post-V1 Workflow Specialization
 
-The first product acceptance slice is invoice review against a reference spreadsheet. Cited folder Q&A is an earlier technical slice, not sufficient by itself to claim the workflow family or Community Desktop MVP.
+After V1, measurements may justify purpose-built document intelligence: parsing, OCR, retrieval, citations, deterministic verification, or vertical workflow packs. Those capabilities optimize the generic agent; they do not replace or weaken its read-only-host and no-network execution boundary.
 
-This is narrower than arbitrary agent autonomy and better aligned with local model constraints.
+## Evaluation
 
-The architecture must also support folder-scale jobs:
+The V1 workflow suite covers:
 
-- Tens of huge mixed documents.
-- Incremental processing and resumability.
-- Page, section, table, sheet, and folder summary trees.
-- Evidence packs for each answer or export.
-- Verification before user-facing conclusions.
-- Human review queues for uncertain extraction or unsupported claims.
+- Multi-step Python and Node.js tasks.
+- Mixed folders and explicit attachments.
+- Correct session/folder scoping.
+- Restart, reconnect, cancellation, timeout, and guest crash.
+- Traversal, escaping links, host-write attempts, credential access, package installation, network access, process storms, and resource exhaustion.
+- Bounded code, stdout, stderr, artifacts, observations, model turns, time, memory, CPU, and scratch.
+- Packaged macOS and Windows behavior with zero-download first launch.
 
-## Accounting
-
-Accounting is the strongest first vertical.
-
-Candidate workflows:
-
-- Process folders or inboxes containing invoices.
-- Extract supplier, tax, dates, totals, and line items.
-- Identify duplicates and inconsistencies.
-- Compare invoices against spreadsheets.
-- Reconcile invoices, bank exports, and accounting records.
-- Generate exception queues.
-- Export structured data.
-- Search historical files with source citations.
-- Search every sheet and cell across a folder of workbooks for names or transaction text without model-generated code.
-
-See [workflows/accounting.md](workflows/accounting.md).
-
-## Legal
-
-Legal workflows can follow after the document engine and citations are reliable.
-
-Candidate workflows:
-
-- Compare contracts clause by clause.
-- Identify missing dates, signatures, and annexes.
-- Generate cited risk summaries.
-- Search previous matters with access controls.
-- Redact confidential information.
-- Draft amendments for approval.
-- Preserve Word formatting and tracked changes.
-
-See [workflows/legal.md](workflows/legal.md).
-
-## Medical Administration
-
-Medical administration is a later target and should avoid diagnosis, treatment recommendations, and triage.
-
-Candidate workflows:
-
-- Structure consultation notes.
-- Draft letters and summaries for clinician approval.
-- Organize incoming records.
-- Extract data from forms.
-- Search patient documents subject to strict permissions.
-
-See [workflows/medical-admin.md](workflows/medical-admin.md).
-
-## Workflow Evaluation
-
-Every workflow pack should have an evaluation suite:
-
-- Golden input documents.
-- Expected extracted fields.
-- Expected citations.
-- Expected refusal or approval points.
-- Expected summary coverage.
-- Expected unsupported-claim detection.
-- Expected spreadsheet calculation results.
-- Latency targets.
-- Memory targets.
-- Large-folder soak tests.
-- Export validation.
-- Human review checklist.
-- A development corpus and a separate held-out acceptance corpus.
-- False-positive and false-negative rates for exception workflows.
-- Prompt-injection and malformed-document cases.
-- Assertions that supported operations do not invoke the code interpreter.
-- Adversarial and incorrect generated-code cases for workflows that legitimately use the fallback.
-- Confidence intervals and corpus-size reporting for measured rates.
-
-## Folder Report Workflow
-
-A core cross-vertical workflow should be:
-
-1. User selects a folder with PDFs, Office files, spreadsheets, CSVs, and images.
-2. Vault Desk creates a file manifest and identifies duplicates, unsupported files, password-protected files, and extraction warnings.
-3. Vault Desk builds canonical document views, deterministic query indexes, and document, table, sheet, and folder summaries.
-4. User asks for a report, search, extraction, comparison, or exception queue.
-5. Vault Desk uses typed deterministic tools for supported operations and retrieval plus model reasoning where synthesis is required.
-6. Only an unsupported transformation may be routed to the bounded code interpreter.
-7. Vault Desk verifies the result and shows citations, warnings, generated-code provenance when applicable, and unsupported claims before export.
-8. User approves export or sends uncertain items to review.
+Task-quality cases use deterministic development and held-out inputs. Security invariants require complete detection; general answer quality is reported honestly rather than hidden behind one aggregate score.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
-| 2026-07-10 | Initial workflow document created from supplied product and market material. |
-| 2026-07-10 | Added folder-scale workflow, summary tree, verification, and evaluation requirements. |
-| 2026-07-11 | Distinguished the cited-Q&A technical slice from the invoice-review product slice and strengthened held-out evaluation requirements. |
-| 2026-07-13 | Added deterministic-operation-first workflow routing and the bounded generated-code fallback. |
+| 2026-07-10 | Created the initial workflow document. |
+| 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |

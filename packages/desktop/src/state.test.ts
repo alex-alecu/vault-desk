@@ -1,0 +1,101 @@
+import {
+  ConversationMessageSchema,
+  FolderSummarySchema,
+  SessionPageSchema,
+  SessionSummarySchema,
+} from "@vault/shared";
+import { describe, expect, it } from "vitest";
+import { desktopReducer, initialDesktopState } from "./state.js";
+
+const timestamp = "2026-07-20T12:00:00.000Z";
+const folder = FolderSummarySchema.parse({
+  id: "d86a8131-d93a-42e4-8f10-b93b1ff17d28",
+  name: "Client files",
+  createdAt: timestamp,
+});
+const firstSession = SessionSummarySchema.parse({
+  id: "da911f87-ff26-46d8-9a58-bad222a584ab",
+  folderId: folder.id,
+  title: "First",
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+const secondSession = SessionSummarySchema.parse({
+  id: "9c79d764-128d-4a75-b04c-4a3739f78d09",
+  folderId: folder.id,
+  title: "Second",
+  createdAt: timestamp,
+  updatedAt: timestamp,
+});
+
+describe("desktop navigation state", () => {
+  it("hydrates the persisted five-session folder page", () => {
+    const state = desktopReducer(initialDesktopState, {
+      type: "desktop.hydrate",
+      snapshot: {
+        folders: [folder],
+        globalSessions: { items: [], nextCursor: null },
+        folderSessions: [
+          {
+            folderId: folder.id,
+            page: SessionPageSchema.parse({ items: [firstSession], nextCursor: "next" }),
+          },
+        ],
+      },
+    });
+    expect(state.loaded).toBe(true);
+    expect(state.folders[0]?.sessions).toEqual([firstSession]);
+    expect(state.folders[0]?.nextCursor).toBe("next");
+  });
+
+  it("appends the next persisted page and clears Show more at the end", () => {
+    const withFolder = desktopReducer(initialDesktopState, { type: "folder.add", folder });
+    const state = desktopReducer(withFolder, {
+      type: "folder.page",
+      folderId: folder.id,
+      page: SessionPageSchema.parse({ items: [secondSession], nextCursor: null }),
+    });
+    expect(state.folders[0]?.sessions).toEqual([secondSession]);
+    expect(state.folders[0]?.nextCursor).toBeNull();
+  });
+});
+
+describe("global desktop sessions", () => {
+  it("keeps New chat outside a folder", () => {
+    const globalSession = SessionSummarySchema.parse({
+      ...firstSession,
+      id: "33899065-80f4-4515-a35f-07d37391a6ae",
+      folderId: null,
+    });
+    const state = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: globalSession,
+    });
+    expect(state.activeSessionId).toBe(globalSession.id);
+    expect(state.globalSessions).toEqual([globalSession]);
+  });
+
+  it("updates the first-message title of a restored New chat", () => {
+    const globalSession = SessionSummarySchema.parse({
+      ...firstSession,
+      id: "33899065-80f4-4515-a35f-07d37391a6ae",
+      folderId: null,
+      title: "New chat",
+    });
+    const withSession = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: globalSession,
+    });
+    const state = desktopReducer(withSession, {
+      type: "message.append",
+      message: ConversationMessageSchema.parse({
+        id: "f7c90f8d-3792-4d6e-834f-cf5fa46fa6ec",
+        sessionId: globalSession.id,
+        role: "user",
+        content: "Restore this conversation",
+        createdAt: timestamp,
+      }),
+    });
+    expect(state.globalSessions[0]?.title).toBe("Restore this conversation");
+  });
+});

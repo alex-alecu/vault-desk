@@ -26,8 +26,8 @@ The default dense encoder is Qwen3-Embedding-0.6B (Apache 2.0), pinned to the of
 
 ### 3. Two distribution flavors
 
-- **Bundled build** — the existing M10/M11 target, unchanged: every required asset is packaged as `ships`, first launch completes with zero downloads, and the build contains no downloader.
-- **Model-download build** — ships every runtime asset except generation models (encoder, OCR/layout assets, and runtimes included) and adds managed generation-model installation from Hugging Face. This flavor is sequenced after M11 certification of the bundled build and is the first approved integration of the typed Vault Core network broker that the security architecture already reserves for external connections.
+- **Bundled build** — the M3 V1 target: every required runtime, model, helper, and guest asset is packaged as `ships`, first launch completes with zero downloads, and the build contains no downloader.
+- **Model-download build** — a post-V1 option that ships required runtimes and adds managed generation-model installation from Hugging Face. It is the first possible integration of the typed Vault Core network broker reserved for external connections and requires a new owner decision.
 
 ### 4. Managed download boundary
 
@@ -35,7 +35,7 @@ Model download is a Vault Core capability behind the typed network broker, not a
 
 - The broker allows only the pinned model-host destinations, verifies TLS, and verifies the SHA-256 of every downloaded artifact against a signed catalog entry before the model becomes loadable.
 - A signed, product-supplied catalog defines recommended models ranked by detected hardware fit, and name search resolves only within allowlisted official publisher repositories serving GGUF assets. Arbitrary URLs, arbitrary local paths, unsigned catalog entries, and gated repositories requiring per-user license acceptance are out of scope for the first release of this flavor.
-- Downloaded models are recorded in the installed-model registry with hashes and license identity, classified Certified, Compatible, or Experimental using the M10 hardware-capability classification, and workflow eligibility continues to require certification per decision 1.
+- Downloaded models are recorded in the installed-model registry with hashes and license identity, classified Certified, Compatible, or Experimental using the V1 hardware-capability classification, and workflow eligibility continues to require certification per decision 1.
 - Downloads are explicit user actions with visible progress, resume, and cancellation. No silent fetch, no background update, no telemetry. Workers, microVMs, and the webview gain no network capability; the no-NIC and broker invariants of ADR 0012 and SECURITY.md are unchanged.
 - The user experience presents recommendations first, then search by model name; the paired encoder is automatic (bundled by default, overridable only by a signed catalog entry that triggers an explicit re-index); runtime, quantization, and endpoint vocabulary stays out of the ordinary flow per DESKTOP_DESIGN.md.
 
@@ -43,17 +43,17 @@ Model download is a Vault Core capability behind the typed network broker, not a
 
 Positive:
 
-- The shipped stack becomes fully Apache 2.0, deleting the Gemma Terms of Use distribution burden from the installer, the EULA, and the M10 notice gate.
+- The shipped stack becomes fully Apache 2.0, deleting the Gemma Terms of Use distribution burden from the installer, the EULA, and the V1 notice gate.
 - Development fetches simplify: the encoder repository is ungated, so CI needs no Hugging Face tokens.
 - The lean flavor gives users hardware-appropriate model choice without exposing AI infrastructure, and the bundled flavor's offline guarantees are untouched.
-- One encoder decision made before M0 costs a document change; after M5 it would cost re-embedding and re-running retrieval gates.
+- Encoder changes after the post-V1 document-intelligence follow-up would require re-embedding and re-running retrieval gates.
 
 Negative:
 
 - The "one family" product message is gone; the support surface grows with each additionally certified model, bounded by per-model certification.
 - The model-download build adds a real network capability that must be built and audited to the broker standard, and its catalog becomes a signed asset to maintain.
-- Qwen3-Embedding retrieval thresholds are research-derived until M5 measures them on Vault Desk corpora.
-- MTEB comparisons informing the encoder swap mix overall and retrieval-subset scores; the M5 held-out gate is the deciding measurement.
+- Qwen3-Embedding retrieval thresholds are research-derived until the post-V1 document-intelligence follow-up measures them on Vault Desk corpora.
+- MTEB comparisons informing the encoder swap mix overall and retrieval-subset scores; the post-V1 held-out gate is the deciding measurement.
 
 ## Follow-ups
 

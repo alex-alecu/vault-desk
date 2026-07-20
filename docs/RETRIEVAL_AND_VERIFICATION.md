@@ -1,5 +1,7 @@
 # Retrieval And Verification
 
+Status: post-V1 follow-up design; not part of the active M3 implementation scope.
+
 Created: 2026-07-10
 
 Vault Desk must produce answers, summaries, and exports that can be checked against local source documents.
@@ -13,7 +15,7 @@ Use hybrid retrieval:
 1. Permission and workspace filters.
 2. Evidence-scope filters separating customer documents, installed Knowledge Bundles, and deterministic tool results.
 3. For Knowledge Bundles, applicability filters for bundle digest, domain, jurisdiction, language, validity interval, source status, and authority class.
-4. Lexical search for exact names, invoice numbers, clause labels, account IDs, dates, and amounts.
+4. Lexical search for exact names, record identifiers, clause labels, account IDs, dates, and amounts.
 5. Dense retrieval with Qwen3-Embedding-0.6B.
 6. Optional vector compression and approximate search acceleration with TurboQuant-based indexing.
 7. Metadata-aware reranking.
@@ -135,7 +137,7 @@ Every high-value answer should pass a verifier:
 1. Parse the answer into claims.
 2. Check every claim has one or more citations.
 3. Confirm cited chunks contain the needed evidence.
-4. Re-run exact searches for names, dates, amounts, invoice numbers, and clause references.
+4. Re-run exact searches for names, dates, amounts, record identifiers, and clause references.
 5. Recalculate spreadsheet and arithmetic claims with deterministic tools.
 6. Search for contradictory evidence.
 7. Flag low-confidence OCR or table evidence.

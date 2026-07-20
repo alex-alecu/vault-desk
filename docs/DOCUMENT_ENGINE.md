@@ -1,10 +1,12 @@
 # Document Engine
 
+Status: post-V1 follow-up design; not part of the active M3 implementation scope.
+
 Created: 2026-07-10
 
 Vault Desk must work on folders containing tens of huge documents, including PDFs, Word documents, Excel workbooks, CSVs, images, emails, and mixed client folders.
 
-The document engine should be deterministic, resumable, evidence-preserving, and independent from the model runtime. Generated code is a bounded fallback for novel transformations, not the normal way to read supported formats.
+When activated after V1, the document engine should be deterministic, resumable, evidence-preserving, and independent from the model runtime. The V1 generic agent remains available; product-owned operations are added only where measurements justify them.
 
 ## Core Principle
 

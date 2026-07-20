@@ -92,11 +92,11 @@ GPU-backed inference may remain in a host-native supervised process so Metal, CU
 
 ## Generated-Code Controls
 
-Generated code is a fallback capability, not a trusted extension mechanism. Each code job runs in a fresh no-NIC microVM with explicit read-only inputs, bounded scratch storage, pinned offline interpreters and libraries, and limits for processes, CPU, memory, time, storage, output count, and output size.
+Agent-authored code is the V1 work capability, not a trusted extension mechanism. Each code job runs in a fresh no-NIC microVM with explicit read-only inputs, bounded scratch storage, pinned offline interpreters and libraries, and limits for processes, CPU, memory, time, storage, output count, and output size.
 
 The guest receives no user home, credentials, arbitrary workspace path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or general model endpoint. Model completions are mediated through a narrow typed host/guest protocol. Code and dependencies cannot be installed during a job.
 
-Vault Core records the generated source, interpreter and library manifest, input hashes, logs, structured result, artifacts, resource use, and termination reason. Results remain untrusted until schema validation, source-anchor checks, deterministic recalculation where applicable, policy checks, and any required export approval complete. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
+Vault Core records the generated source, interpreter and library manifest, input hashes, bounded logs, structured result, artifacts, resource use, and termination reason. Results remain untrusted until schema, size, protocol, and policy validation completes. The guest has no host-write or export authority. See [ADR 0018](adr/0018-offline-dev-agent-first.md).
 
 ## Desktop Shell Controls
 

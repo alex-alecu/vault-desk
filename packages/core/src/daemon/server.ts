@@ -14,6 +14,10 @@ export interface VaultDaemon {
   close(): Promise<void>;
 }
 
+export interface DaemonOptions {
+  windowsPipeGuardPath?: string;
+}
+
 export function daemonEndpoint(workspaceDir: string): string {
   const workspaceRoot = realpathSync.native(resolve(workspaceDir));
   if (process.platform === "win32") {
@@ -116,11 +120,18 @@ function closeServer(server: Server): Promise<void> {
   });
 }
 
-export async function startDaemon(core: VaultCore, workspaceDir: string): Promise<VaultDaemon> {
+export async function startDaemon(
+  core: VaultCore,
+  workspaceDir: string,
+  options: DaemonOptions = {},
+): Promise<VaultDaemon> {
   const endpoint = daemonEndpoint(workspaceDir);
   if (process.platform === "win32") {
-    const guard = await startWindowsPipeGuard(endpoint, MAX_REQUEST_BYTES, (request) =>
-      respond(core, request),
+    const guard = await startWindowsPipeGuard(
+      endpoint,
+      MAX_REQUEST_BYTES,
+      (request) => respond(core, request),
+      options.windowsPipeGuardPath,
     );
     return { endpoint, close: () => guard.close() };
   }

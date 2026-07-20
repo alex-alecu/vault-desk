@@ -4,11 +4,11 @@ Created: 2026-07-16
 
 ## Status
 
-Accepted for the first implementation. Platform and hostile-archive behavior remains research-derived until the M10 import gates pass.
+Accepted as a post-V1 direction. Platform and hostile-archive behavior remains research-derived until a Knowledge Bundle implementation milestone is activated and its gates pass.
 
 ## Context
 
-Knowledge Bundles must preserve immutable evidence, provenance, rights, citations, and offline update trust without becoming plugins or binding authoritative content to one retrieval engine. The logical layout must also remain readable unpacked in M5, while M10 needs a deterministic removable-media transport that can be inspected inside the certified no-NIC microVM.
+Knowledge Bundles must preserve immutable evidence, provenance, rights, citations, and offline update trust without becoming plugins or binding authoritative content to one retrieval engine. A future implementation must keep the logical layout readable unpacked and inspect removable-media transport inside the certified no-NIC microVM.
 
 No single reviewed standard covers semantic description, complete fixity, publisher authentication, rollback resistance, hostile-archive inspection, and Vault Desk citation anchors. The first implementation therefore needs a small profile with explicit ownership at each layer.
 
@@ -18,23 +18,23 @@ No single reviewed standard covers semantic description, complete fixity, publis
 
 The authoritative form is an immutable directory tree. It contains a versioned Vault manifest, constrained RO-Crate 1.3 JSON-LD metadata, resource-level SPDX 3.0.1 rights records where applicable, original sources, normalized evidence-bearing derivatives, public evaluations, and optional compatibility-keyed accelerators.
 
-The Vault manifest is the one complete inventory consumed by product code. It uses SHA-512 for every payload and follows BagIt completeness and fixity rules, but v1 does not claim strict BagIt conformance or duplicate the inventory into BagIt tag manifests. M5 reads only unpacked immutable fixture trees through a narrow bundle reader.
+The Vault manifest is the one complete inventory consumed by future bundle code. It uses SHA-512 for every payload and follows BagIt completeness and fixity rules, but the product does not claim strict BagIt conformance or duplicate the inventory into BagIt tag manifests.
 
 ### Transport
 
 The v1 `.vdkb` transport is an uncompressed deterministic POSIX tar stream. Entries are lexically ordered, use UTF-8 forward-slash relative paths, fixed modes, uid and gid zero, empty owner names, and an epoch modification time. Only directories and regular files are valid. Links, devices, sparse entries, absolute paths, traversal, ambiguous separators, case-colliding paths, and duplicate normalized paths are rejected.
 
-M10 uses `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-NIC guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Vault Core verifies the inventory and commits immutable objects atomically.
+A future bundle importer may use `tar-stream` 3.2.0 only as a streaming tar decoder inside the no-NIC guest. The guest produces a bounded typed inventory; it never writes directly into the installed store. Vault Core verifies the inventory and commits immutable objects atomically.
 
 Compression is deliberately absent in v1. Node 24's Zstandard API is experimental, and adding a second native codec would enlarge the parser and supply-chain surface. A later ADR may add compression after deterministic construction, decompression limits, and cross-platform behavior are proven.
 
 ### Trust and signatures
 
-Official and organization-managed channels use TUF metadata. M10 wraps `tuf-js` 6.0.0 behind the Core bundle-inspection boundary and supplies an offline-media fetch adapter restricted to the selected import root. Root, targets, snapshot, timestamp, threshold, delegation, version, hash, size, expiration, and rollback decisions remain Core policy.
+Official and organization-managed channels use TUF metadata. A future importer may wrap `tuf-js` 6.0.0 behind the Core bundle-inspection boundary and supply an offline-media fetch adapter restricted to the selected import root. Root, targets, snapshot, timestamp, threshold, delegation, version, hash, size, expiration, and rollback decisions remain Core policy.
 
 Bundle release manifests use detached Ed25519 signatures verified with Node 24's built-in `crypto` APIs. A valid detached signature does not replace TUF channel authorization and never grants execution authority. Sigstore attestations remain optional external provenance and are not a v1 activation requirement.
 
-Trusted roots are product- or administrator-provisioned, versioned independently from installed bundle metadata, and introduced in M10. Expired update metadata blocks new activation but does not disable already installed evidence. Unsigned community sideloading, if enabled by policy, is explicitly untrusted and approval-gated.
+Trusted roots are product- or administrator-provisioned and versioned independently from installed bundle metadata. Expired update metadata blocks new activation but does not disable already installed evidence. Unsigned community sideloading, if enabled by policy, is explicitly untrusted and approval-gated.
 
 ### Passive-content boundary
 
@@ -42,19 +42,19 @@ A bundle may carry evidence, metadata, rights records, inert human-readable desc
 
 ## Dependency Decisions
 
-- `tar-stream` 3.2.0: adopt for M10 guest-only streaming tar inspection. It is MIT-licensed, pure JavaScript, small, and exposes entries without extracting them to host paths.
+- `tar-stream` 3.2.0: retained as a reviewed candidate for future guest-only streaming tar inspection. It is MIT-licensed, pure JavaScript, small, and exposes entries without extracting them to host paths.
 - `tuf-js` 6.0.0: adopt behind a Core adapter for TUF metadata verification. It is MIT-licensed, maintained by The Update Framework organization, and supports the role model required by the offline channel.
 - Node `crypto`: adopt for detached Ed25519 verification. It adds no package, telemetry, network, or credential surface.
-- RO-Crate and SPDX libraries: defer. M5 consumes a constrained Zod profile and preserves standards-shaped records; a library is added only if representative bundles prove it removes maintained code.
+- RO-Crate and SPDX libraries: defer. A library is added only if representative bundles prove it removes maintained code.
 - Strict BagIt tooling: defer. The single Vault inventory adopts the necessary completeness and SHA-512 invariants without duplicate manifests.
 - Sigstore client: defer. TUF plus detached signatures satisfies the first activation boundary; optional provenance does not justify another trust stack yet.
 
 ## Consequences
 
-- M5 bundle reading is simple and transport-independent.
-- M10 archive parsing stays outside Vault Core and behind no-NIC isolation.
+- Future bundle reading stays simple and transport-independent.
+- Future archive parsing stays outside Vault Core and behind no-NIC isolation.
 - Uncompressed transport uses more removable-media space but has a smaller deterministic and security surface.
-- `tuf-js` and `tar-stream` are development dependencies in M0 only to validate load and core behavior; they become production dependencies only when M10 introduces their adapters.
+- `tuf-js` and `tar-stream` remain development-only validation dependencies; they become production dependencies only when a future bundle milestone introduces their adapters.
 - Content truth, professional authority, rights, and applicability remain separate review decisions from cryptographic authenticity.
 - The installed catalog and object store must retain exact bundle and resource digests so citations and audits remain replayable across updates.
 

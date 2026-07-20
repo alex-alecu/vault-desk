@@ -63,7 +63,6 @@ Khoj is personal-knowledge-management framing under AGPL. PrivateGPT pivoted to 
 - Morphik: open-source visual-document RAG explicitly targeting healthcare, law, and engineering precision.
 - kotaemon: open-source RAG UI with in-document citation preview — a citation-UX bar-setter.
 - Patient Protect PIPAA: a ~$2,000 pre-configured Mac Mini HIPAA-oriented local AI appliance for independent practices — direct precedent for Vault Desk Office in medical administration.
-- TaxHacker: open-source self-hosted receipt/invoice LLM analyzer — evidence of accounting-vertical demand.
 - LegalSphere-class vendors: on-premise legal LLM deployments at ~$299/user/month — the vertical space is served by services-style pricing, not owned products.
 
 ### Hardware Manufacturers

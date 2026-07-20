@@ -49,7 +49,7 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure and
 ## Remaining Risks And Deferrals
 
 - Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
-- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
+- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification are now part of the M3 desktop gate.
 - Hosted CI classifies each available platform backend but does not replace the recorded elevated physical-host HCS or macOS hardware certification.
 - Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
 - M2 is now tracked separately in [M2_STATUS.md](M2_STATUS.md); M3 and later product behavior require a new explicit owner request.

@@ -1,5 +1,7 @@
 # Document Pipeline Diagram
 
+Status: post-V1 follow-up design; not part of active M3.
+
 Created: 2026-07-10
 
 ```mermaid

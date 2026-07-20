@@ -2,7 +2,7 @@
 
 Updated: 2026-07-20
 
-M2 is active. The macOS implementation stage is complete; Windows native-worker confinement and physical-platform evidence remain pending. M2 is not cross-platform complete, and M3 is not authorized.
+The macOS implementation stage is complete. Windows native-worker confinement and physical-platform evidence were not completed as a standalone M2 stage. On 2026-07-20 the repository owner activated M3 and folded the remaining Windows inference work into the M3 cross-platform desktop gate. This file remains the historical M2 stage record.
 
 ## Change Brief
 
@@ -42,7 +42,7 @@ M2 is active. The macOS implementation stage is complete; Windows native-worker 
 - Gemma 4 12B Local 12 and Local 16 capped loads, grammar-valid output, and clean one-shot worker exit: pass with `{ "status": "ok" }`, 8,139,500,736 GPU VRAM bytes, and 845,475,552 CPU RAM bytes under both profile caps.
 - Physical 12 GiB and 16 GiB target hardware evidence: not run on this 48 GiB Mac; the profile-cap results are implementation evidence, not final Local 12 or Local 16 hardware certification.
 - Windows native runtime and authority boundary: not implemented; the launcher returns an explicit unsupported result.
-- Full cross-platform M2 milestone: not complete.
+- Standalone cross-platform M2 gate: retired into M3 before completion.
 
 ## Windows Handoff
 
@@ -51,4 +51,4 @@ M2 is active. The macOS implementation stage is complete; Windows native-worker 
 - Run the same Qwen, E2B, and 12B structured-output gates with the pinned runtime and model hashes, record Local 12 and Local 16 memory reports, and verify clean shutdown, cancellation, timeout, malformed IPC, crash, and out-of-memory containment.
 - Run `pnpm verify`, the Windows M2 native project, `pnpm test:gate --milestone 2`, and `git diff --check`; record exact pass, failure, and not-run results here before claiming M2 complete.
 
-Conclusion: ready for the macOS-stage pull request; M2 remains incomplete until the Windows handoff and cross-platform evidence pass.
+Conclusion: the macOS inference foundation is implemented. The Windows handoff is now required evidence for [M3](M3_STATUS.md), not a separate release blocker.

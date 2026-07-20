@@ -10,9 +10,9 @@ flowchart LR
     Desktop --> Control["Local Control Plane"]
     OfficeAdmin --> Control
 
-    Control --> Documents["Approved local documents"]
+    Control --> Documents["User-selected read-only folders and attachments"]
     Control --> Inference["Local inference runtimes"]
-    Control --> Sandbox["No-NIC document, tool, and code microVMs"]
+    Control --> Sandbox["Disposable no-NIC dev-agent microVMs"]
     Control --> NetworkBroker["Typed external-connection broker"]
     Control --> Audit["Local audit log"]
     Control --> Backup["Backup and recovery"]
@@ -25,8 +25,8 @@ flowchart LR
 
 - Hosted escalation is not a default dependency.
 - Remote support is not a default access path.
-- Documents remain local unless the user or administrator explicitly authorizes otherwise.
-- Hostile document and executable-tool work has no virtual network device; approved external connections use the separate broker.
+- Selected inputs remain local and read-only to the guest.
+- Agent-authored code has no virtual network device; approved future external connections use the separate broker.
 
 ## Revision History
 
@@ -35,3 +35,4 @@ flowchart LR
 | 2026-07-10 | Initial system context diagram created. |
 | 2026-07-12 | Added the no-NIC microVM and separate typed external-connection broker. |
 | 2026-07-13 | Identified the Tauri desktop shell and bounded code-interpreter microVM role. |
+| 2026-07-20 | Made read-only folder sessions and the generic offline dev agent the V1 system context. |

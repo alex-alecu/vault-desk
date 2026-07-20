@@ -61,7 +61,7 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 
 Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
-Official OpenCode sources were reviewed only to establish that it offers a headless server and code-capable tool loop. OpenCode is not an accepted dependency. M8 may compare it with a minimal Vault Desk-owned guest loop under identical offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-verification gates.
+Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Vault Desk-owned guest loop under offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
 
 ## 2026-07-15 Development And Contribution Workflow Review
 

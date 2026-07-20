@@ -4,7 +4,14 @@ import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createVaultCore, daemonEndpoint, startDaemon } from "@vault/core";
-import { PROTOCOL_VERSION, type RpcResponse, RpcResponseSchema } from "@vault/shared";
+import {
+  FolderSummarySchema,
+  PROTOCOL_VERSION,
+  type RpcResponse,
+  RpcResponseSchema,
+  SessionPageSchema,
+  SessionSummarySchema,
+} from "@vault/shared";
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
@@ -39,21 +46,24 @@ afterEach(async () => {
   );
 });
 
-function rpc(
-  endpoint: string,
-  protocolVersion: number = PROTOCOL_VERSION,
-  timeoutMs = 5000,
-): Promise<RpcResponse> {
+interface RpcMethodInput {
+  method: string;
+  params: Record<string, unknown>;
+  protocolVersion?: number;
+  timeoutMs?: number;
+}
+
+function rpcMethod(endpoint: string, input: RpcMethodInput): Promise<RpcResponse> {
   return new Promise((accept, reject) => {
     const socket = createConnection(endpoint);
     let output = "";
     socket.setEncoding("utf8");
-    socket.setTimeout(timeoutMs, () => socket.destroy(new Error("RPC timed out.")));
+    socket.setTimeout(input.timeoutMs ?? 5000, () => socket.destroy(new Error("RPC timed out.")));
     socket.on("data", (chunk) => (output += chunk));
     socket.once("error", reject);
     socket.once("connect", () => {
       socket.write(
-        `${JSON.stringify({ jsonrpc: "2.0", id: "gate", method: "status", params: {}, protocolVersion })}\n`,
+        `${JSON.stringify({ jsonrpc: "2.0", id: "gate", method: input.method, params: input.params, protocolVersion: input.protocolVersion ?? PROTOCOL_VERSION })}\n`,
       );
     });
     socket.once("end", () => {
@@ -63,6 +73,19 @@ function rpc(
         reject(error);
       }
     });
+  });
+}
+
+function rpc(
+  endpoint: string,
+  protocolVersion: number = PROTOCOL_VERSION,
+  timeoutMs = 5000,
+): Promise<RpcResponse> {
+  return rpcMethod(endpoint, {
+    method: "status",
+    params: {},
+    protocolVersion,
+    timeoutMs,
   });
 }
 
@@ -228,6 +251,45 @@ describe("M1 daemon recovery", () => {
     const core = await createTestCore(root);
     const daemon = await restartDaemon(core, root);
     expect("result" in (await rpc(daemon.endpoint))).toBe(true);
+    await daemon.close();
+    await core.close();
+  });
+});
+
+describe("M3 conversation daemon methods", () => {
+  it("returns safe summaries and typed invalid-folder failures", async () => {
+    const root = await temporaryRoot("vault-m3-daemon-");
+    const selected = await temporaryRoot("vault-m3-selected-");
+    const core = await createTestCore(root);
+    const daemon = await startDaemon(core, root);
+
+    const missing = await rpcMethod(daemon.endpoint, {
+      method: "folders.add",
+      params: { rootPath: join(selected, "missing") },
+    });
+    expect("error" in missing ? missing.error.code : undefined).toBe("path_out_of_scope");
+    const added = await rpcMethod(daemon.endpoint, {
+      method: "folders.add",
+      params: { rootPath: selected },
+    });
+    if (!("result" in added)) throw new Error("Folder grant failed.");
+    const folder = FolderSummarySchema.parse(added.result);
+    expect(folder).not.toHaveProperty("rootPath");
+    const created = await rpcMethod(daemon.endpoint, {
+      method: "sessions.create",
+      params: { folderId: folder.id },
+    });
+    if (!("result" in created)) throw new Error("Session creation failed.");
+    const session = SessionSummarySchema.parse(created.result);
+    const listed = await rpcMethod(daemon.endpoint, {
+      method: "sessions.list",
+      params: { folderId: folder.id },
+    });
+    if (!("result" in listed)) throw new Error("Session listing failed.");
+    expect(SessionPageSchema.parse(listed.result).items.map((item) => item.id)).toEqual([
+      session.id,
+    ]);
+
     await daemon.close();
     await core.close();
   });

@@ -4,7 +4,7 @@ Date: 2026-07-13
 
 ## Status
 
-Accepted
+Superseded by [ADR 0018](0018-offline-dev-agent-first.md) for V1 sequencing. The deterministic document architecture remains an optional post-V1 optimization, not the first product path.
 
 ## Context
 
@@ -76,3 +76,4 @@ Negative:
 | Date | Change |
 |---|---|
 | 2026-07-13 | Adopted deterministic document operations with a disposable no-NIC code-interpreter fallback for long-tail transformations. |
+| 2026-07-20 | Superseded the deterministic-first V1 sequence with the generic offline dev-agent decision in ADR 0018. |

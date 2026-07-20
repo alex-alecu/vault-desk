@@ -11,16 +11,33 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 
-const LATEST_SCHEMA_VERSION = 2;
+const LATEST_SCHEMA_VERSION = 3;
+
+const MIGRATION_NAMES = ["initial", "audit-head", "conversations"] as const;
 
 export interface WorkspaceCatalog {
   database: Database.Database;
   schemaVersion: number;
   close(): void;
+}
+
+export interface WorkspaceCatalogOptions {
+  migrationDirectory?: string;
+  nativeBinding?: string;
+}
+
+function loadNativeBinding(path: string | undefined): Database.Options {
+  if (path === undefined) return {};
+  const absolutePath = resolve(path);
+  requireOwnedPath(absolutePath, "file");
+  const diskRequire = createRequire(join(dirname(absolutePath), "vault-native-loader.cjs"));
+  const nativeBinding = diskRequire(absolutePath) as unknown;
+  return { nativeBinding } as Database.Options;
 }
 
 function lockOwner(path: string): number | undefined {
@@ -82,6 +99,7 @@ function migrate(
   database: Database.Database,
   databasePath: string,
   catalogExisted: boolean,
+  migrationDirectory?: string,
 ): number {
   const current = database.pragma("user_version", { simple: true }) as number;
   if (current > LATEST_SCHEMA_VERSION)
@@ -93,15 +111,23 @@ function migrate(
   }
   database.transaction(() => {
     for (let version = current + 1; version <= LATEST_SCHEMA_VERSION; version += 1) {
-      const name = `${String(version).padStart(4, "0")}-${version === 1 ? "initial" : "audit-head"}.sql`;
-      const path = fileURLToPath(new URL(`./migrations/${name}`, import.meta.url));
+      const migrationName = MIGRATION_NAMES[version - 1];
+      if (migrationName === undefined) throw new Error(`Missing migration ${version}.`);
+      const name = `${String(version).padStart(4, "0")}-${migrationName}.sql`;
+      const path =
+        migrationDirectory === undefined
+          ? fileURLToPath(new URL(`./migrations/${name}`, import.meta.url))
+          : join(migrationDirectory, name);
       database.exec(readFileSync(path, "utf8"));
     }
   })();
   return database.pragma("user_version", { simple: true }) as number;
 }
 
-export function openWorkspaceCatalog(workspaceRoot: string): WorkspaceCatalog {
+export function openWorkspaceCatalog(
+  workspaceRoot: string,
+  options: WorkspaceCatalogOptions = {},
+): WorkspaceCatalog {
   const internalRoot = join(workspaceRoot, ".vault");
   secureInternalRoot(internalRoot);
   const databasePath = join(internalRoot, "catalog.sqlite");
@@ -114,10 +140,16 @@ export function openWorkspaceCatalog(workspaceRoot: string): WorkspaceCatalog {
   const catalogExisted = existsSync(databasePath) && lstatSync(databasePath).size > 0;
   let database: Database.Database | undefined;
   try {
-    database = new Database(databasePath);
+    database = new Database(databasePath, loadNativeBinding(options.nativeBinding));
+    database.pragma("foreign_keys = ON");
     database.pragma("journal_mode = WAL");
     database.pragma("synchronous = FULL");
-    const schemaVersion = migrate(database, databasePath, catalogExisted);
+    const schemaVersion = migrate(
+      database,
+      databasePath,
+      catalogExisted,
+      options.migrationDirectory,
+    );
     let closed = false;
     return {
       database,

@@ -34,17 +34,18 @@ This makes the product easier to certify, easier to explain, and harder to accid
 
 Maximum performance for Vault Desk is not maximum tokens per second.
 
-The product benchmark is how quickly and reliably the user gets a cited, verified, approval-ready document result from local files.
+The V1 product benchmark is how quickly and reliably the user gets a useful, reviewable result from the offline agent over local files.
 
 Primary performance levers, in order:
 
-1. Parse documents deterministically before model reasoning.
-2. Keep source anchors and structured document objects so retrieval is cheap and exact.
-3. Use hybrid lexical and dense retrieval rather than raw context stuffing.
-4. Keep the live prompt as an evidence pack, not as application memory.
-5. Compact session state into durable, inspectable summaries before context pressure hurts quality.
-6. Reuse extraction, embedding, summary, retrieval, and prompt-prefix caches.
-7. Only then tune decode speed with runtime features such as KV-cache quantization, prompt caching, chunked prefill, and Multi-Token Prediction.
+1. Keep host-native inference loaded while executable work stays in a separate no-NIC guest.
+2. Bound agent turns, observations, code, logs, and artifacts so context and latency remain predictable.
+3. Reuse safe prompt prefixes and session summaries without treating hidden reasoning as durable state.
+4. Prefer the fixed offline guest libraries over large generated reimplementations.
+5. Measure time to first useful observation and time to completed task, not tokens per second alone.
+6. Then tune decode speed with runtime features such as KV-cache quantization, prompt caching, chunked prefill, and Multi-Token Prediction.
+
+Post-V1 document intelligence adds parsing, retrieval, evidence-pack, citation, and cache metrics when those capabilities exist.
 
 ## Active Context Targets
 
@@ -225,7 +226,7 @@ Each certified profile must publish an internal benchmark record before being ca
 
 Tokens per second is a runtime metric. It is not a product acceptance criterion by itself.
 
-Certification sequencing is strict: OCR/layout memory handoff, the invoice-review product workflow, summary trees, structured compaction, the long-running session acceptance test, crash recovery, and the packaged offline build must all pass before a Local 12 or Local 16 profile is called certified. A retrieval-only or cited-Q&A benchmark is a technical milestone, not profile certification.
+V1 certification sequencing is strict: real multi-step agent tasks, bounded model mediation, microVM resource enforcement, session recovery, cancellation, and the packaged zero-download desktop build must pass on physical Local 12 and Local 16 targets before either profile is called certified. Post-V1 OCR, retrieval, or citation measurements extend certification only when those capabilities are implemented.
 
 ## Red Lines
 

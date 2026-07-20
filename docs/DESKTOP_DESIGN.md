@@ -1,92 +1,115 @@
 # Desktop Design
 
-Created: 2026-07-13
+Updated: 2026-07-20
 
-Vault Desk should feel like a calm work surface, not a model-control dashboard. The first interface uses Tauri v2 with a React/TypeScript frontend and follows the structural simplicity of the Codex desktop application without copying its branding or visual assets.
+Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the structural clarity of the Codex app without copying its branding or visual assets. The interface exposes work and context, not model infrastructure.
 
 ## Window Structure
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────┐
-│ Session name                                              Model name ▾     │
-├──────────────────────┬─────────────────────────────────────────────────────┤
-│ Chats                │                                                     │
-│  Current chat        │                                                     │
-│  Earlier chat        │                                                     │
-│                      │ Conversation, progress, citations, warnings,        │
-│ Folders              │ previews, tool activity, and approval cards         │
-│  Client A            │                                                     │
-│  Invoices July       │                                                     │
-│  Contracts           │                                                     │
+┌──────────────────────┬─────────────────────────────────────────────────────┐
+│ Vault Desk           │                                                     │
+│                      │                                                     │
+│ ＋ New chat          │               Conversation or welcome               │
+│                      │                                                     │
+│ Folders              │        messages, code activity, artifacts,          │
+│ ▾ Client A           │             warnings, and progress                  │
+│   Recent task        │                                                     │
+│   Earlier task       │                                                     │
+│   …3 more sessions   │                                                     │
+│   Show more          │                                                     │
+│ ▸ Contracts          │                                                     │
+│ ▸ Research           │                                                     │
 │                      ├─────────────────────────────────────────────────────┤
-│                      │ Ask Vault Desk…                              Send   │
+│                      │ context chips                                       │
+│ Settings             │ Ask Vault Desk…                         Stop/Send    │
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The left sidebar is persistent and contains two visually distinct sections:
+The two stable regions are a persistent sidebar and a conversation workspace. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
 
-1. **Chats** — recent and pinned sessions, with the current session clearly selected.
-2. **Folders** — authorized working folders and their availability or indexing state.
+## Sidebar
 
-The window has four stable regions:
+The sidebar begins with **New chat**. It then lists folder groups rather than separate global chat and folder sections.
 
-1. **Header** — spans the full window above both sidebar and conversation and shows the editable session name plus active model.
-2. **Sidebar** — contains chats followed by working folders.
-3. **Conversation** — scrollable work history with answers, citations, warnings, progress, previews, approvals, and compact tool activity.
-4. **Composer** — anchored to the bottom of the conversation pane with multiline input, attachment/folder context, stop/send state, and clear disabled states.
+Each folder group:
+
+- Uses the selected folder's display name.
+- Can collapse or expand without losing the active session.
+- Shows its five most recently active sessions, newest first.
+- Shows **Show more** only when older sessions exist; activation appends the next bounded page.
+- Highlights the active session and may show concise running, failed, or unread status.
+- Provides a narrow menu for starting a session, removing the grant, or revealing non-sensitive folder metadata.
+
+Removing a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
+
+## New Chat
+
+New chat creates a session with no folder grant. Users can attach one or more files through a native file dialog or drag and drop. Vault Core copies and verifies those files into session-owned read-only inputs before the agent can access them.
+
+New chat must never silently inherit the previously selected folder. Attachments are visible as removable chips before sending and as immutable input records after the turn begins.
+
+## Folder Sessions
+
+Adding a folder uses a native Tauri dialog and creates a scoped Vault Core grant. The webview receives an opaque folder identifier and display name, not an unrestricted filesystem handle.
+
+Starting a session under that folder gives each agent run a verified read-only snapshot of the selected folder. The agent can recursively inspect the snapshot inside the microVM. It cannot write, rename, delete, or create files in the host folder.
+
+Switching sessions restores conversation turns, agent activity summaries, artifacts, warnings, cancellation state, and unsent draft text.
+
+## Conversation
+
+The conversation timeline supports:
+
+- User and assistant messages.
+- Streaming assistant text.
+- Compact agent activity rows for scripts, commands, and observations.
+- Expandable Python or Node.js source and bounded stdout/stderr.
+- Generated scratch artifacts with type, size, and preview/download eligibility.
+- Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
+- Security or unsupported-operation warnings.
+
+Hidden model reasoning is never shown or persisted. Activity describes observable actions and results only.
+
+The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring a folder, building a small artifact, reviewing files, or diagnosing a failure.
+
+## Composer
+
+The composer is multiline and anchored to the bottom of the conversation pane.
+
+- The add button opens attachment actions; folder selection remains a separate grant action.
+- Context chips show the active folder or explicit attachments.
+- Send becomes Stop while a run is active.
+- Drafts survive session and folder switching, daemon reconnect, and application restart.
+- Submitting without a folder or attachment remains valid for conversational tasks.
 
 ## Model Presentation
 
-Model choice is controlled by the installed, signed model manifest rather than arbitrary provider configuration.
+A build with one runnable generation model shows its human-readable name as static text. It does not show a chevron or configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
 
-- A build containing exactly one runnable generation model shows its human-readable name as static header text. It must not show a chevron, disabled dropdown, or settings link implying another choice.
-- A build containing multiple approved models shows a dropdown containing only installed models compatible with the current hardware and selected workflow.
-- The current hardware-aware default is preselected.
-- Changing the model applies to subsequent turns, is recorded in the session timeline, and never silently invalidates previous citations or verification results.
-- Runtime, quantization, context-window, embedding, and backend vocabulary stays out of the ordinary selector. Advanced diagnostic details belong in a separate support view.
-
-## Model Download Experience (model-download build only)
-
-The model-download build flavor defined in [ADR 0016](adr/0016-model-agnostic-defaults-and-managed-downloads.md) adds a managed installation experience for generation models. It is designed for non-technical users and never exposes repositories, files, quantization, tokens, or endpoints.
-
-- On first launch without an installed generation model, the main pane shows a short recommendation list instead of the composer: two or three models from the signed catalog ranked by detected hardware fit, each with a plain-language line about what it is good at, its download size, and a Certified, Compatible, or Experimental fit label. The top recommendation is preselected; one primary action starts the download.
-- A search field accepts a model name and resolves it only within the signed catalog's allowlisted official publishers. Results show the same plain-language cards as recommendations. A model that does not fit the detected hardware appears with an honest explanation, not a hidden entry.
-- The user never chooses an embedding model. The encoder is bundled; if a signed catalog entry pairs a downloaded model with a different encoder, the product handles installation and explicit re-indexing itself and explains the re-index in plain language.
-- Download progress is visible, cancellable, and resumable, with plain-language failure states (no space, connection lost, file failed verification). A failed or cancelled download leaves no partially installed model.
-- After installation the model appears in the standard model presentation above; nothing about the header, selector, or session rules changes.
-- The bundled build shows none of this surface: no download entry point, no catalog, no network affordance.
-
-Model downloads are the only network affordance in the ordinary interface, are labeled as downloads from Hugging Face, and run through the typed Vault Core broker with signed-catalog and hash verification; the webview itself never fetches.
-
-## Folder Behavior
-
-- Adding a folder uses a native Tauri dialog and creates a scoped Vault Core workspace grant; the React webview never receives unrestricted filesystem authority.
-- A folder row indicates ready, indexing, needs attention, offline/missing, or access-revoked state.
-- Selecting a folder changes the visible working context only after pending composer text is preserved.
-- Chats may reference one primary folder and explicitly attached evidence from other authorized folders.
-- Removing a folder from the sidebar does not silently delete source files or authoritative workspace records.
-
-## Interaction Rules
-
-- Optimize the default view for asking questions and reviewing evidence, not configuring infrastructure.
-- Show useful progress in plain language, including the current file or phase when safe.
-- Keep citations adjacent to supported claims and open previews at the exact page, region, table, sheet, or cell.
-- Present generated code as compact audited activity by default; expose code and logs on demand.
-- Show approval cards inline at the point where work pauses.
-- Preserve input while switching chats or folders, recovering from a backend restart, or cancelling a job.
-- Keyboard navigation, visible focus, screen-reader names, reduced motion, and 200 percent scaling are release requirements.
+Runtime, quantization, context-window, endpoint, and model-file vocabulary stays out of the ordinary interface.
 
 ## Security Rules
 
-- The webview cannot receive a generic shell, process launcher, environment reader, network client, or unrestricted filesystem API.
+- The webview has no generic shell, process, environment, network, local-endpoint, or unrestricted filesystem capability.
 - Tauri commands are narrow, typed, capability-scoped, and delegated to Vault Core where product policy applies.
-- Model selection cannot load an uninstalled model, arbitrary path, remote endpoint, or unsigned manifest entry.
-- Model download cannot fetch from an arbitrary URL, unsigned catalog entry, or non-allowlisted repository, and cannot activate an artifact that fails hash verification.
-- UI state never substitutes for Vault Core authorization, approval, audit, or workspace scope checks.
+- Native dialogs return selections to the Rust host, which passes them through the typed grant or attachment command; arbitrary path strings from the webview are rejected.
+- The model and guest never receive a writable host folder.
+- Agent code executes only in the disposable no-NIC microVM with fixed interpreters and libraries.
+- UI state never substitutes for Vault Core grants, policy, audit, resource limits, cancellation, or result validation.
+
+## Accessibility And Platform Behavior
+
+- Full keyboard navigation and visible focus.
+- Screen-reader labels for folders, sessions, status, attachments, activity, and composer actions.
+- Focus restoration after dialogs, session switches, cancellation, and reconnect.
+- Reduced-motion support.
+- Usable at 200 percent scaling and narrow supported window widths.
+- Native title-bar and window controls appropriate to macOS and Windows.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
-| 2026-07-13 | Defined the first Tauri desktop layout, sidebar, session header, model presentation, composer, folder behavior, and UI security boundary. |
-| 2026-07-15 | Added the managed model-download experience for the ADR 0016 model-download build: recommendations-first onboarding, catalog-scoped search, automatic encoder pairing, and download security rules. |
+| 2026-07-13 | Defined the initial Tauri desktop layout and security boundary. |
+| 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |

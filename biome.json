@@ -67,10 +67,13 @@
         "packages/core/src/workspace/catalog.ts",
         "packages/core/src/workspace/artifacts.ts",
         "packages/core/src/workspace/scope.ts",
+        "packages/core/src/workspace/folder-grants.ts",
         "packages/core/src/daemon/server.ts",
+        "packages/core/src/daemon/main.ts",
         "packages/core/src/daemon/windows-guard.ts",
         "packages/core/src/runtime/models.ts",
         "packages/core/src/runtime/inference.test.ts",
+        "packages/core/src/conversations/store.test.ts",
         "packages/core/native/windows-pipe-guard/build.ts",
         "packages/cli/src/client.ts",
         "packages/cli/src/endpoint.ts",
@@ -89,6 +92,7 @@
         "packages/workers/native/macos-vz-helper/build.ts",
         "packages/workers/native/windows-hcs-helper/build.ts",
         "packages/eval/src/**/*.ts",
+        "packages/desktop/build-sidecar.ts",
         "scripts/**/*.ts"
       ],
       "linter": {

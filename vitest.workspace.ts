@@ -10,6 +10,7 @@ export default defineConfig({
             "packages/core/src/**/*.test.ts",
             "packages/core/tests/**/*.test.ts",
             "packages/workers/src/**/*.test.ts",
+            "packages/desktop/src/**/*.test.ts",
             "packages/eval/src/gates/**/*.test.ts",
           ],
           exclude: [

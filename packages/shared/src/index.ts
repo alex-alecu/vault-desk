@@ -1,4 +1,6 @@
+export * from "./agent.js";
 export * from "./audit.js";
+export * from "./conversations.js";
 export * from "./errors.js";
 export * from "./ids.js";
 export * from "./inference.js";

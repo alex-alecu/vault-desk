@@ -50,10 +50,11 @@ export function startWindowsPipeGuard(
   endpoint: string,
   maximumRequestBytes: number,
   respond: (request: Buffer) => Promise<Buffer>,
+  executablePath = windowsPipeGuardPath(),
 ): Promise<WindowsPipeGuard> {
   return new Promise((accept, reject) => {
     const child = spawn(
-      windowsPipeGuardPath(),
+      executablePath,
       ["serve", endpoint, String(maximumRequestBytes), String(process.pid)],
       {
         stdio: ["pipe", "pipe", "pipe"],
