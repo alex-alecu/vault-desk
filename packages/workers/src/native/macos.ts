@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type {
@@ -7,6 +7,7 @@ import type {
   NativeWorkerLauncher,
   NativeWorkerLaunchRequest,
 } from "./launcher.js";
+import { NativeWorkerLaunchError } from "./launcher.js";
 
 function literal(path: string): string {
   return JSON.stringify(resolve(path));
@@ -30,21 +31,37 @@ function credentialPaths(): string[] {
 function runtimeReadPaths(workerEntryPath: string): string[] {
   const workerDirectory = dirname(workerEntryPath);
   return [
-    resolve(workerDirectory, ".."),
-    resolve(workerDirectory, "../..", "node_modules"),
+    resolve(workerDirectory, "../.."),
     resolve(workerDirectory, "../../..", "shared"),
     resolve(workerDirectory, "../../../..", "node_modules"),
   ];
 }
 
-function homeDataDeny(readPaths: string[], modelPath?: string): string {
+const SYSTEM_READ_PATHS = ["/System", "/usr/lib"];
+
+function parentPaths(path: string): string[] {
+  const parents: string[] = [];
+  let current = resolve(path);
+  while (current !== dirname(current)) {
+    current = dirname(current);
+    parents.push(current);
+  }
+  return parents;
+}
+
+function hostDataDeny(readPaths: string[], temporaryRoot: string, modelPath?: string): string {
   const exceptions = [
+    '(literal "/")',
+    ...parentPaths(temporaryRoot).map((path) => `(literal ${literal(path)})`),
+    ...SYSTEM_READ_PATHS.map((path) => `(subpath ${literal(path)})`),
     ...readPaths.map((path) => `(subpath ${literal(path)})`),
+    `(literal ${literal(process.execPath)})`,
+    `(literal ${literal(temporaryRoot)})`,
+    `(subpath ${literal(temporaryRoot)})`,
     ...(modelPath === undefined ? [] : [`(literal ${literal(modelPath)})`]),
   ];
-  return `(deny file-read-data (require-all (subpath ${literal(homedir())}) ${exceptions
-    .map((rule) => `(require-not ${rule})`)
-    .join(" ")}))`;
+  const outsideExceptions = exceptions.map((rule) => `(require-not ${rule})`).join(" ");
+  return `(deny file-read-data (require-all (subpath "/") ${outsideExceptions}))`;
 }
 
 function sandboxProfile(
@@ -62,18 +79,20 @@ function sandboxProfile(
     "(allow default)",
     "(deny network*)",
     '(deny mach-lookup (global-name "com.apple.securityd"))',
-    homeDataDeny(readPaths, request.modelPath),
-    ...(protectedRules === "" ? [] : [`(deny file-read* ${protectedRules})`]),
+    hostDataDeny(readPaths, temporaryRoot, request.modelPath),
     `(deny file-write* (require-not (subpath ${literal(temporaryRoot)})))`,
     "(deny process-fork)",
     "(deny process-exec)",
     `(allow process-exec ${runtimeExecutables.map((path) => `(literal ${literal(path)})`).join(" ")})`,
+    `(allow file-read* (literal ${literal(process.execPath)}))`,
+    ...SYSTEM_READ_PATHS.map((path) => `(allow file-read* (subpath ${literal(path)}))`),
     ...readPaths.map((path) => `(allow file-read* (subpath ${literal(path)}))`),
     ...(request.modelPath === undefined
       ? []
       : [`(allow file-read* (literal ${literal(request.modelPath)}))`]),
     `(allow file-read* (subpath ${literal(temporaryRoot)}))`,
     `(allow file-write* (subpath ${literal(temporaryRoot)}))`,
+    ...(protectedRules === "" ? [] : [`(deny file-read* ${protectedRules})`]),
   ].join("\n");
 }
 
@@ -82,12 +101,14 @@ export class MacOsNativeWorkerLauncher implements NativeWorkerLauncher {
 
   async launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
-      throw new Error("unsupported_native_worker_platform");
+      throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "vault-inference-"));
+    const temporaryAlias = await mkdtemp(join(tmpdir(), "vault-inference-"));
+    const temporaryRoot = await realpath(temporaryAlias);
+    const profile = sandboxProfile(request, temporaryRoot, this.deniedPaths);
     const args = [
       "-p",
-      sandboxProfile(request, temporaryRoot, this.deniedPaths),
+      profile,
       process.execPath,
       "--conditions=vault-runtime",
       request.workerEntryPath,

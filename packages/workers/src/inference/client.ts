@@ -23,6 +23,20 @@ function isCancelled(signal?: AbortSignal): boolean {
   return signal?.aborted ?? false;
 }
 
+function abortCode(signal?: AbortSignal): "cancelled" | "timeout" {
+  if (signal?.reason instanceof DOMException && signal.reason.name === "TimeoutError") {
+    return "timeout";
+  }
+  if (
+    signal?.reason instanceof Error &&
+    "code" in signal.reason &&
+    signal.reason.code === "timeout"
+  ) {
+    return "timeout";
+  }
+  return "cancelled";
+}
+
 class WorkerExchange {
   private readonly decoder = new InferenceResponseDecoder();
   private response?: InferenceWorkerResponse;
@@ -38,6 +52,13 @@ class WorkerExchange {
   ) {}
 
   run(): Promise<InferenceWorkerResponse> {
+    let frame: Buffer;
+    try {
+      frame = encodeInferenceRequest(this.execution.request);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Malformed inference request.";
+      return Promise.reject(new InferenceWorkerError("malformed_worker_message", message));
+    }
     return new Promise((accept, reject) => {
       this.accept = accept;
       this.reject = reject;
@@ -48,13 +69,19 @@ class WorkerExchange {
       this.execution.signal?.addEventListener("abort", this.cancelled, { once: true });
       this.child.stderr.on("data", this.errorOutput);
       this.child.stdout.on("data", this.responseOutput);
+      this.child.stdin.once("error", this.inputError);
       this.child.once("error", (error) => this.fail("worker_crash", error.message));
       this.child.once("close", (code) => this.closed(code));
-      this.child.stdin.end(encodeInferenceRequest(this.execution.request));
+      this.child.stdin.end(frame);
     });
   }
 
-  private readonly cancelled = (): void => this.fail("cancelled", "Inference cancelled.");
+  private readonly cancelled = (): void => {
+    const code = abortCode(this.execution.signal);
+    this.fail(code, code === "timeout" ? "Inference timed out." : "Inference cancelled.");
+  };
+
+  private readonly inputError = (error: Error): void => this.fail("worker_crash", error.message);
 
   private readonly errorOutput = (chunk: Buffer): void => {
     if (this.stderr.length < 65_536) this.stderr += String(chunk);
@@ -124,7 +151,11 @@ export class InferenceWorkerClient {
 
   async execute(execution: InferenceExecution): Promise<InferenceWorkerResponse> {
     if (isCancelled(execution.signal)) {
-      throw new InferenceWorkerError("cancelled", "Inference cancelled.");
+      const code = abortCode(execution.signal);
+      throw new InferenceWorkerError(
+        code,
+        code === "timeout" ? "Inference timed out." : "Inference cancelled.",
+      );
     }
     const handle = await this.launcher.launch({
       workerEntryPath: this.workerEntryPath,
@@ -133,7 +164,11 @@ export class InferenceWorkerClient {
     });
     try {
       if (isCancelled(execution.signal)) {
-        throw new InferenceWorkerError("cancelled", "Inference cancelled.");
+        const code = abortCode(execution.signal);
+        throw new InferenceWorkerError(
+          code,
+          code === "timeout" ? "Inference timed out." : "Inference cancelled.",
+        );
       }
       return await new WorkerExchange(handle.process, execution).run();
     } finally {

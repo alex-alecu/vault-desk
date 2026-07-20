@@ -1,6 +1,6 @@
 # Milestone M2 Status
 
-Updated: 2026-07-19
+Updated: 2026-07-20
 
 M2 is active. The macOS implementation stage is complete; Windows native-worker confinement and physical-platform evidence remain pending. M2 is not cross-platform complete, and M3 is not authorized.
 
@@ -18,9 +18,9 @@ M2 is active. The macOS implementation stage is complete; Windows native-worker 
 - `@vault/shared` owns the versioned generation, embedding, native-boundary probe, memory-report, and typed-failure schemas.
 - Vault Core requires an installed-model store and explicit profile, stages a verified immutable model snapshot for each job, and owns the scheduler, inference port, supervisor, audit records, and programmatic generation and embedding facade.
 - `@vault/workers` owns one length-prefixed typed inference protocol, deterministic fake, supervised client, `node-llama-cpp` worker, and macOS launcher.
-- The macOS launcher uses Seatbelt to deny external networking, user-home file content outside the fixed runtime and approved staged model, arbitrary workspace access, credential stores and Keychain lookup, every write outside job scratch, process forks, and executable launches except the initial fixed Node worker. It supplies a minimal environment with no inherited credentials or shell variable.
+- The macOS launcher uses Seatbelt to deny external networking, host file content outside fixed operating-system/runtime paths, the approved staged model, and job scratch, arbitrary workspace access, credential stores and Keychain lookup, every write outside job scratch, process forks, and executable launches except the initial fixed Node worker. It supplies a minimal environment with no inherited credentials or shell variable.
 - Crash, cancellation, timeout, malformed IPC, missing or modified model, and resource-overlap cases have focused deterministic tests.
-- The independent review findings were applied: child Node re-execution and out-of-scope writes are probed, typed worker failures and operation mismatches are audited accurately, verified model bytes are staged before launch, and production inference inputs are mandatory.
+- The independent review findings were applied: child Node re-execution, out-of-scope reads and writes, and stdin failure containment are probed; typed worker and unsupported-platform failures are preserved; model staging honors cancellation and the request deadline; active inference is cancelled and drained before Core closes; verified model bytes are staged before launch; and production inference inputs are mandatory.
 - Downloaded models and generated reports remain ignored local evidence and are never committed.
 
 ## Dependency Review
@@ -34,9 +34,9 @@ M2 is active. The macOS implementation stage is complete; Windows native-worker 
 
 ## Gate State
 
-- `pnpm test:gate --milestone 2`: pass after independent-review fixes on the 48 GiB Apple-silicon Mac used for this stage, including source limits, lint, typecheck, 46 unit tests with one platform skip, two native M1 tests, Rust formatting and clippy checks, macOS helper build/signing, the M2 Seatbelt probe, and all model canaries.
+- `pnpm test:gate --milestone 2`: pass after independent-review fixes on the 48 GiB Apple-silicon Mac used for this stage, including source limits, lint, typecheck, 50 unit tests with one platform skip, two native M1 tests, Rust formatting and clippy checks, macOS helper build/signing, the M2 Seatbelt probe, and all model canaries.
 - Shared contracts, supervisor, scheduler, model resolver, fake, and deterministic containment tests: pass on macOS.
-- macOS Seatbelt network, workspace, credential, shell, and executable-tool denial probe: pass.
+- macOS Seatbelt network, workspace, out-of-scope host read/write, credential, shell, and executable-tool denial probe: pass.
 - Qwen3-Embedding-0.6B smoke: pass with 1,024 dimensions, 1,007,274,336 GPU VRAM bytes, and 169,748,832 CPU RAM bytes under the 2 GiB embedding reservation.
 - Gemma 4 E2B grammar-valid output: pass with `{ "status": "ok" }`, 3,906,235,488 GPU VRAM bytes, and 2,285,189,888 CPU RAM bytes under Local 12.
 - Gemma 4 12B Local 12 and Local 16 capped loads, grammar-valid output, and clean one-shot worker exit: pass with `{ "status": "ok" }`, 8,139,500,736 GPU VRAM bytes, and 845,475,552 CPU RAM bytes under both profile caps.

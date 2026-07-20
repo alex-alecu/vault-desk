@@ -110,6 +110,16 @@ describe("M2 inference orchestration", () => {
   });
 });
 
+describe("M2 model staging cancellation", () => {
+  it("cancels before copying and hashing completes", async () => {
+    const resolver = await modelResolver();
+    const controller = new AbortController();
+    const pending = resolver.resolve("test-model", controller.signal);
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
 describe("M2 inference failure audit", () => {
   it.each(["cancelled", "timeout", "malformed_worker_message", "worker_crash"] as const)(
     "audits typed %s worker failures",
@@ -127,6 +137,34 @@ describe("M2 inference failure audit", () => {
       ]);
     },
   );
+
+  it("cancels and waits for active inference during supervisor shutdown", async () => {
+    const events: AuditEventInput[] = [];
+    let markStarted!: () => void;
+    const started = new Promise<void>((accept) => {
+      markStarted = () => accept();
+    });
+    const port: InferencePort = {
+      execute(execution) {
+        markStarted();
+        return new Promise((_accept, reject) => {
+          const cancelled = () =>
+            reject(Object.assign(new Error("cancelled"), { code: "cancelled" }));
+          if (execution.signal?.aborted) cancelled();
+          else execution.signal?.addEventListener("abort", cancelled, { once: true });
+        });
+      },
+    };
+    const inference = await supervisor(port, events);
+    const pending = inference.generate(generationInput);
+    await started;
+    const closing = inference.close();
+    await expect(pending).rejects.toMatchObject({ code: "cancelled" });
+    await closing;
+    expect(events).toMatchObject([
+      { type: "inference.generate", outcome: "failed", metadata: { code: "cancelled" } },
+    ]);
+  });
 });
 
 describe("M2 inference response validation", () => {

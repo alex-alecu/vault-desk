@@ -10,9 +10,13 @@ export interface StagedModel {
   dispose(): Promise<void>;
 }
 
-async function digest(path: string): Promise<string> {
+async function digest(path: string, signal?: AbortSignal): Promise<string> {
   const hash = createHash("sha256");
-  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  for await (const chunk of createReadStream(path)) {
+    signal?.throwIfAborted();
+    hash.update(chunk);
+  }
+  signal?.throwIfAborted();
   return hash.digest("hex");
 }
 
@@ -33,11 +37,13 @@ export class ModelResolver {
     return new ModelResolver(resolvedRoot, store);
   }
 
-  async resolve(modelId: string): Promise<StagedModel> {
+  async resolve(modelId: string, signal?: AbortSignal): Promise<StagedModel> {
+    signal?.throwIfAborted();
     const model = this.store.models.find((candidate) => candidate.modelId === modelId);
     if (model === undefined) throw new Error("missing_model");
     const candidate = join(this.root, model.storeKey);
     const resolved = await realpath(candidate);
+    signal?.throwIfAborted();
     const pathFromRoot = relative(this.root, resolved);
     if (isAbsolute(pathFromRoot) || pathFromRoot.startsWith(".."))
       throw new Error("model_path_unsafe");
@@ -48,21 +54,25 @@ export class ModelResolver {
     const stagedRoot = await mkdtemp(join(tmpdir(), "vault-model-"));
     const stagedPath = join(stagedRoot, model.storeKey);
     try {
+      signal?.throwIfAborted();
       await copyFile(resolved, stagedPath, constants.COPYFILE_EXCL | constants.COPYFILE_FICLONE);
+      signal?.throwIfAborted();
       const stagedState = await lstat(stagedPath);
       if (
         !stagedState.isFile() ||
         stagedState.isSymbolicLink() ||
         stagedState.nlink !== 1 ||
         stagedState.size !== model.byteLength ||
-        (await digest(stagedPath)) !== model.sha256
+        (await digest(stagedPath, signal)) !== model.sha256
       ) {
         throw new Error("model_integrity_failed");
       }
+      signal?.throwIfAborted();
       await chmod(stagedPath, 0o400);
+      const resolvedStagedPath = await realpath(stagedPath);
       let disposed = false;
       return {
-        path: stagedPath,
+        path: resolvedStagedPath,
         async dispose() {
           if (disposed) return;
           disposed = true;

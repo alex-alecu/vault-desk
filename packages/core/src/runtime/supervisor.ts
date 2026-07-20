@@ -19,6 +19,16 @@ import type { ModelResolver } from "./models.js";
 import type { ResourceScheduler } from "./scheduler.js";
 
 type AuditAppender = (event: AuditEventInput) => void;
+type ResourceLease = ReturnType<ResourceScheduler["reserve"]>;
+type StagedModel = Awaited<ReturnType<ModelResolver["resolve"]>>;
+const INFERENCE_TIMEOUT_MS = 300_000;
+
+interface ActiveExecution {
+  lifecycle: AbortController;
+  signal: AbortSignal;
+  startedAt: number;
+  finish(): void;
+}
 
 class InferenceFailure extends Error {
   constructor(
@@ -31,6 +41,7 @@ class InferenceFailure extends Error {
 
 function failureCode(error: unknown): string {
   if (error instanceof InferenceFailure) return error.code;
+  if (error instanceof DOMException && error.name === "TimeoutError") return "timeout";
   if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
   if (!(error instanceof Error)) return "internal";
   const typedCode = ErrorCodeSchema.safeParse("code" in error ? error.code : undefined);
@@ -40,7 +51,21 @@ function failureCode(error: unknown): string {
   return "internal";
 }
 
+function abortFailure(signal: AbortSignal): InferenceFailure {
+  const code =
+    signal.reason instanceof DOMException && signal.reason.name === "TimeoutError"
+      ? "timeout"
+      : "cancelled";
+  return new InferenceFailure(
+    code,
+    code === "timeout" ? "Inference timed out." : "Inference cancelled.",
+  );
+}
+
 export class InferenceSupervisor implements InferenceService {
+  private readonly active = new Map<AbortController, Promise<void>>();
+  private closed = false;
+
   constructor(
     private readonly port: InferencePort,
     private readonly models: ModelResolver,
@@ -48,51 +73,103 @@ export class InferenceSupervisor implements InferenceService {
     private readonly audit: AuditAppender,
   ) {}
 
-  private async run(request: InferenceWorkerRequest, signal?: AbortSignal) {
-    const lease = this.scheduler.reserve(request.operation);
-    let stagedModel: Awaited<ReturnType<ModelResolver["resolve"]>> | undefined;
+  private startExecution(signal?: AbortSignal): ActiveExecution {
+    if (this.closed) throw new InferenceFailure("cancelled", "Inference supervisor closed.");
+    const lifecycle = new AbortController();
+    const operationSignal = AbortSignal.any([
+      lifecycle.signal,
+      AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+      ...(signal === undefined ? [] : [signal]),
+    ]);
+    let finishExecution!: () => void;
+    const finished = new Promise<void>((accept) => {
+      finishExecution = () => accept();
+    });
+    this.active.set(lifecycle, finished);
+    return { lifecycle, signal: operationSignal, startedAt: Date.now(), finish: finishExecution };
+  }
+
+  private async execute(
+    request: InferenceWorkerRequest,
+    execution: ActiveExecution,
+    lease: ResourceLease,
+    stagedModel?: StagedModel,
+  ) {
+    const response = await this.port.execute({
+      request,
+      ...(stagedModel === undefined ? {} : { modelPath: stagedModel.path }),
+      memoryBudgetBytes: lease.memoryBudgetBytes,
+      timeoutMs: Math.max(1, INFERENCE_TIMEOUT_MS - (Date.now() - execution.startedAt)),
+      signal: execution.signal,
+    });
+    if (response.status === "error") {
+      throw new InferenceFailure(response.error.code, response.error.message);
+    }
+    if (response.operation !== request.operation) {
+      throw new InferenceFailure(
+        "malformed_worker_message",
+        "Inference response operation mismatch.",
+      );
+    }
+    this.record({
+      operation: request.operation,
+      requestId: request.requestId,
+      jobId: request.jobId,
+      outcome: "succeeded",
+    });
+    return response;
+  }
+
+  private async finishExecution(
+    execution: ActiveExecution,
+    stagedModel?: StagedModel,
+    lease?: ResourceLease,
+  ): Promise<void> {
     try {
+      await stagedModel?.dispose();
+    } finally {
+      lease?.release();
+      this.active.delete(execution.lifecycle);
+      execution.finish();
+    }
+  }
+
+  private async run(request: InferenceWorkerRequest, signal?: AbortSignal) {
+    const execution = this.startExecution(signal);
+    let lease: ResourceLease | undefined;
+    let stagedModel: StagedModel | undefined;
+    try {
+      execution.signal.throwIfAborted();
+      lease = this.scheduler.reserve(request.operation);
       stagedModel =
-        request.operation === "probe" ? undefined : await this.models.resolve(request.modelId);
-      const response = await this.port.execute({
-        request,
-        ...(stagedModel === undefined ? {} : { modelPath: stagedModel.path }),
-        memoryBudgetBytes: lease.memoryBudgetBytes,
-        timeoutMs: 300_000,
-        ...(signal === undefined ? {} : { signal }),
-      });
-      if (response.status === "error") {
-        throw new InferenceFailure(response.error.code, response.error.message);
-      }
-      if (response.operation !== request.operation) {
-        throw new InferenceFailure(
-          "malformed_worker_message",
-          "Inference response operation mismatch.",
-        );
-      }
-      this.record({
-        operation: request.operation,
-        requestId: request.requestId,
-        jobId: request.jobId,
-        outcome: "succeeded",
-      });
-      return response;
+        request.operation === "probe"
+          ? undefined
+          : await this.models.resolve(request.modelId, execution.signal);
+      execution.signal.throwIfAborted();
+      return await this.execute(request, execution, lease, stagedModel);
     } catch (error) {
+      const failure = execution.signal.aborted ? abortFailure(execution.signal) : error;
       this.record({
         operation: request.operation,
         requestId: request.requestId,
         jobId: request.jobId,
         outcome: "failed",
-        code: failureCode(error),
+        code: failureCode(failure),
       });
-      throw error;
+      throw failure;
     } finally {
-      try {
-        await stagedModel?.dispose();
-      } finally {
-        lease.release();
-      }
+      await this.finishExecution(execution, stagedModel, lease);
     }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    const active = [...this.active.entries()];
+    for (const [controller] of active) {
+      controller.abort(new InferenceFailure("cancelled", "Inference supervisor closed."));
+    }
+    await Promise.all(active.map(([, finished]) => finished));
   }
 
   private record(input: {

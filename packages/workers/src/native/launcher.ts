@@ -14,3 +14,12 @@ export interface NativeWorkerHandle {
 export interface NativeWorkerLauncher {
   launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle>;
 }
+
+export class NativeWorkerLaunchError extends Error {
+  constructor(
+    readonly code: "unsupported",
+    message: string,
+  ) {
+    super(message);
+  }
+}

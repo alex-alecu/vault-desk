@@ -22,13 +22,13 @@ export interface VaultCoreOptions {
   profile: "local12" | "local16";
 }
 
-async function createInference(options: VaultCoreOptions, audit: AuditLog) {
+async function createInference(options: VaultCoreOptions, workspaceRoot: string, audit: AuditLog) {
   const profile = InferenceProfileSchema.parse(options.profile);
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const launcher =
     process.platform === "win32"
       ? new WindowsNativeWorkerLauncher()
-      : new MacOsNativeWorkerLauncher([resolve(options.workspaceDir)]);
+      : new MacOsNativeWorkerLauncher([workspaceRoot]);
   const workerEntryPath = fileURLToPath(
     new URL("../../workers/dist/inference/worker.js", import.meta.url),
   );
@@ -51,7 +51,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   const jobs = new JobStore(catalog.database);
   let inference: Awaited<ReturnType<typeof createInference>>;
   try {
-    inference = await createInference(options, audit);
+    inference = await createInference(options, workspaceRoot, audit);
   } catch (error) {
     catalog.close();
     throw error;
@@ -78,6 +78,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
     generate: (input, signal) => inference.generate(input, signal),
     embed: (input, signal) => inference.embed(input, signal),
     async close() {
+      await inference.close();
       audit.append({ type: "core.closed", outcome: "succeeded", metadata: {} });
       catalog.close();
     },

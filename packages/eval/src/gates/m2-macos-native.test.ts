@@ -11,15 +11,18 @@ const itMac = process.platform === "darwin" && process.arch === "arm64" ? it : i
 describe("M2 macOS native inference boundary", () => {
   itMac("denies network, workspace, credential, shell, and executable-tool authority", async () => {
     const sentinel = join(process.cwd(), "packages/eval/.generated/m2-authority-sentinel.txt");
+    const outOfScopeReadPath = join(tmpdir(), `vault-m2-read-denied-${randomUUID()}`);
     const outOfScopeWritePath = join(tmpdir(), `vault-m2-out-of-scope-${randomUUID()}`);
     await mkdir(join(process.cwd(), "packages/eval/.generated"), { recursive: true });
     await writeFile(sentinel, "must remain unreadable");
+    await writeFile(outOfScopeReadPath, "must remain unreadable outside the user home");
     const request = InferenceWorkerRequestSchema.parse({
       protocolVersion: 1,
       requestId: "m2-native-probe",
       jobId: "00000000-0000-4000-8000-000000000002",
       operation: "probe",
       authorityProbePath: sentinel,
+      outOfScopeReadPath,
       outOfScopeWritePath,
     });
     const client = new InferenceWorkerClient(
@@ -34,7 +37,10 @@ describe("M2 macOS native inference boundary", () => {
         timeoutMs: 30_000,
       });
     } finally {
-      await rm(outOfScopeWritePath, { force: true });
+      await Promise.all([
+        rm(outOfScopeReadPath, { force: true }),
+        rm(outOfScopeWritePath, { force: true }),
+      ]);
     }
     expect(response).toMatchObject({
       status: "ok",
@@ -43,6 +49,7 @@ describe("M2 macOS native inference boundary", () => {
       credentialEnvironmentAbsent: true,
       shellEnvironmentAbsent: true,
       workspaceDenied: true,
+      outOfScopeReadDenied: true,
       outOfScopeWriteDenied: true,
       executableToolsDenied: true,
       nodeReexecDenied: true,

@@ -31,6 +31,7 @@ export const EmbeddingRequestSchema = RequestBaseSchema.extend({
 export const NativeWorkerProbeRequestSchema = RequestBaseSchema.extend({
   operation: z.literal("probe"),
   authorityProbePath: z.string().min(1),
+  outOfScopeReadPath: z.string().min(1),
   outOfScopeWritePath: z.string().min(1),
 });
 
@@ -70,6 +71,7 @@ export const NativeWorkerProbeResultSchema = ResponseBaseSchema.extend({
   credentialEnvironmentAbsent: z.literal(true),
   shellEnvironmentAbsent: z.literal(true),
   workspaceDenied: z.literal(true),
+  outOfScopeReadDenied: z.literal(true),
   outOfScopeWriteDenied: z.literal(true),
   executableToolsDenied: z.literal(true),
   nodeReexecDenied: z.literal(true),

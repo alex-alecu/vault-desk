@@ -6,6 +6,7 @@ import type {
   NativeWorkerLauncher,
   NativeWorkerLaunchRequest,
 } from "../native/launcher.js";
+import { WindowsNativeWorkerLauncher } from "../native/windows.js";
 import { InferenceWorkerClient, InferenceWorkerError } from "./client.js";
 
 class ScriptLauncher implements NativeWorkerLauncher {
@@ -30,12 +31,25 @@ const probe = InferenceWorkerRequestSchema.parse({
   jobId: "00000000-0000-4000-8000-000000000001",
   operation: "probe",
   authorityProbePath: "/private/var/empty/denied",
+  outOfScopeReadPath: "/private/var/empty/read-denied",
   outOfScopeWritePath: "/private/var/empty/write-denied",
 });
 
-function execute(script: string, timeoutMs = 500, signal?: AbortSignal) {
+const largeGeneration = InferenceWorkerRequestSchema.parse({
+  protocolVersion: 1,
+  requestId: "large-request",
+  jobId: "00000000-0000-4000-8000-000000000003",
+  operation: "generate",
+  modelId: "test-model",
+  prompt: "x".repeat(200_000),
+  jsonSchema: { type: "object" },
+  contextSize: 512,
+  maxTokens: 8,
+});
+
+function execute(script: string, timeoutMs = 500, signal?: AbortSignal, request = probe) {
   return new InferenceWorkerClient(new ScriptLauncher(script), "unused").execute({
-    request: probe,
+    request,
     memoryBudgetBytes: 1024,
     timeoutMs,
     ...(signal === undefined ? {} : { signal }),
@@ -45,6 +59,12 @@ function execute(script: string, timeoutMs = 500, signal?: AbortSignal) {
 describe("M2 inference worker containment", () => {
   it("contains worker crashes", async () => {
     await expect(execute("process.exit(7)")).rejects.toMatchObject({ code: "worker_crash" });
+  });
+
+  it("contains stdin errors when a worker exits before reading a large request", async () => {
+    await expect(execute("process.exit(7)", 500, undefined, largeGeneration)).rejects.toMatchObject(
+      { code: "worker_crash" },
+    );
   });
 
   it("contains malformed IPC", async () => {
@@ -65,5 +85,14 @@ describe("M2 inference worker containment", () => {
     await expect(pending).rejects.toSatisfy(
       (error) => error instanceof InferenceWorkerError && error.code === "cancelled",
     );
+  });
+
+  it("reports the pending Windows launcher as typed unsupported", async () => {
+    await expect(
+      new WindowsNativeWorkerLauncher().launch({
+        workerEntryPath: "unused",
+        memoryBudgetBytes: 1024,
+      }),
+    ).rejects.toMatchObject({ code: "unsupported" });
   });
 });

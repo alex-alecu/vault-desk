@@ -42,11 +42,11 @@ async function probe(request: InferenceWorkerRequest): Promise<InferenceWorkerRe
   const networkDenied = await operationDenied(() =>
     fetch("https://example.com", { signal: AbortSignal.timeout(1_000) }),
   );
-  const names = Object.keys(process.env);
-  const credentialEnvironmentAbsent = names.every(
+  const credentialEnvironmentAbsent = Object.keys(process.env).every(
     (name) => !/TOKEN|SECRET|PASSWORD|CREDENTIAL|API_KEY/iu.test(name),
   );
   const workspaceDenied = await operationDenied(() => readFile(request.authorityProbePath));
+  const outOfScopeReadDenied = await operationDenied(() => readFile(request.outOfScopeReadPath));
   const outOfScopeWriteDenied = await operationDenied(() =>
     writeFile(request.outOfScopeWritePath, "denial probe", { flag: "wx" }),
   );
@@ -57,6 +57,7 @@ async function probe(request: InferenceWorkerRequest): Promise<InferenceWorkerRe
     !credentialEnvironmentAbsent ||
     process.env.SHELL !== undefined ||
     !workspaceDenied ||
+    !outOfScopeReadDenied ||
     !outOfScopeWriteDenied ||
     !executableToolsDenied ||
     !nodeReexecDenied
@@ -72,6 +73,7 @@ async function probe(request: InferenceWorkerRequest): Promise<InferenceWorkerRe
     credentialEnvironmentAbsent: true,
     shellEnvironmentAbsent: true,
     workspaceDenied: true,
+    outOfScopeReadDenied: true,
     outOfScopeWriteDenied: true,
     executableToolsDenied: true,
     nodeReexecDenied: true,

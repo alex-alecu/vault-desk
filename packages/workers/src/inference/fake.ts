@@ -16,6 +16,7 @@ export class FakeInferenceWorker {
         credentialEnvironmentAbsent: true,
         shellEnvironmentAbsent: true,
         workspaceDenied: true,
+        outOfScopeReadDenied: true,
         outOfScopeWriteDenied: true,
         executableToolsDenied: true,
         nodeReexecDenied: true,
