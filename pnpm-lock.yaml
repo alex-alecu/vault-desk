@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  node-llama-cpp@3.19.0: af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6
+
 importers:
 
   .:
@@ -65,7 +68,7 @@ importers:
         version: 12.11.1
       node-llama-cpp:
         specifier: 3.19.0
-        version: 3.19.0(typescript@7.0.2)
+        version: 3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2)
       tar-stream:
         specifier: 3.2.0
         version: 3.2.0
@@ -99,7 +102,7 @@ importers:
         version: link:../shared
       node-llama-cpp:
         specifier: 3.19.0
-        version: 3.19.0(typescript@7.0.2)
+        version: 3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2)
 
 packages:
 
@@ -2616,7 +2619,7 @@ snapshots:
 
   node-api-headers@1.9.0: {}
 
-  node-llama-cpp@3.19.0(typescript@7.0.2):
+  node-llama-cpp@3.19.0(patch_hash=af28185a92593da9c27057b03fd9aee2eba6a26f7c2bc3cc551c2bf2ff689df6)(typescript@7.0.2):
     dependencies:
       '@huggingface/jinja': 0.5.9
       async-retry: 1.3.3

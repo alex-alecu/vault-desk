@@ -5,6 +5,7 @@ import {
   InferenceWorkerClient,
   MacOsNativeWorkerLauncher,
   WindowsNativeWorkerLauncher,
+  windowsNativeWorkerEntryPath,
 } from "@vault/workers";
 import { AuditLog } from "./audit/log.js";
 import { createFacade, type VaultCore } from "./facade.js";
@@ -29,9 +30,10 @@ async function createInference(options: VaultCoreOptions, workspaceRoot: string,
     process.platform === "win32"
       ? new WindowsNativeWorkerLauncher()
       : new MacOsNativeWorkerLauncher([workspaceRoot]);
-  const workerEntryPath = fileURLToPath(
-    new URL("../../workers/dist/inference/worker.js", import.meta.url),
-  );
+  const workerEntryPath =
+    process.platform === "win32"
+      ? windowsNativeWorkerEntryPath()
+      : fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url));
   return new InferenceSupervisor(
     new InferenceWorkerClient(launcher, workerEntryPath),
     modelResolver,

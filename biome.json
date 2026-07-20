@@ -88,6 +88,7 @@
         "packages/workers/images/build.ts",
         "packages/workers/native/macos-vz-helper/build.ts",
         "packages/workers/native/windows-hcs-helper/build.ts",
+        "packages/workers/native/windows-appcontainer-launcher/build.ts",
         "packages/eval/src/**/*.ts",
         "scripts/**/*.ts"
       ],

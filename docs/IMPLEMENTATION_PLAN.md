@@ -2,7 +2,7 @@
 
 Created: 2026-07-11
 
-This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. M0 completed on 2026-07-17 and cross-platform M1 completed on 2026-07-18. The repository owner activated M2 on 2026-07-19; M3 remains unauthorized.
+This document is the milestone-by-milestone plan for the first Vault Desk implementation phase. M0 completed on 2026-07-17, cross-platform M1 completed on 2026-07-18, and cross-platform M2 completed on 2026-07-20. M3 remains unauthorized.
 
 Component choices follow the verified default stack in [IMPLEMENTATION_QUALITY_BAR.md](IMPLEMENTATION_QUALITY_BAR.md) and the principles in [TYPESCRIPT_NODE_HARNESS.md](TYPESCRIPT_NODE_HARNESS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DOCUMENT_ENGINE.md](DOCUMENT_ENGINE.md), [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md), [SECURITY.md](SECURITY.md), [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md), and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
@@ -482,3 +482,4 @@ Never written in the first implementation: custom parser, custom OCR engine, cus
 | 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
 | 2026-07-17 | Required owner pull requests for every implementation stage from M1 onward while retaining post-M11 activation for external contributors. |
 | 2026-07-19 | Recorded the M1 review follow-up for authenticated and canonical local endpoints, audit-tail anchoring, bounded cancellable staging, and forced-exit recovery. |
+| 2026-07-20 | Recorded cross-platform M2 completion after macOS Seatbelt and Windows AppContainer authority probes plus pinned Qwen and Gemma canaries passed. |

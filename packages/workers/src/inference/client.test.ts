@@ -87,12 +87,15 @@ describe("M2 inference worker containment", () => {
     );
   });
 
-  it("reports the pending Windows launcher as typed unsupported", async () => {
-    await expect(
-      new WindowsNativeWorkerLauncher().launch({
-        workerEntryPath: "unused",
-        memoryBudgetBytes: 1024,
-      }),
-    ).rejects.toMatchObject({ code: "unsupported" });
-  });
+  it.skipIf(process.platform === "win32" && process.arch === "x64")(
+    "reports unsupported Windows launcher platforms as typed unsupported",
+    async () => {
+      await expect(
+        new WindowsNativeWorkerLauncher().launch({
+          workerEntryPath: "unused",
+          memoryBudgetBytes: 1024,
+        }),
+      ).rejects.toMatchObject({ code: "unsupported" });
+    },
+  );
 });

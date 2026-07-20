@@ -12,6 +12,12 @@ const modelFiles = new Map([
   ["gemma-4-12b-it-qat-q4_0", join(modelRoot, "gemma-4-12b-it-qat-q4_0.gguf")],
 ]);
 
+function platformName(): string {
+  if (process.platform === "darwin") return "macos";
+  if (process.platform === "win32") return "windows";
+  throw new Error("M2 native canaries require macOS or Windows.");
+}
+
 async function prepareModelStore(): Promise<void> {
   const manifest = await readCanonicalModelManifest();
   const installed = [];
@@ -59,8 +65,9 @@ async function generate(profile: InferenceProfile, modelId: string) {
   }
 }
 
+const platform = platformName();
 await prepareModelStore();
-console.log("M2 macOS: running Qwen3 embedding canary.");
+console.log(`M2 ${platform}: running Qwen3 embedding canary.`);
 const workspaceDir = await mkdtemp(join(tmpdir(), "vault-m2-embedding-"));
 let embedding: EmbeddingResult;
 try {
@@ -82,11 +89,11 @@ try {
   await rm(workspaceDir, { recursive: true, force: true });
 }
 
-console.log("M2 macOS: running Gemma 4 E2B Local 12 canary.");
+console.log(`M2 ${platform}: running Gemma 4 E2B Local 12 canary.`);
 const e2b = await generate("local12", "gemma-4-e2b-it-qat-q4_0");
-console.log("M2 macOS: running Gemma 4 12B Local 12 canary.");
+console.log(`M2 ${platform}: running Gemma 4 12B Local 12 canary.`);
 const local12 = await generate("local12", "gemma-4-12b-it-qat-q4_0");
-console.log("M2 macOS: running Gemma 4 12B Local 16 canary.");
+console.log(`M2 ${platform}: running Gemma 4 12B Local 16 canary.`);
 const local16 = await generate("local16", "gemma-4-12b-it-qat-q4_0");
 const report = {
   schemaVersion: 1,
@@ -102,7 +109,7 @@ const report = {
 };
 await mkdir(join(process.cwd(), "packages/eval/.generated/reports"), { recursive: true });
 await writeFile(
-  join(process.cwd(), "packages/eval/.generated/reports/m2-macos.json"),
+  join(process.cwd(), `packages/eval/.generated/reports/m2-${platform}.json`),
   JSON.stringify(report, null, 2),
 );
 console.log(JSON.stringify(report));

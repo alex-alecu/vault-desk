@@ -4,13 +4,14 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. The repository owner activated M2 on 2026-07-19. The macOS implementation is the current stage; Windows completion remains a separate platform handoff under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform milestone M1 on 2026-07-18, and cross-platform milestone M2 on 2026-07-20. M3 remains unauthorized under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
 ## Current Phase Rules
 
-- M0 and M1 are complete. M2 is active only for supervised inference and its named gate. Do not begin M3 or later work without a new explicit owner request.
+- M0, M1, and M2 are complete. Do not begin M3 or later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
-- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completed M1 evidence record and [docs/M2_STATUS.md](docs/M2_STATUS.md) as the active M2 evidence and Windows handoff record.
+- Preserve the completed M2 inference contracts, verified model staging, scheduler and supervisor, typed worker protocol, platform-native confinement, pinned runtime patch, and passing authority and model evidence.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) and [docs/M2_STATUS.md](docs/M2_STATUS.md) as the completed milestone evidence records.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
@@ -33,7 +34,7 @@ The v1 launch (after milestone M11) replaces the owner-only portion of this rule
 
 ## Implementation Rule
 
-Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. The signed Rust helper rooted at `packages/core/native/windows-pipe-guard/` may own the current-user-only Windows named-pipe instance, authenticate the owner and DACL from the client handle, and relay opaque request and response bytes over inherited stdio because Node cannot supply or inspect the required security descriptor; TypeScript retains canonical endpoint naming, RPC parsing, limits, dispatch, and policy. Platform microVM launchers may invoke the Swift helper rooted at `packages/workers/native/macos-vz-helper/` and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/`. Native helpers may own only their named OS capability, lifecycle, resource limits, scoped attachment access, typed transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, product parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
+Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. The signed Rust helper rooted at `packages/core/native/windows-pipe-guard/` may own the current-user-only Windows named-pipe instance, authenticate the owner and DACL from the client handle, and relay opaque request and response bytes over inherited stdio because Node cannot supply or inspect the required security descriptor; TypeScript retains canonical endpoint naming, RPC parsing, limits, dispatch, and policy. Platform microVM launchers may invoke the Swift helper rooted at `packages/workers/native/macos-vz-helper/` and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/`. The signed Rust helper rooted at `packages/workers/native/windows-appcontainer-launcher/` may create the fixed no-capability AppContainer, apply job memory and one-process limits, grant read access to the generated runtime and approved model plus full access only to job scratch, and launch the fixed worker over inherited stdio. Native helpers may own only their named OS capability, lifecycle, resource limits, scoped attachment access, typed transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, product parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
 Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
 
@@ -99,7 +100,7 @@ Architecture:
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
 - [docs/M1_STATUS.md](docs/M1_STATUS.md) - completed cross-platform M1 implementation and certification evidence.
-- [docs/M2_STATUS.md](docs/M2_STATUS.md) - active M2 macOS evidence, remaining Windows work, and milestone gate state.
+- [docs/M2_STATUS.md](docs/M2_STATUS.md) - completed cross-platform M2 implementation and certification evidence.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.

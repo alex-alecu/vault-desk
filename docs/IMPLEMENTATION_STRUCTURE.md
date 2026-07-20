@@ -2,7 +2,7 @@
 
 Created: 2026-07-13
 
-This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 is complete and M2 is active; M3 and later paths remain blueprints rather than implementation authority.
+This document is the companion to [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The plan defines the sequence and the acceptance gates; this document defines the concrete repository shape: which folders exist, which module owns which responsibility, when each file appears, and how much code we allow ourselves to write. M1 and M2 are complete; M3 and later paths remain blueprints rather than implementation authority.
 
 ## Startup Working Agreement
 
@@ -274,6 +274,12 @@ images/
   README.md                   selected tooling, lifecycle, and reproducibility notes M0
   manifest.json               machine-readable pinned contents and input/image hashes M0
   build.ts                    deterministic guest-image build orchestration           M1
+native/
+  windows-appcontainer-launcher/ signed Rust AppContainer/job/ACL launcher           M2
+    Cargo.toml                zero-third-party Rust manifest                          M2
+    Cargo.lock                pinned empty Rust resolution                            M2
+    build.ts                  isolated runtime deployment, release build, signing     M2
+    src/{main,process,sandbox,win32}.rs narrow Windows capability boundary             M2
 ```
 
 The M8 comparisons do not leave parallel production stacks. Reproducible comparison adapters stay development-only under `eval/src/selection/`. If an explicit loop wins, its conditional product adapter is not added. If Vercel AI SDK or OpenCode wins, only the selected thin production translation file remains beside the Vault Desk policy/orchestration module; the unselected runtime is absent from product dependencies and packages.
@@ -418,7 +424,8 @@ Cross-platform validation evidence remains tracked in [M0_STATUS.md](M0_STATUS.m
 - SQLite: `better-sqlite3` 12.11.1 under Node 24.18.0, with macOS and Windows native load smoke tests.
 - Quality tooling: Biome 2.5.4 with restricted imports, 40 function-body lines, cognitive complexity 10, and four parameters; nesting depth remains human-reviewed.
 - Node sidecar: Node 24 SEA plus `postject` 1.0.0-alpha.6, signed only after injection; exact build and signing evidence is defined in the Tauri smoke README.
-- native boundaries: signed Rust current-user pipe owner at `packages/core/native/windows-pipe-guard/` with a Cargo lock; signed Swift microVM helper at `packages/workers/native/macos-vz-helper/` with a SwiftPM lock; and signed Rust microVM helper at `packages/workers/native/windows-hcs-helper/` with a Cargo lock. All follow the narrow capability and lifecycle contract stated above.
+- Native boundaries selected in M0: signed Rust current-user pipe owner at `packages/core/native/windows-pipe-guard/` with a Cargo lock; signed Swift microVM helper at `packages/workers/native/macos-vz-helper/` with a SwiftPM lock; and signed Rust microVM helper at `packages/workers/native/windows-hcs-helper/` with a Cargo lock.
+- Native boundary added in M2: signed Rust native-inference AppContainer launcher at `packages/workers/native/windows-appcontainer-launcher/` with a Cargo lock. All native helpers follow the narrow capability and lifecycle contract stated above.
 - CLI: hand-rolled argument dispatch in M1; no parser dependency.
 - Guest image: pinned Buildroot input and deterministic root filesystem recipe, documented in `packages/workers/images/README.md`.
 - Knowledge Bundles: uncompressed deterministic tar inspected with `tar-stream` 3.2.0, TUF metadata verified with `tuf-js` 6.0.0, and detached Ed25519 signatures verified with Node `crypto`, per ADR 0017.
