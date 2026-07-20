@@ -14,7 +14,10 @@ import { join } from "node:path";
 function run(command: string, args: string[], env: NodeJS.ProcessEnv = process.env): void {
   const result = spawnSync(command, args, { encoding: "utf8", env, stdio: "pipe" });
   if (result.status === 0) return;
-  const detail = result.error?.message ?? result.stderr ?? result.stdout ?? "unknown failure";
+  const detail =
+    result.error?.message ??
+    [result.stderr, result.stdout].find((output) => output.trim() !== "") ??
+    "unknown failure";
   throw new Error(`${command} failed: ${detail}`);
 }
 
@@ -84,7 +87,7 @@ function deployRuntime(root: string): void {
           "--prod",
           "--legacy",
           "--force",
-          "--offline",
+          "--prefer-offline",
           "--config.node-linker=hoisted",
         ],
         { ...process.env, CI: "true" },
