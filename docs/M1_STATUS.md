@@ -2,7 +2,7 @@
 
 Updated: 2026-07-19
 
-M1 is complete across macOS and Windows. M2 is not authorized.
+M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, was activated by the repository owner on 2026-07-19, and completed on 2026-07-20.
 
 ## Change Brief
 
@@ -19,7 +19,7 @@ M1 is complete across macOS and Windows. M2 is not authorized.
 - Windows implementation and physical HCS certification: pass.
 - Windows daemon current-user endpoint gate: pass.
 - Full M1 milestone: complete.
-- M2 authorization: not granted.
+- M2 authorization at M1 closure: not granted; subsequently granted on 2026-07-19.
 
 ## Shared Evidence
 
@@ -52,6 +52,6 @@ M1 is complete across macOS and Windows. M2 is not authorized.
 - Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
 - Hosted CI classifies each available platform backend but does not replace the recorded elevated physical-host HCS or macOS hardware certification.
 - Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
-- M2 and all later product behavior require a new explicit owner request.
+- M2 subsequently completed and is tracked separately in [M2_STATUS.md](M2_STATUS.md); M3 and later product behavior require a new explicit owner request.
 
-Conclusion: ready; M1 is complete and M2 remains unauthorized.
+Conclusion: ready; M1 remains complete. Completed M2 evidence is recorded separately.

@@ -8,6 +8,10 @@ export const ErrorCodeSchema = z.enum([
   "path_changed",
   "not_found",
   "cancelled",
+  "timeout",
+  "malformed_worker_message",
+  "worker_crash",
+  "out_of_memory",
   "unsupported",
   "internal",
 ]);

@@ -14,6 +14,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
 
+async function createTestCore(workspaceDir: string) {
+  const modelStoreDir = join(workspaceDir, ".test-models");
+  await mkdir(modelStoreDir, { recursive: true });
+  await writeFile(
+    join(modelStoreDir, "installed-models.json"),
+    JSON.stringify({ schemaVersion: 1, models: [] }),
+  );
+  return createVaultCore({ workspaceDir, modelStoreDir, profile: "local12" });
+}
+
 async function temporaryRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "vault-m1-workspace-"));
   temporaryRoots.push(root);
@@ -72,11 +82,11 @@ describe("M1 artifact security and identity", () => {
     await expect(artifacts.put(Buffer.from("authoritative"))).rejects.toThrow(
       "artifact_hash_mismatch",
     );
-    const first = await createVaultCore({ workspaceDir: root });
+    const first = await createTestCore(root);
     const identity = (await first.status()).workspace.id;
-    await expect(createVaultCore({ workspaceDir: root })).rejects.toThrow("workspace_busy");
+    await expect(createTestCore(root)).rejects.toThrow("workspace_busy");
     await first.close();
-    const reopened = await createVaultCore({ workspaceDir: root });
+    const reopened = await createTestCore(root);
     expect((await reopened.status()).workspace.id).toBe(identity);
     await reopened.close();
   });
@@ -90,9 +100,7 @@ describe("M1 internal workspace path security", () => {
     await mkdir(root);
     await mkdir(outside);
     await symlink(outside, join(root, ".vault"), process.platform === "win32" ? "junction" : "dir");
-    await expect(createVaultCore({ workspaceDir: root })).rejects.toThrow(
-      "workspace_directory_unsafe",
-    );
+    await expect(createTestCore(root)).rejects.toThrow("workspace_directory_unsafe");
     await expect(ArtifactStore.create(await WorkspaceScope.create(root))).rejects.toThrow(
       "path_out_of_scope",
     );
@@ -102,7 +110,7 @@ describe("M1 internal workspace path security", () => {
 describe("M1 durable job cancellation", () => {
   it("reports cancellation only when a cancellable job transitions", async () => {
     const root = await temporaryRoot();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     const now = new Date().toISOString();
     const jobId = "00000000-0000-4000-8000-000000000001";
@@ -118,7 +126,7 @@ describe("M1 durable job cancellation", () => {
 describe("M1 authoritative state recovery", () => {
   it("rolls back an authoritative transaction killed before commit", async () => {
     const root = await temporaryRoot();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     await core.close();
     const databasePath = join(root, ".vault", "catalog.sqlite");
     const script = [
@@ -139,7 +147,7 @@ describe("M1 authoritative state recovery", () => {
 describe("M1 audit integrity", () => {
   it("redacts routine content and detects a modified audit record", async () => {
     const root = await temporaryRoot();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     await core.close();
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     const audit = new AuditLog(database);
@@ -164,7 +172,7 @@ describe("M1 audit integrity", () => {
 
   it("detects a truncated audit tail and refuses to extend it", async () => {
     const root = await temporaryRoot();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     await core.close();
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     const audit = new AuditLog(database);
@@ -184,14 +192,14 @@ describe("M1 audit integrity", () => {
 describe("M1 workspace migration", () => {
   it("anchors an existing version-one audit chain", async () => {
     const root = await temporaryRoot();
-    const first = await createVaultCore({ workspaceDir: root });
+    const first = await createTestCore(root);
     await first.close();
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     database.exec(
       "DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
     );
     database.close();
-    const migrated = await createVaultCore({ workspaceDir: root });
+    const migrated = await createTestCore(root);
     expect((await migrated.status()).catalogSchemaVersion).toBe(2);
     expect(await migrated.verifyAudit()).toBe(true);
     await migrated.close();
@@ -206,7 +214,7 @@ describe("M1 workspace migration", () => {
     legacy.exec("CREATE TABLE legacy_marker (value TEXT NOT NULL)");
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
-    const core = await createVaultCore({ workspaceDir: root });
+    const core = await createTestCore(root);
     expect((await core.status()).catalogSchemaVersion).toBe(2);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>

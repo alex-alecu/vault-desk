@@ -5,3 +5,6 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   node-llama-cpp: true
+
+patchedDependencies:
+  node-llama-cpp@3.19.0: patches/node-llama-cpp@3.19.0.patch

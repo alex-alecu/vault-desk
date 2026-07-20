@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -10,6 +13,7 @@
     }
   },
   "dependencies": {
-    "@vault/shared": "workspace:*"
+    "@vault/shared": "workspace:*",
+    "node-llama-cpp": "3.19.0"
   }
 }

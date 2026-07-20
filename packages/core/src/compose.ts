@@ -1,14 +1,47 @@
 import { resolve } from "node:path";
-import type { WorkspaceStatus } from "@vault/shared";
+import { fileURLToPath } from "node:url";
+import { InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
+import {
+  InferenceWorkerClient,
+  MacOsNativeWorkerLauncher,
+  WindowsNativeWorkerLauncher,
+  windowsNativeWorkerEntryPath,
+} from "@vault/workers";
 import { AuditLog } from "./audit/log.js";
 import { createFacade, type VaultCore } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
+import { ModelResolver } from "./runtime/models.js";
+import { ResourceScheduler } from "./runtime/scheduler.js";
+import { InferenceSupervisor } from "./runtime/supervisor.js";
 import { openWorkspaceCatalog } from "./workspace/catalog.js";
 import { WorkspaceScope } from "./workspace/scope.js";
 import { getOrCreateWorkspace } from "./workspace/workspaces.js";
 
 export interface VaultCoreOptions {
   workspaceDir: string;
+  modelStoreDir: string;
+  profile: "local12" | "local16";
+}
+
+async function createInference(options: VaultCoreOptions, workspaceRoot: string, audit: AuditLog) {
+  const profile = InferenceProfileSchema.parse(options.profile);
+  const modelResolver = await ModelResolver.open(options.modelStoreDir);
+  const launcher =
+    process.platform === "win32"
+      ? new WindowsNativeWorkerLauncher()
+      : new MacOsNativeWorkerLauncher([workspaceRoot]);
+  const workerEntryPath =
+    process.platform === "win32"
+      ? windowsNativeWorkerEntryPath()
+      : fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url));
+  return new InferenceSupervisor(
+    new InferenceWorkerClient(launcher, workerEntryPath),
+    modelResolver,
+    new ResourceScheduler(profile),
+    (event) => {
+      audit.append(event);
+    },
+  );
 }
 
 export async function createVaultCore(options: VaultCoreOptions): Promise<VaultCore> {
@@ -18,6 +51,13 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   const workspace = getOrCreateWorkspace(catalog.database, workspaceRoot);
   const audit = new AuditLog(catalog.database);
   const jobs = new JobStore(catalog.database);
+  let inference: Awaited<ReturnType<typeof createInference>>;
+  try {
+    inference = await createInference(options, workspaceRoot, audit);
+  } catch (error) {
+    catalog.close();
+    throw error;
+  }
   const status = async (): Promise<WorkspaceStatus> => ({
     workspace,
     catalogSchemaVersion: catalog.schemaVersion,
@@ -37,7 +77,10 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
       return cancelled;
     },
     verifyAudit: async () => audit.verify(),
+    generate: (input, signal) => inference.generate(input, signal),
+    embed: (input, signal) => inference.embed(input, signal),
     async close() {
+      await inference.close();
       audit.append({ type: "core.closed", outcome: "succeeded", metadata: {} });
       catalog.close();
     },
