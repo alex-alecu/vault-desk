@@ -31,7 +31,7 @@ The desktop communicates only through narrow typed Tauri commands and the curren
 
 The left sidebar has one global **New chat** action followed by folder groups. Each folder group shows its five most recent sessions and a **Show more** control when older sessions exist. A folder selection creates a new session in that folder unless an existing session is selected.
 
-A New chat session has no folder grant. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder session grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
+A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
 
 The main pane is conversation-first. It shows streamed assistant output, concise code/tool activity, generated artifacts, warnings, failures, and cancellation state. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
 

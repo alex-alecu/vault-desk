@@ -45,7 +45,7 @@ Removing a folder removes its active grant but never deletes or changes host fil
 
 ## New Chat
 
-New chat creates a session with no folder grant. Users can attach one or more files through a native file dialog or drag and drop. Vault Core copies and verifies those files into session-owned read-only inputs before the agent can access them.
+New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or drag and drop. Vault Core copies and verifies those files into session-owned read-only inputs before the agent can access them.
 
 New chat must never silently inherit the previously selected folder. Attachments are visible as removable chips before sending and as immutable input records after the turn begins.
 

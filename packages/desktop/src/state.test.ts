@@ -63,6 +63,22 @@ describe("desktop navigation state", () => {
 });
 
 describe("global desktop sessions", () => {
+  it("does not persist repeated blank New chat actions", () => {
+    const first = desktopReducer(initialDesktopState, { type: "session.new", folderId: null });
+    const repeated = desktopReducer(first, { type: "session.new", folderId: null });
+    expect(repeated.activeSessionId).toBeUndefined();
+    expect(repeated.newSessionFolderId).toBeNull();
+    expect(repeated.globalSessions).toEqual([]);
+  });
+
+  it("prepares a folder context without adding an empty session row", () => {
+    const withFolder = desktopReducer(initialDesktopState, { type: "folder.add", folder });
+    const state = desktopReducer(withFolder, { type: "session.new", folderId: folder.id });
+    expect(state.activeSessionId).toBeUndefined();
+    expect(state.newSessionFolderId).toBe(folder.id);
+    expect(state.folders[0]?.sessions).toEqual([]);
+  });
+
   it("keeps New chat outside a folder", () => {
     const globalSession = SessionSummarySchema.parse({
       ...firstSession,

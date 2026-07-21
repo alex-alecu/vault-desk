@@ -29,6 +29,7 @@ export interface DesktopState {
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
   activeSessionId: string | undefined;
+  newSessionFolderId: string | null | undefined;
   draft: string;
   timeline: TimelineItem[];
   attachments: AttachmentSummary[];
@@ -46,6 +47,7 @@ export type DesktopAction =
   | { type: "folder.page"; folderId: string; page: SessionPage }
   | { type: "folder.refresh"; folderId: string; page: SessionPage }
   | { type: "session.created"; session: SessionSummary }
+  | { type: "session.new"; folderId: string | null }
   | { type: "session.select"; sessionId: string }
   | { type: "messages.load"; sessionId: string; messages: ConversationMessage[] }
   | { type: "message.append"; message: ConversationMessage }
@@ -66,6 +68,7 @@ export const initialDesktopState: DesktopState = {
   folders: [],
   globalSessions: [],
   activeSessionId: undefined,
+  newSessionFolderId: undefined,
   draft: "",
   timeline: [],
   attachments: [],
@@ -106,6 +109,7 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
     return {
       ...state,
       activeSessionId: session.id,
+      newSessionFolderId: undefined,
       draft: "",
       timeline: [],
       attachments: [],
@@ -118,6 +122,7 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
   return {
     ...state,
     activeSessionId: session.id,
+    newSessionFolderId: undefined,
     draft: "",
     timeline: [],
     attachments: [],
@@ -166,6 +171,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       ...(activeRemoved
         ? {
             activeSessionId: undefined,
+            newSessionFolderId: undefined,
             timeline: [],
             attachments: [],
             removableAttachmentIds: [],
@@ -174,6 +180,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
             draft: "",
           }
         : {}),
+      ...(state.newSessionFolderId === action.folderId ? { newSessionFolderId: null } : {}),
     };
   }
   if (action.type === "folder.toggle") {
@@ -196,10 +203,24 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     };
   }
   if (action.type === "session.created") return addSession(state, action.session);
+  if (action.type === "session.new") {
+    return {
+      ...state,
+      activeSessionId: undefined,
+      newSessionFolderId: action.folderId,
+      timeline: [],
+      attachments: [],
+      removableAttachmentIds: [],
+      activeRun: undefined,
+      artifacts: [],
+      draft: "",
+    };
+  }
   if (action.type === "session.select") {
     return {
       ...state,
       activeSessionId: action.sessionId,
+      newSessionFolderId: undefined,
       timeline: [],
       attachments: [],
       removableAttachmentIds: [],

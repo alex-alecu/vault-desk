@@ -100,17 +100,26 @@ async function showMore(
 interface SendOptions {
   text: string;
   activeSessionId: string | undefined;
+  newSessionFolderId: string | null | undefined;
   dispatch: Dispatch;
   setError: SetError;
   setSubmitting(value: boolean): void;
 }
 
-async function send({ text, activeSessionId, dispatch, setError, setSubmitting }: SendOptions) {
+async function send({
+  text,
+  activeSessionId,
+  newSessionFolderId,
+  dispatch,
+  setError,
+  setSubmitting,
+}: SendOptions) {
   setSubmitting(true);
   setError(undefined);
   let started = false;
   try {
-    const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
+    const sessionId =
+      activeSessionId ?? (await startSession(newSessionFolderId ?? null, dispatch, setError));
     if (sessionId === undefined) return;
     const run = await startAgent(sessionId, text);
     started = true;
@@ -150,8 +159,14 @@ async function send({ text, activeSessionId, dispatch, setError, setSubmitting }
   }
 }
 
-async function attach(activeSessionId: string | undefined, dispatch: Dispatch, setError: SetError) {
-  const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
+async function attach(
+  activeSessionId: string | undefined,
+  newSessionFolderId: string | null | undefined,
+  dispatch: Dispatch,
+  setError: SetError,
+) {
+  const sessionId =
+    activeSessionId ?? (await startSession(newSessionFolderId ?? null, dispatch, setError));
   if (sessionId === undefined) return;
   try {
     const attachments = await chooseFiles(sessionId);
@@ -209,7 +224,7 @@ export function App() {
         folders={state.folders}
         globalSessions={state.globalSessions}
         onAddFolder={() => void addFolder(dispatch, setDesktopError)}
-        onNewSession={(folderId) => void startSession(folderId, dispatch, setDesktopError)}
+        onNewSession={(folderId) => dispatch({ type: "session.new", folderId })}
         onRevokeFolder={(folderId) => {
           void revokeFolder(folderId)
             .then((revoked) => {
@@ -259,7 +274,9 @@ export function App() {
           attachments={state.attachments}
           draft={state.draft}
           disabled={!state.loaded}
-          onAttach={() => void attach(state.activeSessionId, dispatch, setDesktopError)}
+          onAttach={() =>
+            void attach(state.activeSessionId, state.newSessionFolderId, dispatch, setDesktopError)
+          }
           onCancel={() => {
             if (state.activeRun !== undefined) {
               void cancelAgent(state.activeRun.jobId).catch(() =>
@@ -277,6 +294,7 @@ export function App() {
             void send({
               text,
               activeSessionId: state.activeSessionId,
+              newSessionFolderId: state.newSessionFolderId,
               dispatch,
               setError: setDesktopError,
               setSubmitting,
