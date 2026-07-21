@@ -13,12 +13,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "Vault Desk",
+        "title": "",
         "width": 1440,
         "height": 940,
         "minWidth": 760,
         "minHeight": 600,
-        "resizable": true
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {

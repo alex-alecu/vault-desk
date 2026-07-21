@@ -55,7 +55,7 @@ textarea:focus-visible {
   max-width: 340px;
   flex: 0 0 auto;
   flex-direction: column;
-  padding: 22px 12px 14px;
+  padding: 54px 12px 14px;
   overflow: hidden;
   resize: horizontal;
   background: rgb(244 241 246 / 90%);
@@ -743,6 +743,7 @@ textarea:focus-visible {
     flex-direction: column;
     overflow-y: auto;
     resize: none;
+    padding-top: 54px;
     border-right: 0;
     border-bottom: 1px solid #e2dfdc;
   }

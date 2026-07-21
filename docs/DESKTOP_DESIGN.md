@@ -26,7 +26,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a compact, horizontally resizable translucent sidebar and a white conversation workspace. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable translucent sidebar and a white conversation workspace. On macOS the sidebar background extends beneath the native traffic-light controls and the native title text is hidden. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
 
 ## Sidebar
 
