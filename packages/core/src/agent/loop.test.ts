@@ -20,6 +20,18 @@ function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate
   };
 }
 
+function capturingInference(
+  decisions: AgentDecision[],
+  prompts: string[],
+): Pick<InferenceService, "generate"> {
+  return {
+    async generate(input) {
+      prompts.push(input.prompt);
+      return await inference(decisions).generate(input);
+    },
+  };
+}
+
 function executor(results: AgentExecutionResult[], calls: string[]): AgentExecutor {
   return {
     async execute(input) {
@@ -39,21 +51,91 @@ const completed: AgentExecutionResult = {
   stderr: "",
   durationMs: 10,
   termination: "completed",
+  artifacts: [],
 };
 
-describe("AgentLoop execution", () => {
+describe("AgentLoop schema", () => {
+  it("uses object alternatives supported by the inference grammar", async () => {
+    let schema: Record<string, unknown> | undefined;
+    const model: Pick<InferenceService, "generate"> = {
+      async generate(input) {
+        schema = input.jsonSchema;
+        return {
+          protocolVersion: 1,
+          requestId: "test",
+          status: "ok",
+          operation: "generate",
+          value: { action: "respond", response: "Done." },
+          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+        };
+      },
+    };
+    const loop = new AgentLoop(model, executor([], []));
+
+    await loop.run({ task: "Reply", modelId: "test-model" });
+
+    expect(schema).not.toHaveProperty("type");
+    expect(schema?.oneOf).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: "object" })]),
+    );
+    expect(schema?.oneOf).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          properties: expect.objectContaining({ code: expect.objectContaining({ type: "array" }) }),
+        }),
+      ]),
+    );
+  });
+});
+
+describe("AgentLoop source", () => {
+  it("joins complete generated source lines before execution", async () => {
+    const calls: string[] = [];
+    const model: Pick<InferenceService, "generate"> = {
+      async generate() {
+        return {
+          protocolVersion: 1,
+          requestId: "test",
+          status: "ok",
+          operation: "generate",
+          value: {
+            action: "execute",
+            language: "python",
+            code: ["value = 2 + 2", "print(value)"],
+            summary: "Calculate",
+          },
+          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+        };
+      },
+    };
+    const loop = new AgentLoop(model, executor([{ ...completed }], calls));
+
+    await expect(loop.run({ task: "Calculate", modelId: "test-model" })).rejects.toThrow(
+      "Missing fake execution result.",
+    );
+    expect(calls[0]).toBe("value = 2 + 2\nprint(value)");
+  });
+});
+
+describe("AgentLoop observations", () => {
   it("feeds bounded execution observations back to the model", async () => {
     const decisions: AgentDecision[] = [
       { action: "execute", language: "python", code: completed.code, summary: "Calculate" },
       { action: "respond", response: "The answer is 4." },
     ];
     const calls: string[] = [];
-    const loop = new AgentLoop(inference(decisions), executor([{ ...completed }], calls));
+    const prompts: string[] = [];
+    const loop = new AgentLoop(
+      capturingInference(decisions, prompts),
+      executor([{ ...completed }], calls),
+    );
 
     const result = await loop.run({ task: "Calculate two plus two", modelId: "test-model" });
 
     expect(calls).toEqual([completed.code]);
     expect(result).toEqual({ response: "The answer is 4.", executions: [completed] });
+    expect(prompts[1]).toContain(`"code":"${completed.code}"`);
+    expect(prompts[1]).toContain("Successful execution count: 1.");
   });
 });
 

@@ -1,11 +1,18 @@
 import { useEffect, useReducer, useState } from "react";
 import {
-  appendUserMessage,
   bootstrapDesktop,
+  cancelAgent,
+  chooseFiles,
   chooseFolder,
   createSession,
+  getAgentRun,
+  listAttachments,
   listMessages,
   listSessions,
+  loadDraft,
+  revokeFolder,
+  saveDraft,
+  startAgent,
 } from "./api.js";
 import { Composer } from "./components/composer.js";
 import { Conversation } from "./components/conversation.js";
@@ -30,6 +37,9 @@ async function startSession(folderId: string | null, dispatch: Dispatch, setErro
   try {
     const session = await createSession(folderId);
     dispatch({ type: "session.created", session });
+    if (folderId !== null) {
+      dispatch({ type: "folder.refresh", folderId, page: await listSessions(folderId) });
+    }
     return session.id;
   } catch {
     setError("The conversation could not be created.");
@@ -40,7 +50,18 @@ async function startSession(folderId: string | null, dispatch: Dispatch, setErro
 async function selectSession(sessionId: string, dispatch: Dispatch, setError: SetError) {
   dispatch({ type: "session.select", sessionId });
   try {
-    dispatch({ type: "messages.load", sessionId, messages: await listMessages(sessionId) });
+    const [messages, attachments, draft] = await Promise.all([
+      listMessages(sessionId),
+      listAttachments(sessionId),
+      loadDraft(sessionId),
+    ]);
+    dispatch({ type: "messages.load", sessionId, messages });
+    dispatch({ type: "attachments.load", sessionId, attachments });
+    dispatch({ type: "draft.load", sessionId, draft: draft?.content ?? "" });
+    const runIds = messages.flatMap((message) => (message.runId === null ? [] : [message.runId]));
+    for (const snapshot of await Promise.all(runIds.map((runId) => getAgentRun(runId)))) {
+      dispatch({ type: "agent.snapshot", snapshot });
+    }
   } catch {
     setError("The conversation could not be loaded.");
   }
@@ -70,13 +91,45 @@ async function send(
   const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
   if (sessionId === undefined) return;
   try {
-    const message = await appendUserMessage(sessionId, text);
-    dispatch({ type: "message.append", message });
+    const run = await startAgent(sessionId, text);
+    dispatch({ type: "agent.started", run });
+    dispatch({ type: "messages.load", sessionId, messages: await listMessages(sessionId) });
+    while (true) {
+      const snapshot = await getAgentRun(run.id);
+      dispatch({ type: "agent.snapshot", snapshot });
+      if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") break;
+      await new Promise((accept) => setTimeout(accept, 350));
+    }
+    dispatch({ type: "messages.load", sessionId, messages: await listMessages(sessionId) });
   } catch {
-    setError("The message could not be saved.");
+    setError("The offline task could not be completed.");
   }
 }
 
+async function attach(activeSessionId: string | undefined, dispatch: Dispatch, setError: SetError) {
+  const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
+  if (sessionId === undefined) return;
+  try {
+    const attachments = await chooseFiles(sessionId);
+    if (attachments.length > 0) dispatch({ type: "attachments.add", attachments });
+  } catch {
+    setError("The selected files could not be attached.");
+  }
+}
+
+function changeDraft(
+  draft: string,
+  sessionId: string | undefined,
+  dispatch: Dispatch,
+  setError: SetError,
+) {
+  dispatch({ type: "draft.change", draft });
+  if (sessionId !== undefined) {
+    void saveDraft(sessionId, draft).catch(() => setError("The draft could not be saved."));
+  }
+}
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this is the single view-composition boundary; workflow logic remains in the small helpers above.
 export function App() {
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
@@ -94,6 +147,13 @@ export function App() {
         globalSessions={state.globalSessions}
         onAddFolder={() => void addFolder(dispatch, setDesktopError)}
         onNewSession={(folderId) => void startSession(folderId, dispatch, setDesktopError)}
+        onRevokeFolder={(folderId) => {
+          void revokeFolder(folderId)
+            .then((revoked) => {
+              if (revoked) dispatch({ type: "folder.revoked", folderId });
+            })
+            .catch(() => setDesktopError("The folder grant could not be removed."));
+        }}
         onSelectSession={(sessionId) => void selectSession(sessionId, dispatch, setDesktopError)}
         onShowMore={(folderId) =>
           void showMore(
@@ -106,11 +166,23 @@ export function App() {
       />
       <main className="workspace">
         {desktopError === undefined ? null : <div className="error-banner">{desktopError}</div>}
-        <Conversation timeline={state.timeline} />
+        <Conversation
+          artifacts={state.artifacts}
+          onSuggestion={(draft) =>
+            changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
+          }
+          timeline={state.timeline}
+        />
         <Composer
+          attachments={state.attachments}
           draft={state.draft}
-          onChange={(draft) => dispatch({ type: "draft.change", draft })}
+          onAttach={() => void attach(state.activeSessionId, dispatch, setDesktopError)}
+          onCancel={() => {
+            if (state.activeRun !== undefined) void cancelAgent(state.activeRun.jobId);
+          }}
+          onChange={(draft) => changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)}
           onSend={(text) => void send(text, state.activeSessionId, dispatch, setDesktopError)}
+          running={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
         />
       </main>
     </div>

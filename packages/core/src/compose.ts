@@ -3,9 +3,12 @@ import { fileURLToPath } from "node:url";
 import { InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
 import {
   InferenceWorkerClient,
+  MacOsMicroVmLauncher,
   MacOsNativeWorkerLauncher,
   WindowsNativeWorkerLauncher,
 } from "@vault/workers";
+import { AgentService } from "./agent/service.js";
+import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
 import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
@@ -13,6 +16,7 @@ import { JobStore } from "./jobs/jobs.js";
 import { ModelResolver } from "./runtime/models.js";
 import { ResourceScheduler } from "./runtime/scheduler.js";
 import { InferenceSupervisor } from "./runtime/supervisor.js";
+import { ArtifactStore } from "./workspace/artifacts.js";
 import { openWorkspaceCatalog } from "./workspace/catalog.js";
 import { WorkspaceScope } from "./workspace/scope.js";
 import { getOrCreateWorkspace } from "./workspace/workspaces.js";
@@ -22,9 +26,11 @@ export interface VaultCoreOptions {
   modelStoreDir: string;
   profile: "local12" | "local16";
   migrationDirectory?: string;
-  nativeBinding?: string;
   sessionsOnly?: boolean;
   workerEntryPath?: string;
+  inferenceRuntimePath?: string;
+  agentHelperPath?: string;
+  agentImageRoot?: string;
 }
 
 async function createInference(options: VaultCoreOptions, workspaceRoot: string, audit: AuditLog) {
@@ -33,7 +39,7 @@ async function createInference(options: VaultCoreOptions, workspaceRoot: string,
   const launcher =
     process.platform === "win32"
       ? new WindowsNativeWorkerLauncher()
-      : new MacOsNativeWorkerLauncher([workspaceRoot]);
+      : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const workerEntryPath =
     options.workerEntryPath ??
     fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url));
@@ -60,7 +66,13 @@ function createConversationPorts(
   database: ReturnType<typeof openWorkspaceCatalog>["database"],
 ): Pick<
   VaultCorePorts,
-  "addFolder" | "listFolders" | "createSession" | "listSessions" | "appendMessage" | "listMessages"
+  | "addFolder"
+  | "listFolders"
+  | "revokeFolder"
+  | "createSession"
+  | "listSessions"
+  | "appendMessage"
+  | "listMessages"
 > {
   return {
     async addFolder(rootPath) {
@@ -76,6 +88,15 @@ function createConversationPorts(
     },
     async listFolders() {
       return conversations.listFolders();
+    },
+    async revokeFolder(folderId) {
+      const revoked = conversations.revokeFolder(folderId);
+      audit.append({
+        type: "folder.revoked",
+        outcome: revoked ? "succeeded" : "failed",
+        metadata: { folderId },
+      });
+      return revoked;
     },
     async createSession(folderId) {
       return database.transaction(() => {
@@ -115,10 +136,15 @@ interface CoreServices {
   jobs: JobStore;
   conversations: ConversationStore;
   inference: Awaited<ReturnType<typeof createInference>> | ReturnType<typeof unavailableInference>;
+  agent?: AgentService;
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: facade assembly intentionally lists every public capability.
 function assembleVaultCore(services: CoreServices): VaultCore {
-  const { catalog, workspace, audit, jobs, conversations, inference } = services;
+  const { catalog, workspace, audit, jobs, conversations, inference, agent } = services;
+  const unavailableAgent = (): never => {
+    throw Object.assign(new Error("agent_not_packaged"), { code: "unsupported" });
+  };
   audit.append({ type: "core.opened", outcome: "succeeded", metadata: {} });
   return createFacade({
     status: async () => ({
@@ -128,8 +154,32 @@ function assembleVaultCore(services: CoreServices): VaultCore {
       status: "ok",
     }),
     ...createConversationPorts(conversations, audit, catalog.database),
+    async saveDraft(sessionId, content) {
+      return agent?.saveDraft(sessionId, content) ?? unavailableAgent();
+    },
+    async loadDraft(sessionId) {
+      return agent?.loadDraft(sessionId) ?? unavailableAgent();
+    },
+    async addAttachment(sessionId, path) {
+      return (await agent?.addAttachment(sessionId, path)) ?? unavailableAgent();
+    },
+    async listAttachments(sessionId) {
+      return agent?.listAttachments(sessionId) ?? unavailableAgent();
+    },
+    async removeAttachment(sessionId, attachmentId) {
+      return agent?.removeAttachment(sessionId, attachmentId) ?? unavailableAgent();
+    },
+    async startAgent(sessionId, task) {
+      return agent?.start(sessionId, task) ?? unavailableAgent();
+    },
+    async getAgentRun(runId) {
+      return agent?.snapshot(runId) ?? unavailableAgent();
+    },
+    async cancelAgent(jobId) {
+      return agent?.cancel(jobId) ?? false;
+    },
     async cancelJob(jobId) {
-      const cancelled = jobs.cancel(jobId) !== undefined;
+      const cancelled = agent?.cancel(jobId) ?? jobs.cancel(jobId) !== undefined;
       audit.append({
         type: "job.cancellation_requested",
         outcome: cancelled ? "succeeded" : "failed",
@@ -141,6 +191,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     generate: (input, signal) => inference.generate(input, signal),
     embed: (input, signal) => inference.embed(input, signal),
     async close() {
+      await agent?.close();
       await inference.close();
       audit.append({ type: "core.closed", outcome: "succeeded", metadata: {} });
       catalog.close();
@@ -148,6 +199,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
   });
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: composition remains one explicit authority wiring boundary.
 export async function createVaultCore(options: VaultCoreOptions): Promise<VaultCore> {
   const scope = await WorkspaceScope.create(resolve(options.workspaceDir));
   const workspaceRoot = scope.root;
@@ -155,12 +207,12 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
     ...(options.migrationDirectory === undefined
       ? {}
       : { migrationDirectory: options.migrationDirectory }),
-    ...(options.nativeBinding === undefined ? {} : { nativeBinding: options.nativeBinding }),
   });
   const workspace = getOrCreateWorkspace(catalog.database, workspaceRoot);
   const audit = new AuditLog(catalog.database);
   const jobs = new JobStore(catalog.database);
   const conversations = new ConversationStore(catalog.database);
+  const artifacts = await ArtifactStore.create(scope);
   let inference:
     | Awaited<ReturnType<typeof createInference>>
     | ReturnType<typeof unavailableInference>;
@@ -173,5 +225,26 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
     catalog.close();
     throw error;
   }
-  return assembleVaultCore({ catalog, workspace, audit, jobs, conversations, inference });
+  const agent =
+    options.sessionsOnly === true || options.agentHelperPath === undefined
+      ? undefined
+      : new AgentService(
+          catalog.database,
+          new AgentStore(catalog.database, artifacts),
+          conversations,
+          jobs,
+          artifacts,
+          inference,
+          new MacOsMicroVmLauncher(options.agentHelperPath, options.agentImageRoot),
+          audit,
+        );
+  return assembleVaultCore({
+    catalog,
+    workspace,
+    audit,
+    jobs,
+    conversations,
+    inference,
+    ...(agent === undefined ? {} : { agent }),
+  });
 }

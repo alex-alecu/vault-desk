@@ -1,8 +1,8 @@
 # Implementation Plan
 
-Updated: 2026-07-20
+Updated: 2026-07-21
 
-This is the authoritative implementation sequence for the first Vault Desk release. M0 and M1 are complete. The useful macOS portion of M2 is implemented and its unfinished Windows inference work is now part of the cross-platform M3 gate. The repository owner activated M3 on 2026-07-20 as the first full product milestone.
+This is the authoritative implementation sequence for the first Vault Desk release. M0 and M1 are complete. The useful macOS portion of M2 is implemented and its unfinished Windows inference work is now part of the cross-platform M3 gate. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS M3 stage is implemented and physically certified; Windows remains required before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python and Node.js programs inside a disposable no-NIC microVM. It receives only user-selected read-only inputs and bounded ephemeral scratch. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -102,6 +102,8 @@ The macOS supervisor, model resolver, memory scheduler, typed inference worker, 
 
 ### M3 — Offline Dev-Agent Desktop V1 — active
 
+Stage state: macOS implementation and physical acceptance pass; Windows implementation and physical acceptance remain open.
+
 Scope:
 
 - Add typed folder-grant, attachment, session, turn, agent-run, agent-event, and artifact contracts just in time.
@@ -174,3 +176,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-18 | Closed cross-platform M1. |
 | 2026-07-19 | Activated supervised inference and completed its macOS stage. |
 | 2026-07-20 | Replaced the long pre-product sequence with M3 Offline Dev-Agent Desktop V1, moved document intelligence after V1, and made the generic no-NIC coding agent the first product. |
+| 2026-07-21 | Completed the M3 macOS implementation and physical acceptance while keeping the cross-platform launch gate open for Windows. |

@@ -1,4 +1,5 @@
 import {
+  AgentRunSnapshotSchema,
   ConversationMessageSchema,
   FolderSummarySchema,
   SessionPageSchema,
@@ -97,5 +98,29 @@ describe("global desktop sessions", () => {
       }),
     });
     expect(state.globalSessions[0]?.title).toBe("Restore this conversation");
+  });
+});
+
+describe("background agent updates", () => {
+  it("does not mix an old session run into the selected conversation", () => {
+    const selected = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: secondSession,
+    });
+    const snapshot = AgentRunSnapshotSchema.parse({
+      run: {
+        id: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+        sessionId: firstSession.id,
+        jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+        state: "running",
+        response: null,
+        error: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      events: [],
+      artifacts: [],
+    });
+    expect(desktopReducer(selected, { type: "agent.snapshot", snapshot })).toBe(selected);
   });
 });

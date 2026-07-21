@@ -11,33 +11,22 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
+import { type DatabasePort, VaultDatabase } from "./database.js";
 
-const LATEST_SCHEMA_VERSION = 3;
+const LATEST_SCHEMA_VERSION = 4;
 
-const MIGRATION_NAMES = ["initial", "audit-head", "conversations"] as const;
+const MIGRATION_NAMES = ["initial", "audit-head", "conversations", "agent"] as const;
 
 export interface WorkspaceCatalog {
-  database: Database.Database;
+  database: DatabasePort;
   schemaVersion: number;
   close(): void;
 }
 
 export interface WorkspaceCatalogOptions {
   migrationDirectory?: string;
-  nativeBinding?: string;
-}
-
-function loadNativeBinding(path: string | undefined): Database.Options {
-  if (path === undefined) return {};
-  const absolutePath = resolve(path);
-  requireOwnedPath(absolutePath, "file");
-  const diskRequire = createRequire(join(dirname(absolutePath), "vault-native-loader.cjs"));
-  const nativeBinding = diskRequire(absolutePath) as unknown;
-  return { nativeBinding } as Database.Options;
 }
 
 function lockOwner(path: string): number | undefined {
@@ -96,7 +85,7 @@ function acquireWriterLock(path: string): number {
 }
 
 function migrate(
-  database: Database.Database,
+  database: DatabasePort,
   databasePath: string,
   catalogExisted: boolean,
   migrationDirectory?: string,
@@ -138,9 +127,9 @@ export function openWorkspaceCatalog(
   const lockPath = join(internalRoot, "writer.lock");
   const lockDescriptor = acquireWriterLock(lockPath);
   const catalogExisted = existsSync(databasePath) && lstatSync(databasePath).size > 0;
-  let database: Database.Database | undefined;
+  let database: VaultDatabase | undefined;
   try {
-    database = new Database(databasePath, loadNativeBinding(options.nativeBinding));
+    database = new VaultDatabase(databasePath);
     database.pragma("foreign_keys = ON");
     database.pragma("journal_mode = WAL");
     database.pragma("synchronous = FULL");

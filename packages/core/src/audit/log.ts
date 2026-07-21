@@ -5,7 +5,7 @@ import {
   AuditEventInputSchema,
   AuditEventSchema,
 } from "@vault/shared";
-import type Database from "better-sqlite3";
+import type { DatabasePort } from "../workspace/database.js";
 
 type AuditValue = string | number | boolean | null;
 interface AuditHead {
@@ -36,7 +36,7 @@ function eventHash(event: Omit<AuditEvent, "hash">): `sha256:${string}` {
 }
 
 export class AuditLog {
-  constructor(private readonly database: Database.Database) {}
+  constructor(private readonly database: DatabasePort) {}
 
   private head(): AuditHead | undefined {
     return this.database

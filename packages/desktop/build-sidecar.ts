@@ -1,19 +1,30 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { constants, createReadStream } from "node:fs";
+import { chmod, copyFile, mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { signExecutable, stripWindowsSignature } from "./build-signing.js";
+import { writePackageCompliance, writePackageIdentity } from "./package-compliance.js";
+import { copyRuntimePackage } from "./runtime-packages.js";
 
 const desktopRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositoryRoot = resolve(desktopRoot, "../..");
 const tauriRoot = join(desktopRoot, "src-tauri");
 const generatedRoot = join(desktopRoot, ".generated", "sidecar");
 const resourcesRoot = join(tauriRoot, "resources", "core");
+const inferenceRoot = join(resourcesRoot, "inference");
+const workerResourcesRoot = join(resourcesRoot, "workers");
+const modelResourcesRoot = join(resourcesRoot, "models");
 const binariesRoot = join(tauriRoot, "binaries");
-const expectedNodeVersion = "v24.18.0";
-const migrationNames = ["0001-initial.sql", "0002-audit-head.sql", "0003-conversations.sql"];
+const migrationNames = [
+  "0001-initial.sql",
+  "0002-audit-head.sql",
+  "0003-conversations.sql",
+  "0004-agent.sql",
+];
 
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {
   const result = spawnSync(command, args, { encoding: "utf8", env, stdio: "pipe" });
@@ -33,15 +44,14 @@ function targetTriple(): string {
 }
 
 async function sha256(path: string): Promise<string> {
-  return createHash("sha256")
-    .update(await readFile(path))
-    .digest("hex");
-}
-
-function sqliteAddonPath(): string {
-  const coreRequire = createRequire(join(repositoryRoot, "packages/core/package.json"));
-  const entry = coreRequire.resolve("better-sqlite3");
-  return resolve(dirname(entry), "../build/Release/better_sqlite3.node");
+  const digest = createHash("sha256");
+  await new Promise<void>((accept, reject) => {
+    const input = createReadStream(path);
+    input.on("data", (chunk) => digest.update(chunk));
+    input.once("error", reject);
+    input.once("end", accept);
+  });
+  return digest.digest("hex");
 }
 
 async function buildBundle(): Promise<string> {
@@ -61,8 +71,8 @@ async function buildBundle(): Promise<string> {
 }
 
 async function prepareSea(bundle: string): Promise<string> {
-  if (process.version !== expectedNodeVersion) {
-    throw new Error(`Expected Node ${expectedNodeVersion}, received ${process.version}.`);
+  if (process.version !== "v24.18.0") {
+    throw new Error(`Expected Node v24.18.0, received ${process.version}.`);
   }
   const blob = join(generatedRoot, "vault-core.blob");
   const executable = join(
@@ -94,54 +104,113 @@ async function prepareSea(bundle: string): Promise<string> {
   return executable;
 }
 
-function stripWindowsSignature(executable: string): void {
-  const programFiles = process.env["ProgramFiles(x86)"];
-  if (programFiles === undefined) throw new Error("Missing 64-bit Windows SDK location.");
-  const powerShell = windowsPowerShell();
-  const script =
-    '$s=Get-ChildItem "$env:VAULT_WINDOWS_KITS\\*\\x64\\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1;if($null -eq $s){exit 1};& $s.FullName remove /s $env:VAULT_SIGN_PATH;exit $LASTEXITCODE';
-  run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
-    ...process.env,
-    PSModulePath: powerShell.modulePath,
-    VAULT_SIGN_PATH: executable,
-    VAULT_WINDOWS_KITS: join(programFiles, "Windows Kits", "10", "bin"),
-  });
-}
-
-function windowsPowerShell(): { executable: string; modulePath: string } {
-  const windowsRoot = process.env.WINDIR ?? "C:\\Windows";
-  const root = join(windowsRoot, "System32", "WindowsPowerShell", "v1.0");
-  return { executable: join(root, "powershell.exe"), modulePath: join(root, "Modules") };
-}
-
-function signWindows(executable: string): string {
-  const powerShell = windowsPowerShell();
-  const script =
-    "$p=$env:VAULT_SIGN_PATH;$c=$null;try{$c=New-SelfSignedCertificate -Subject 'CN=Vault Desk M3 Development' -Type CodeSigningCert -CertStoreLocation Cert:\\CurrentUser\\My;Set-AuthenticodeSignature -FilePath $p -Certificate $c | Out-Null;$s=Get-AuthenticodeSignature -FilePath $p;$ok=$null -ne $s.SignerCertificate -and $s.Status -ne 'HashMismatch' -and $s.Status -ne 'NotSigned'}finally{if($null -ne $c){Remove-Item ('Cert:\\CurrentUser\\My\\'+$c.Thumbprint)}};if(-not $ok){exit 1}";
-  run(powerShell.executable, ["-NoProfile", "-NonInteractive", "-Command", script], {
-    ...process.env,
-    PSModulePath: powerShell.modulePath,
-    VAULT_SIGN_PATH: executable,
-  });
-  return "windows-ephemeral-self-signed";
-}
-
-function signExecutable(executable: string): string {
-  if (process.platform === "win32") return signWindows(executable);
-  run("codesign", ["--force", "--sign", "-", executable]);
-  run("codesign", ["--verify", "--strict", executable]);
-  return "macos-adhoc";
-}
-
 interface ResourceHashes {
-  addon: string;
   migrations: Record<string, string>;
   windowsPipeGuard?: string;
+  inferenceRuntime?: string;
+  inferenceRuntimeSignature?: string;
+  inferenceWorker?: string;
+  agentHelper?: string;
+  agentHelperSignature?: string;
+  agentKernel?: string;
+  agentInitramfs?: string;
+  generationModel?: string;
+  resourceManifest?: string;
+}
+type PackageIdentity = { executableSha256: string; signingMode: string };
+
+async function installMacAgentResources(): Promise<
+  Pick<ResourceHashes, "agentHelper" | "agentHelperSignature" | "agentKernel" | "agentInitramfs">
+> {
+  run("pnpm", ["--dir", repositoryRoot, "workers:macos:build"], process.env);
+  await mkdir(workerResourcesRoot, { recursive: true });
+  const helper = join(workerResourcesRoot, "vault-vz-helper");
+  await copyFile(
+    join(repositoryRoot, "packages/workers/native/macos-vz-helper/.generated/vault-vz-helper"),
+    helper,
+  );
+  await chmod(helper, 0o755);
+  const imageSource = join(repositoryRoot, "packages/workers/images");
+  const imageDestination = join(workerResourcesRoot, "images");
+  await mkdir(join(imageDestination, "agent"), { recursive: true });
+  await mkdir(join(imageDestination, ".generated/agent/artifacts/aarch64"), { recursive: true });
+  await copyFile(
+    join(imageSource, "agent/manifest.json"),
+    join(imageDestination, "agent/manifest.json"),
+  );
+  const kernel = join(imageDestination, ".generated/agent/artifacts/aarch64/Image");
+  const initramfs = join(imageDestination, ".generated/agent/artifacts/aarch64/rootfs.cpio");
+  await copyFile(join(imageSource, ".generated/agent/artifacts/aarch64/Image"), kernel);
+  await copyFile(join(imageSource, ".generated/agent/artifacts/aarch64/rootfs.cpio"), initramfs);
+  return {
+    agentHelper: await sha256(helper),
+    agentHelperSignature: "macos-adhoc",
+    agentKernel: await sha256(kernel),
+    agentInitramfs: await sha256(initramfs),
+  };
 }
 
-async function installResources(): Promise<ResourceHashes> {
-  const addon = join(resourcesRoot, "better_sqlite3.node");
-  await copyFile(sqliteAddonPath(), addon);
+async function installInferenceResources(): Promise<
+  Pick<ResourceHashes, "inferenceRuntime" | "inferenceRuntimeSignature" | "inferenceWorker">
+> {
+  await mkdir(inferenceRoot, { recursive: true });
+  const worker = join(inferenceRoot, "worker.mjs");
+  await build({
+    absWorkingDir: repositoryRoot,
+    entryPoints: [join(repositoryRoot, "packages/workers/src/inference/worker.ts")],
+    outfile: worker,
+    bundle: true,
+    external: ["node-llama-cpp"],
+    format: "esm",
+    platform: "node",
+    target: "node24",
+  });
+  await copyRuntimePackage(
+    "node-llama-cpp",
+    createRequire(join(repositoryRoot, "packages/workers/package.json")),
+    join(inferenceRoot, "node_modules"),
+    new Set(),
+  );
+  const runtime = join(inferenceRoot, "node");
+  await copyFile(process.execPath, runtime);
+  await chmod(runtime, 0o755);
+  const inferenceRuntimeSignature = signExecutable(runtime);
+  return {
+    inferenceRuntime: await sha256(runtime),
+    inferenceRuntimeSignature,
+    inferenceWorker: await sha256(worker),
+  };
+}
+
+async function installModelResources(): Promise<Pick<ResourceHashes, "generationModel">> {
+  await mkdir(modelResourcesRoot, { recursive: true });
+  const modelName = "gemma-4-12b-it-qat-q4_0.gguf";
+  const source = join(repositoryRoot, "packages/eval/.generated/models", modelName);
+  const destination = join(modelResourcesRoot, modelName);
+  await copyFile(source, destination, constants.COPYFILE_FICLONE);
+  const digest = await sha256(destination);
+  const size = (await stat(destination)).size;
+  await writeFile(
+    join(modelResourcesRoot, "installed-models.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      models: [
+        {
+          modelId: "gemma-4-12b-it-qat-q4_0",
+          storeKey: modelName,
+          byteLength: size,
+          sha256: digest,
+          runtimeBuild: "node-llama-cpp@3.19.0",
+          installedAt: "2026-07-20T00:00:00.000Z",
+        },
+      ],
+    })}\n`,
+  );
+  return { generationModel: digest };
+}
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: resource hashes, package identity, notices, and SBOM stay in one atomic packaging boundary.
+async function installResources(identity: PackageIdentity): Promise<ResourceHashes> {
   const migrations: Record<string, string> = {};
   for (const name of migrationNames) {
     const source = join(repositoryRoot, "packages/core/src/workspace/migrations", name);
@@ -162,10 +231,32 @@ async function installResources(): Promise<ResourceHashes> {
     );
     windowsPipeGuard = await sha256(pipeGuard);
   }
+  const productResources =
+    process.platform === "darwin"
+      ? {
+          ...(await installInferenceResources()),
+          ...(await installMacAgentResources()),
+          ...(await installModelResources()),
+        }
+      : {};
+  await writePackageIdentity(resourcesRoot, {
+    schemaVersion: 1,
+    targetTriple: targetTriple(),
+    sidecar: identity,
+    resources: { migrations, ...productResources },
+  });
+  const resourceManifest =
+    process.platform === "darwin"
+      ? await writePackageCompliance(
+          resourcesRoot,
+          join(workerResourcesRoot, "images/agent/manifest.json"),
+        )
+      : undefined;
   return {
-    addon: await sha256(addon),
     migrations,
     ...(windowsPipeGuard === undefined ? {} : { windowsPipeGuard }),
+    ...productResources,
+    ...(resourceManifest === undefined ? {} : { resourceManifest }),
   };
 }
 
@@ -182,13 +273,14 @@ const extension = process.platform === "win32" ? ".exe" : "";
 const installed = join(binariesRoot, `vault-core-${targetTriple()}${extension}`);
 await copyFile(executable, installed);
 await chmod(installed, 0o755);
-const resources = await installResources();
+const executableSha256 = await sha256(installed);
+const resources = await installResources({ executableSha256, signingMode });
 const record = {
   schemaVersion: 1,
   nodeVersion: process.version,
   targetTriple: targetTriple(),
   signingMode,
-  executableSha256: await sha256(installed),
+  executableSha256,
   bundleSha256: await sha256(bundle),
   resources,
 };

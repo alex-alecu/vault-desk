@@ -16,6 +16,7 @@ struct Arguments {
     let memoryBytes: UInt64
     let scratch: URL
     let inputs: [URL]
+    let request: URL?
 }
 
 func parseArguments() throws -> Arguments {
@@ -45,7 +46,8 @@ func parseArguments() throws -> Arguments {
         cpuCount: cpuCount,
         memoryBytes: memoryBytes,
         scratch: URL(fileURLWithPath: scratch),
-        inputs: inputs
+        inputs: inputs,
+        request: values["--request"].map { URL(fileURLWithPath: $0) }
     )
 }
 
@@ -88,7 +90,7 @@ func writeAll(_ data: Data, to descriptor: Int32) throws {
 }
 
 func writeFrame(_ payload: Data, to descriptor: Int32) throws {
-    guard !payload.isEmpty, payload.count <= 4096 else { throw HelperError.invalidFrame }
+    guard !payload.isEmpty, payload.count <= 256 * 1024 else { throw HelperError.invalidFrame }
     let length = UInt32(payload.count)
     let header = Data([
         UInt8(length >> 24),
@@ -103,7 +105,7 @@ func writeFrame(_ payload: Data, to descriptor: Int32) throws {
 func readFrame(from descriptor: Int32) throws -> Data {
     let header = try readExact(count: 4, from: descriptor)
     let length = header.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
-    guard length > 0, length <= 4096 else { throw HelperError.invalidFrame }
+    guard length > 0, length <= 64 * 1024 * 1024 else { throw HelperError.invalidFrame }
     return try readExact(count: Int(length), from: descriptor)
 }
 
@@ -171,16 +173,19 @@ struct VaultVirtualizationHelper {
             throw HelperError.socketUnavailable
         }
         let connection = try await connectWithRetry(socket)
-        let request: [String: Any] = [
-            "jobId": "00000000-0000-4000-8000-000000000001",
-            "operation": "probe",
-            "protocolVersion": 1,
-            "requestId": "m1-probe",
-        ]
-        try writeFrame(
-            JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]),
-            to: connection.fileDescriptor
-        )
+        let requestData: Data
+        if let request = arguments.request {
+            requestData = try Data(contentsOf: request)
+        } else {
+            let probe: [String: Any] = [
+                "jobId": "00000000-0000-4000-8000-000000000001",
+                "operation": "probe",
+                "protocolVersion": 1,
+                "requestId": "m1-probe",
+            ]
+            requestData = try JSONSerialization.data(withJSONObject: probe, options: [.sortedKeys])
+        }
+        try writeFrame(requestData, to: connection.fileDescriptor)
         let guest = try JSONSerialization.jsonObject(
             with: readFrame(from: connection.fileDescriptor)
         ) as? [String: Any]

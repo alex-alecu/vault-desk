@@ -1,10 +1,23 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, open, readFile, rm, stat, truncate } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@vault/shared";
-import type { MicroVmLauncher, MicroVmLaunchRequest, MicroVmLaunchResult } from "./launcher.js";
+import {
+  AgentGuestRequestSchema,
+  JobIdSchema,
+  MicroVmAgentReportSchema,
+  MicroVmProbeReportSchema,
+  type WorkerLimits,
+  WorkerLimitsSchema,
+} from "@vault/shared";
+import type {
+  CodeAgentLauncher,
+  MicroVmAgentRequest,
+  MicroVmLauncher,
+  MicroVmLaunchRequest,
+  MicroVmLaunchResult,
+} from "./launcher.js";
 import { copyBoundedInput, launchSignal } from "./staging.js";
 
 interface ImageManifest {
@@ -18,8 +31,14 @@ interface ImageManifest {
   };
 }
 
-async function verifiedArtifacts(): Promise<{ kernel: string; initramfs: string }> {
-  const root = join(process.cwd(), "packages/workers/images");
+interface LaunchBounds {
+  limits: WorkerLimits;
+}
+
+const VM_BOOT_GRACE_MS = 15_000;
+const MAX_HELPER_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+async function verifiedArtifacts(root: string): Promise<{ kernel: string; initramfs: string }> {
   const manifest = JSON.parse(await readFile(join(root, "manifest.json"), "utf8")) as ImageManifest;
   const output = manifest.outputs.aarch64;
   const artifacts = join(root, ".generated", "artifacts", "aarch64");
@@ -32,6 +51,24 @@ async function verifiedArtifacts(): Promise<{ kernel: string; initramfs: string 
   return { kernel, initramfs };
 }
 
+async function verifiedAgentArtifacts(
+  root: string,
+): Promise<{ kernel: string; initramfs: string }> {
+  const manifest = JSON.parse(
+    await readFile(join(root, "agent", "manifest.json"), "utf8"),
+  ) as ImageManifest;
+  const output = manifest.outputs.aarch64;
+  const artifacts = join(root, ".generated", "agent", "artifacts", "aarch64");
+  const kernel = join(artifacts, output.kernelFile);
+  const initramfs = join(artifacts, output.initramfsFile);
+  if ((await digest(kernel)) !== output.kernelSha256)
+    throw new Error("Agent kernel hash mismatch.");
+  if ((await digest(initramfs)) !== output.initramfsSha256) {
+    throw new Error("Agent initramfs hash mismatch.");
+  }
+  return { kernel, initramfs };
+}
+
 async function digest(path: string): Promise<string> {
   return createHash("sha256")
     .update(await readFile(path))
@@ -41,7 +78,7 @@ async function digest(path: string): Promise<string> {
 async function stageInputs(
   paths: string[],
   root: string,
-  request: MicroVmLaunchRequest,
+  request: LaunchBounds,
   signal: AbortSignal,
 ): Promise<string[]> {
   if (paths.length > request.limits.inputCount) throw new Error("worker_input_limit_exceeded");
@@ -64,8 +101,9 @@ async function stageInputs(
 function helperArguments(input: {
   artifacts: { kernel: string; initramfs: string };
   inputs: string[];
-  request: MicroVmLaunchRequest;
+  request: LaunchBounds;
   scratch: string;
+  requestPath?: string;
 }): string[] {
   const args = [
     "--kernel",
@@ -80,15 +118,11 @@ function helperArguments(input: {
     input.scratch,
   ];
   for (const path of input.inputs) args.push("--input", path);
+  if (input.requestPath !== undefined) args.push("--request", input.requestPath);
   return args;
 }
 
-function runHelper(
-  helper: string,
-  args: string[],
-  request: MicroVmLaunchRequest,
-  signal: AbortSignal,
-): Promise<string> {
+function runHelper(helper: string, args: string[], signal: AbortSignal): Promise<string> {
   return new Promise((accept, reject) => {
     const child = spawn(helper, args, {
       signal,
@@ -98,11 +132,11 @@ function runHelper(
     let errorOutput = "";
     child.stdout.on("data", (chunk) => {
       output += String(chunk);
-      if (Buffer.byteLength(output) > request.limits.outputBytes) child.kill("SIGKILL");
+      if (Buffer.byteLength(output) > MAX_HELPER_OUTPUT_BYTES) child.kill("SIGKILL");
     });
     child.stderr.on("data", (chunk) => {
       errorOutput += String(chunk);
-      if (Buffer.byteLength(errorOutput) > request.limits.outputBytes) child.kill("SIGKILL");
+      if (Buffer.byteLength(errorOutput) > MAX_HELPER_OUTPUT_BYTES) child.kill("SIGKILL");
     });
     child.once("error", reject);
     child.once("close", (code) => {
@@ -112,8 +146,11 @@ function runHelper(
   });
 }
 
-export class MacOsMicroVmLauncher implements MicroVmLauncher {
-  constructor(private readonly helperPath: string) {}
+export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher {
+  constructor(
+    private readonly helperPath: string,
+    private readonly imageRoot: string = join(process.cwd(), "packages/workers/images"),
+  ) {}
 
   async launchProbe(request: MicroVmLaunchRequest): Promise<MicroVmLaunchResult> {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
@@ -121,7 +158,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
     }
     JobIdSchema.parse(request.jobId);
     WorkerLimitsSchema.parse(request.limits);
-    const signal = launchSignal(request.signal, request.limits.wallTimeMs);
+    const signal = launchSignal(request.signal, request.limits.wallTimeMs + VM_BOOT_GRACE_MS);
     signal.throwIfAborted();
     const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-worker-${request.jobId}-`));
     try {
@@ -131,7 +168,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
       await scratchHandle.close();
       await truncate(scratch, request.limits.scratchBytes);
       signal.throwIfAborted();
-      const artifacts = await verifiedArtifacts();
+      const artifacts = await verifiedArtifacts(this.imageRoot);
       signal.throwIfAborted();
       const args = helperArguments({
         artifacts,
@@ -140,7 +177,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
         scratch,
       });
       const result = MicroVmProbeReportSchema.parse(
-        JSON.parse(await runHelper(this.helperPath, args, request, signal)),
+        JSON.parse(await runHelper(this.helperPath, args, signal)),
       );
       const certified =
         result.networkDeviceCount === 0 &&
@@ -152,6 +189,65 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher {
         return { ...result, classification: "compatible_unverified" };
       }
       return result;
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
+  }
+
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: launch staging and teardown remain visibly paired in one capability boundary.
+  async executeAgent(request: MicroVmAgentRequest) {
+    if (process.platform !== "darwin" || process.arch !== "arm64") {
+      throw new Error("The certified macOS backend requires Apple silicon.");
+    }
+    JobIdSchema.parse(request.jobId);
+    WorkerLimitsSchema.parse(request.limits);
+    const signal = launchSignal(request.signal, request.limits.wallTimeMs + VM_BOOT_GRACE_MS);
+    signal.throwIfAborted();
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.jobId}-`));
+    try {
+      const inputPaths = request.readonlyInputs.map((input) => input.path);
+      const inputs = await stageInputs(inputPaths, temporaryRoot, request, signal);
+      const scratch = join(temporaryRoot, "scratch.img");
+      const scratchHandle = await open(scratch, "wx", 0o600);
+      await scratchHandle.close();
+      await truncate(scratch, request.limits.scratchBytes);
+      const frame = AgentGuestRequestSchema.parse({
+        protocolVersion: 1,
+        requestId: request.jobId,
+        jobId: request.jobId,
+        operation: "execute",
+        language: request.language,
+        code: request.code,
+        inputs: await Promise.all(
+          request.readonlyInputs.map(async (input) => ({
+            name: input.name,
+            byteLength: (await stat(input.path)).size,
+          })),
+        ),
+        limits: {
+          wallTimeMs: request.limits.wallTimeMs,
+          memoryBytes: request.limits.memoryBytes,
+          scratchBytes: request.limits.scratchBytes,
+          outputBytes: request.limits.outputBytes,
+        },
+      });
+      const requestPath = join(temporaryRoot, "request.json");
+      await writeFile(requestPath, JSON.stringify(frame), { encoding: "utf8", mode: 0o600 });
+      const artifacts = await verifiedAgentArtifacts(this.imageRoot);
+      const args = helperArguments({ artifacts, inputs, request, scratch, requestPath });
+      const report = MicroVmAgentReportSchema.parse(
+        JSON.parse(await runHelper(this.helperPath, args, signal)),
+      );
+      const certified =
+        report.networkDeviceCount === 0 &&
+        report.socketDeviceCount === 1 &&
+        report.readOnlyInputCount === request.readonlyInputs.length &&
+        report.scratchBytes === request.limits.scratchBytes &&
+        report.guest.nonLoopbackNetworkDeviceCount === 0;
+      if (!certified || report.classification !== "certified") {
+        throw new Error("agent_guest_not_certified");
+      }
+      return report.guest.execution;
     } finally {
       await rm(temporaryRoot, { recursive: true, force: true });
     }

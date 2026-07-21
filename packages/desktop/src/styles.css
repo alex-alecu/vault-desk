@@ -39,13 +39,13 @@ textarea:focus-visible {
   grid-template-columns: 304px 1fr;
   width: 100%;
   height: 100%;
-  min-width: 760px;
+  min-width: 0;
   background: #fbfaf9;
 }
 
 .sidebar {
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr;
   min-width: 0;
   padding: 22px 12px 14px;
   background: #f2efed;
@@ -60,7 +60,6 @@ textarea:focus-visible {
 }
 
 .nav-action,
-.settings-action,
 .folder-heading,
 .session-row,
 .new-folder-session,
@@ -75,14 +74,12 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
-.nav-action,
-.settings-action {
+.nav-action {
   min-height: 40px;
   padding: 0 10px;
 }
 
 .nav-action:hover,
-.settings-action:hover,
 .folder-heading:hover,
 .session-row:hover,
 .new-folder-session:hover,
@@ -115,10 +112,30 @@ textarea:focus-visible {
   margin-bottom: 6px;
 }
 
+.folder-heading-row {
+  display: flex;
+  align-items: center;
+}
+
 .folder-heading {
+  width: auto;
+  flex: 1;
   min-height: 38px;
   padding: 0 9px;
   font-weight: 600;
+}
+
+.folder-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #8b8580;
+  cursor: pointer;
+}
+
+.folder-remove:hover {
+  background: #e4dfdc;
+  color: #473f3a;
 }
 
 .icon-chevron {
@@ -175,10 +192,6 @@ textarea:focus-visible {
 
 .show-more {
   color: #9a9591;
-}
-
-.settings-action {
-  align-self: end;
 }
 
 .workspace {
@@ -320,6 +333,31 @@ textarea:focus-visible {
   gap: 10px;
 }
 
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px 8px;
+  margin: 0;
+  list-style: none;
+}
+
+.attachment-chip {
+  max-width: 240px;
+  overflow: hidden;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-activity p {
+  white-space: pre-wrap;
+}
+
 .icon-button,
 .send-button {
   display: grid;
@@ -382,6 +420,49 @@ textarea:focus-visible {
 
   .suggestions {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(190px, 40%) minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: 1px solid #e2dfdc;
+  }
+
+  .folder-scroll {
+    min-height: 80px;
+  }
+
+  .workspace {
+    overflow: hidden;
+  }
+
+  .welcome {
+    align-self: stretch;
+    min-height: 0;
+    padding: 20px 0;
+    overflow-y: auto;
+  }
+
+  .suggestions button {
+    min-height: 72px;
+  }
+
+  .composer {
+    width: calc(100% - 24px);
+    margin-bottom: 10px;
+  }
+
+  .timeline-item {
+    max-width: 100%;
   }
 }
 

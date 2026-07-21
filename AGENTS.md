@@ -4,11 +4,11 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. The macOS M2 inference foundation was implemented on 2026-07-19. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20 and folded the remaining Windows inference work into its cross-platform gate.
+Vault Desk completed implementation milestone M0 on 2026-07-17 and cross-platform milestone M1 on 2026-07-18. The macOS M2 inference foundation was implemented on 2026-07-19. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20 and folded the remaining Windows inference work into its cross-platform gate. The macOS M3 stage is complete; Windows is the active platform handoff.
 
 ## Current Phase Rules
 
-- M0 and M1 are complete. M3 is active only for the generic offline dev-agent desktop and its named gate. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
+- M0 and M1 are complete. M3 is active only for the generic offline dev-agent desktop and its named gate; the macOS stage is complete. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
 - Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) as the completed M1 evidence record, [docs/M2_STATUS.md](docs/M2_STATUS.md) as the historical macOS inference-stage record, and [docs/M3_STATUS.md](docs/M3_STATUS.md) as the active product and platform evidence record.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.

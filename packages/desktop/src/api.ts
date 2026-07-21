@@ -1,9 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
+  type AgentRunSnapshot,
+  AgentRunSnapshotSchema,
+  type AgentRunSummary,
+  AgentRunSummarySchema,
+  type AttachmentSummary,
+  AttachmentSummarySchema,
   type ConversationMessage,
   ConversationMessageSchema,
   type FolderSummary,
   FolderSummarySchema,
+  type SessionDraft,
+  SessionDraftSchema,
   type SessionPage,
   SessionPageSchema,
   type SessionSummary,
@@ -65,11 +73,16 @@ export async function chooseFolder(): Promise<FolderSummary | undefined> {
   return value === null ? undefined : FolderSummarySchema.parse(value);
 }
 
+export async function revokeFolder(folderId: string): Promise<boolean> {
+  const value = record(await invoke("revoke_folder", { folderId }));
+  return value.revoked === true;
+}
+
 export async function createSession(folderId: string | null): Promise<SessionSummary> {
   return SessionSummarySchema.parse(await invoke("create_session", { folderId }));
 }
 
-export async function listSessions(folderId: string | null, cursor: string): Promise<SessionPage> {
+export async function listSessions(folderId: string | null, cursor?: string): Promise<SessionPage> {
   return SessionPageSchema.parse(await invoke("list_sessions", { folderId, cursor }));
 }
 
@@ -84,4 +97,34 @@ export async function appendUserMessage(
   return ConversationMessageSchema.parse(
     await invoke("append_user_message", { sessionId, content }),
   );
+}
+
+export async function chooseFiles(sessionId: string): Promise<AttachmentSummary[]> {
+  return AttachmentSummarySchema.array().parse(await invoke("choose_files", { sessionId }));
+}
+
+export async function listAttachments(sessionId: string): Promise<AttachmentSummary[]> {
+  return AttachmentSummarySchema.array().parse(await invoke("list_attachments", { sessionId }));
+}
+
+export async function saveDraft(sessionId: string, content: string): Promise<SessionDraft> {
+  return SessionDraftSchema.parse(await invoke("save_draft", { sessionId, content }));
+}
+
+export async function loadDraft(sessionId: string): Promise<SessionDraft | undefined> {
+  const value = await invoke<unknown | null>("load_draft", { sessionId });
+  return value === null ? undefined : SessionDraftSchema.parse(value);
+}
+
+export async function startAgent(sessionId: string, task: string): Promise<AgentRunSummary> {
+  return AgentRunSummarySchema.parse(await invoke("start_agent", { sessionId, task }));
+}
+
+export async function getAgentRun(runId: string): Promise<AgentRunSnapshot> {
+  return AgentRunSnapshotSchema.parse(await invoke("get_agent_run", { runId }));
+}
+
+export async function cancelAgent(jobId: string): Promise<boolean> {
+  const value = record(await invoke("cancel_agent", { jobId }));
+  return value.cancelled === true;
 }

@@ -10,13 +10,14 @@ import {
   type SessionSummary,
   SessionSummarySchema,
 } from "@vault/shared";
-import type Database from "better-sqlite3";
+import type { DatabasePort } from "../workspace/database.js";
 import { inspectFolderGrant } from "../workspace/folder-grants.js";
 
 interface FolderRow {
   id: string;
   display_name: string;
   created_at: string;
+  revoked_at: string | null;
 }
 
 interface SessionRow {
@@ -32,6 +33,7 @@ interface MessageRow {
   session_id: string;
   role: string;
   content: string;
+  run_id: string | null;
   created_at: string;
 }
 
@@ -40,6 +42,7 @@ function folderSummary(row: FolderRow): FolderSummary {
     id: row.id,
     name: row.display_name,
     createdAt: row.created_at,
+    revokedAt: row.revoked_at,
   });
 }
 
@@ -59,6 +62,7 @@ function message(row: MessageRow): ConversationMessage {
     sessionId: row.session_id,
     role: row.role,
     content: row.content,
+    runId: row.run_id,
     createdAt: row.created_at,
   });
 }
@@ -89,19 +93,33 @@ function encodeCursor(session: SessionSummary): string {
 }
 
 export class ConversationStore {
-  constructor(private readonly database: Database.Database) {}
+  constructor(private readonly database: DatabasePort) {}
 
   addFolder(rootPath: string): FolderSummary {
     const { canonicalPath, displayName } = inspectFolderGrant(rootPath);
     const existing = this.database
-      .prepare("SELECT id, display_name, created_at FROM folder_grants WHERE root_path = ?")
+      .prepare(
+        "SELECT id, display_name, created_at, revoked_at FROM folder_grants WHERE root_path = ?",
+      )
       .get(canonicalPath) as FolderRow | undefined;
-    if (existing !== undefined) return folderSummary(existing);
+    if (existing !== undefined) {
+      if (existing.revoked_at !== null) {
+        this.database
+          .prepare("UPDATE folder_grants SET revoked_at = NULL WHERE id = ?")
+          .run(existing.id);
+      }
+      return folderSummary({ ...existing, revoked_at: null });
+    }
     const createdAt = new Date().toISOString();
-    const folder = FolderSummarySchema.parse({ id: randomUUID(), name: displayName, createdAt });
+    const folder = FolderSummarySchema.parse({
+      id: randomUUID(),
+      name: displayName,
+      createdAt,
+      revokedAt: null,
+    });
     this.database
       .prepare(
-        "INSERT INTO folder_grants (id, root_path, display_name, created_at) VALUES (?, ?, ?, ?)",
+        "INSERT INTO folder_grants (id, root_path, display_name, created_at, revoked_at) VALUES (?, ?, ?, ?, NULL)",
       )
       .run(folder.id, canonicalPath, folder.name, folder.createdAt);
     return folder;
@@ -109,7 +127,9 @@ export class ConversationStore {
 
   listFolders(): FolderSummary[] {
     const rows = this.database
-      .prepare("SELECT id, display_name, created_at FROM folder_grants ORDER BY created_at, id")
+      .prepare(
+        "SELECT id, display_name, created_at, revoked_at FROM folder_grants WHERE revoked_at IS NULL ORDER BY created_at, id",
+      )
       .all() as FolderRow[];
     return rows.map(folderSummary);
   }
@@ -117,7 +137,7 @@ export class ConversationStore {
   createSession(folderId: string | null): SessionSummary {
     if (folderId !== null) {
       const folder = this.database
-        .prepare("SELECT 1 FROM folder_grants WHERE id = ?")
+        .prepare("SELECT 1 FROM folder_grants WHERE id = ? AND revoked_at IS NULL")
         .get(folderId);
       if (folder === undefined) throw new Error("folder_not_found");
     }
@@ -135,6 +155,15 @@ export class ConversationStore {
       )
       .run(session.id, session.folderId, session.title, session.createdAt, session.updatedAt);
     return session;
+  }
+
+  revokeFolder(folderId: string): boolean {
+    const now = new Date().toISOString();
+    return (
+      this.database
+        .prepare("UPDATE folder_grants SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL")
+        .run(now, folderId).changes === 1
+    );
   }
 
   listSessions(folderId: string | null, cursor?: string, limit = 5): SessionPage {
@@ -160,13 +189,19 @@ export class ConversationStore {
     });
   }
 
-  appendMessage(sessionId: string, role: MessageRole, content: string): ConversationMessage {
+  appendMessage(
+    sessionId: string,
+    role: MessageRole,
+    content: string,
+    runId?: string,
+  ): ConversationMessage {
     const createdAt = new Date().toISOString();
     const entry = ConversationMessageSchema.parse({
       id: randomUUID(),
       sessionId,
       role,
       content,
+      runId: runId ?? null,
       createdAt,
     });
     this.database.transaction(() => {
@@ -176,9 +211,9 @@ export class ConversationStore {
       if (session === undefined) throw new Error("session_not_found");
       this.database
         .prepare(
-          "INSERT INTO conversation_messages (id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
+          "INSERT INTO conversation_messages (id, session_id, role, content, created_at, run_id) VALUES (?, ?, ?, ?, ?, ?)",
         )
-        .run(entry.id, entry.sessionId, entry.role, entry.content, entry.createdAt);
+        .run(entry.id, entry.sessionId, entry.role, entry.content, entry.createdAt, runId ?? null);
       const title = entry.content.replaceAll(/\s+/gu, " ").trim().slice(0, 60);
       this.database
         .prepare(
@@ -192,7 +227,7 @@ export class ConversationStore {
   listMessages(sessionId: string): ConversationMessage[] {
     const rows = this.database
       .prepare(
-        "SELECT id, session_id, role, content, created_at FROM conversation_messages WHERE session_id = ? ORDER BY created_at, id",
+        "SELECT id, session_id, role, content, run_id, created_at FROM conversation_messages WHERE session_id = ? ORDER BY created_at, id",
       )
       .all(sessionId) as MessageRow[];
     return rows.map(message);

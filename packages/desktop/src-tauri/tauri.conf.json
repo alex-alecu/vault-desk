@@ -26,9 +26,14 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "targets": ["app"],
     "externalBin": ["binaries/vault-core"],
     "resources": ["resources/core"],
-    "icon": []
+    "icon": [],
+    "macOS": {
+      "signingIdentity": "-",
+      "hardenedRuntime": true
+    }
   }
 }

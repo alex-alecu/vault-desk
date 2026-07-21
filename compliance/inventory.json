@@ -15,7 +15,9 @@
     "windowsHelperRustResolution": "packages/workers/native/windows-hcs-helper/Cargo.lock",
     "swiftResolution": "packages/workers/native/macos-vz-helper/Package.resolved",
     "models": "assets/models.json",
-    "guestImage": "packages/workers/images/manifest.json"
+    "guestImage": "packages/workers/images/manifest.json",
+    "agentGuestImage": "packages/workers/images/agent/manifest.json",
+    "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md"
   },
   "directDependencies": [
     {
@@ -66,7 +68,7 @@
       "name": "better-sqlite3",
       "version": "12.11.1",
       "license": "MIT",
-      "use": "workspace_catalog_and_native_smoke"
+      "use": "historical_m1_eval_catalog_and_native_smoke"
     },
     { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "sidecar_bundle_build" },
     { "name": "node-llama-cpp", "version": "3.19.0", "license": "MIT", "use": "native_smoke" },
@@ -156,7 +158,7 @@
   "redistribution": {
     "dependencies": "not_yet_shipped",
     "models": "controlled_by_assets_models_json",
-    "guestImage": "development_input_only",
+    "guestImage": "packaged_with_manifest_and_spdx_sbom_on_certified_platforms",
     "noticeBundle": "required_before_any_packaged_distribution"
   }
 }

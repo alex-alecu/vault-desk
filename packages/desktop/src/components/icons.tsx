@@ -1,5 +1,5 @@
 interface IconProps {
-  name: "add" | "chevron" | "folder" | "message" | "send" | "settings";
+  name: "add" | "chevron" | "folder" | "message" | "send";
 }
 
 const paths: Record<IconProps["name"], string> = {
@@ -8,7 +8,6 @@ const paths: Record<IconProps["name"], string> = {
   folder: "M3 7h6l2 2h10v10H3z",
   message: "M4 5h16v11H8l-4 4z",
   send: "m5 12 14-7-4 14-3-6z",
-  settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 3v2M12 19v2M3 12h2M19 12h2",
 };
 
 export function Icon({ name }: IconProps) {

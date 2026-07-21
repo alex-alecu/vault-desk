@@ -11,6 +11,7 @@ interface SidebarProps {
   globalSessions: SessionSummary[];
   onAddFolder(): void;
   onNewSession(folderId: string | null): void;
+  onRevokeFolder(folderId: string): void;
   onSelectSession(sessionId: string): void;
   onShowMore(folderId: string): void;
 }
@@ -21,16 +22,26 @@ function FolderSection(props: SidebarProps) {
   }
   return props.folders.map((folder) => (
     <section className="folder-group" key={folder.id}>
-      <button
-        aria-expanded={folder.expanded}
-        className="folder-heading"
-        onClick={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
-        type="button"
-      >
-        <Icon name="chevron" />
-        <Icon name="folder" />
-        <span>{folder.name}</span>
-      </button>
+      <div className="folder-heading-row">
+        <button
+          aria-expanded={folder.expanded}
+          className="folder-heading"
+          onClick={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
+          type="button"
+        >
+          <Icon name="chevron" />
+          <Icon name="folder" />
+          <span>{folder.name}</span>
+        </button>
+        <button
+          aria-label={`Remove ${folder.name}`}
+          className="folder-remove"
+          onClick={() => props.onRevokeFolder(folder.id)}
+          type="button"
+        >
+          ×
+        </button>
+      </div>
       {folder.expanded ? (
         <SessionList
           activeSessionId={props.activeSessionId}
@@ -80,10 +91,6 @@ export function Sidebar(props: SidebarProps) {
       <div className="folder-scroll">
         <FolderSection {...props} />
       </div>
-      <button className="settings-action" type="button">
-        <Icon name="settings" />
-        Settings
-      </button>
     </aside>
   );
 }

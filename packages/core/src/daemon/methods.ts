@@ -1,6 +1,9 @@
 import {
+  AgentRunIdSchema,
+  AttachmentIdSchema,
   type ErrorCode,
   FolderIdSchema,
+  JobIdSchema,
   MessageRoleSchema,
   PROTOCOL_VERSION,
   type RpcRequest,
@@ -49,6 +52,12 @@ async function addFolder(core: VaultCore, request: RpcRequest): Promise<RpcRespo
   return success(request, await core.addFolder(path));
 }
 
+async function revokeFolder(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const folderId = FolderIdSchema.safeParse(request.params.folderId);
+  if (!folderId.success) return failure(request, "invalid_request", "Invalid folder id.");
+  return success(request, { revoked: await core.revokeFolder(folderId.data) });
+}
+
 async function createSession(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = nullableFolderId(request.params.folderId);
   if (folderId === undefined) return failure(request, "invalid_request", "Invalid folder id.");
@@ -84,10 +93,68 @@ async function listMessages(core: VaultCore, request: RpcRequest): Promise<RpcRe
   return success(request, await core.listMessages(sessionId.data));
 }
 
+function sessionIdParam(request: RpcRequest) {
+  const parsed = SessionIdSchema.safeParse(request.params.sessionId);
+  if (!parsed.success) throw new Error("invalid_session_id");
+  return parsed.data;
+}
+
+async function saveDraft(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = sessionIdParam(request);
+  const { content } = request.params;
+  if (typeof content !== "string") return failure(request, "invalid_request", "Invalid draft.");
+  return success(request, await core.saveDraft(sessionId, content));
+}
+
+async function loadDraft(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  return success(request, (await core.loadDraft(sessionIdParam(request))) ?? null);
+}
+
+async function addAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = sessionIdParam(request);
+  const { path } = request.params;
+  if (typeof path !== "string") return failure(request, "invalid_request", "Invalid file path.");
+  return success(request, await core.addAttachment(sessionId, path));
+}
+
+async function listAttachments(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  return success(request, await core.listAttachments(sessionIdParam(request)));
+}
+
+async function removeAttachment(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = sessionIdParam(request);
+  const attachmentId = AttachmentIdSchema.safeParse(request.params.attachmentId);
+  if (!attachmentId.success) return failure(request, "invalid_request", "Invalid attachment id.");
+  return success(request, {
+    removed: await core.removeAttachment(sessionId, attachmentId.data),
+  });
+}
+
+async function startAgent(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = sessionIdParam(request);
+  const { task } = request.params;
+  if (typeof task !== "string" || task.trim().length === 0) {
+    return failure(request, "invalid_request", "Invalid task.");
+  }
+  return success(request, await core.startAgent(sessionId, task));
+}
+
+async function getAgentRun(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const runId = AgentRunIdSchema.safeParse(request.params.runId);
+  if (!runId.success) return failure(request, "invalid_request", "Invalid run id.");
+  return success(request, await core.getAgentRun(runId.data));
+}
+
+async function cancelAgent(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const jobId = JobIdSchema.safeParse(request.params.jobId);
+  if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
+  return success(request, { cancelled: await core.cancelAgent(jobId.data) });
+}
+
 async function cancelJob(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
-  const { jobId } = request.params;
-  if (typeof jobId !== "string") return failure(request, "invalid_request", "Invalid job id.");
-  return success(request, { cancelled: await core.cancelJob(jobId) });
+  const jobId = JobIdSchema.safeParse(request.params.jobId);
+  if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
+  return success(request, { cancelled: await core.cancelJob(jobId.data) });
 }
 
 async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
@@ -98,6 +165,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return addFolder(core, request);
     case "folders.list":
       return success(request, await core.listFolders());
+    case "folders.revoke":
+      return revokeFolder(core, request);
     case "sessions.create":
       return createSession(core, request);
     case "sessions.list":
@@ -106,6 +175,22 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return appendMessage(core, request);
     case "messages.list":
       return listMessages(core, request);
+    case "drafts.save":
+      return saveDraft(core, request);
+    case "drafts.load":
+      return loadDraft(core, request);
+    case "attachments.add":
+      return addAttachment(core, request);
+    case "attachments.list":
+      return listAttachments(core, request);
+    case "attachments.remove":
+      return removeAttachment(core, request);
+    case "agent.start":
+      return startAgent(core, request);
+    case "agent.get":
+      return getAgentRun(core, request);
+    case "agent.cancel":
+      return cancelAgent(core, request);
     case "jobs.cancel":
       return cancelJob(core, request);
     default:

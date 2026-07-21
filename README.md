@@ -7,7 +7,7 @@ Vault Desk is building a local-first AI coworker for private folders and files. 
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk completed M0 and cross-platform M1, then implemented the macOS supervised-inference foundation. M3 Offline Dev-Agent Desktop V1 is active: it targets a macOS and Windows app whose generic agent runs code only inside a disposable offline microVM over user-selected read-only inputs. The shell exists, but the real agent bridge and product installers do not. [The M3 status](docs/M3_STATUS.md) records current evidence.
+> Vault Desk completed M0, cross-platform M1, and the macOS M2 inference foundation. The M3 macOS desktop agent is implemented and physically certified: its packaged local agent runs Python and Node.js only inside a disposable offline microVM over user-selected read-only inputs. The global M3 launch gate remains open for Windows implementation and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
 
 ## Why
 
@@ -37,7 +37,7 @@ Current pinned dependencies, development tools, native components, versions, lic
 
 The development workflow was informed by [Everything Claude Code](https://github.com/affaan-m/ECC), especially its research, verification, reusable-skill, review, and handoff practices. Vault Desk expresses those ideas in original project-specific instructions and does not include the ECC package or runtime.
 
-Before packaged distribution, Vault Desk will generate required notices, dependency and model SBOMs, hashes, signatures, and artifact manifests as required by the [implementation plan](docs/IMPLEMENTATION_PLAN.md#model-and-asset-distribution).
+The macOS development package generates notices, an SPDX SBOM, hashes, signatures, and an artifact manifest as required by the [implementation plan](docs/IMPLEMENTATION_PLAN.md#model-and-asset-distribution). Developer ID signing and notarization remain release-distribution work.
 
 ## Go deeper
 

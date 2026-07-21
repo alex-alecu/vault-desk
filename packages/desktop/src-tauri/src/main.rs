@@ -5,10 +5,11 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager, RunEvent, State};
-use tauri_plugin_dialog::DialogExt;
+use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandChild;
+
+mod commands;
 
 const MAX_RESPONSE_BYTES: u64 = 1024 * 1024;
 
@@ -24,12 +25,31 @@ fn add_platform_arguments(
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn add_platform_arguments(
+    arguments: &mut Vec<String>,
+    core_resources: &Path,
+) -> Result<(), String> {
+    arguments.extend([
+        "--worker-entry".to_owned(),
+        path_text(&core_resources.join("inference/worker.mjs"))?,
+        "--inference-runtime".to_owned(),
+        path_text(&core_resources.join("inference/node"))?,
+        "--agent-helper".to_owned(),
+        path_text(&core_resources.join("workers/vault-vz-helper"))?,
+        "--agent-image-root".to_owned(),
+        path_text(&core_resources.join("workers/images"))?,
+        "--packaged-model-store".to_owned(),
+    ]);
+    Ok(())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn add_platform_arguments(_: &mut Vec<String>, _: &Path) -> Result<(), String> {
     Ok(())
 }
 
-struct CoreBridge {
+pub(crate) struct CoreBridge {
     child: Mutex<Option<CommandChild>>,
     endpoint: String,
     next_id: AtomicU64,
@@ -46,36 +66,32 @@ impl CoreBridge {
             .resource_dir()
             .map_err(|error| error.to_string())?;
         let workspace = data_root.join("state");
-        let model_store = data_root.join("models");
         let ready_file = data_root.join("core.ready");
         let core_resources = resource_root.join("resources/core");
         fs::create_dir_all(&workspace).map_err(|error| error.to_string())?;
-        fs::create_dir_all(&model_store).map_err(|error| error.to_string())?;
         remove_stale_ready_file(&ready_file)?;
 
         let mut arguments = vec![
             "--workspace".to_owned(),
             path_text(&workspace)?,
             "--model-store".to_owned(),
-            path_text(&model_store)?,
+            path_text(&core_resources.join("models"))?,
             "--profile".to_owned(),
             "local12".to_owned(),
             "--migration-directory".to_owned(),
             path_text(&core_resources.join("migrations"))?,
-            "--native-binding".to_owned(),
-            path_text(&core_resources.join("better_sqlite3.node"))?,
             "--ready-file".to_owned(),
             path_text(&ready_file)?,
-            "--sessions-only".to_owned(),
         ];
         add_platform_arguments(&mut arguments, &core_resources)?;
-        let (mut events, child) = app
+        let command = app
             .shell()
             .sidecar("vault-core")
             .map_err(|error| error.to_string())?
-            .args(arguments)
-            .spawn()
-            .map_err(|error| error.to_string())?;
+            .args(arguments);
+        #[cfg(target_os = "macos")]
+        let command = command.env("NODE_OPTIONS", "--jitless");
+        let (mut events, child) = command.spawn().map_err(|error| error.to_string())?;
         tauri::async_runtime::spawn(async move { while events.recv().await.is_some() {} });
         let endpoint = wait_for_ready_file(&ready_file)?;
         Ok(Self {
@@ -85,7 +101,7 @@ impl CoreBridge {
         })
     }
 
-    fn call(&self, method: &str, params: Value) -> Result<Value, String> {
+    pub(crate) fn call(&self, method: &str, params: Value) -> Result<Value, String> {
         let request = json!({
             "jsonrpc": "2.0",
             "id": self.next_id.fetch_add(1, Ordering::Relaxed),
@@ -118,7 +134,7 @@ impl CoreBridge {
     }
 }
 
-fn path_text(path: &Path) -> Result<String, String> {
+pub(crate) fn path_text(path: &Path) -> Result<String, String> {
     path.to_str()
         .map(str::to_owned)
         .ok_or_else(|| "Vault Desk requires UTF-8 application paths.".to_owned())
@@ -183,90 +199,6 @@ fn exchange(endpoint: &str, request: &str) -> Result<Vec<u8>, String> {
     Ok(response)
 }
 
-#[tauri::command]
-async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Value, String> {
-    let folders = core.call("folders.list", json!({}))?;
-    let global_sessions = core.call("sessions.list", json!({ "folderId": null, "limit": 5 }))?;
-    let mut folder_sessions = Vec::new();
-    let items = folders
-        .as_array()
-        .ok_or_else(|| "Vault Core returned invalid folders.".to_owned())?;
-    for folder in items {
-        let folder_id = folder
-            .get("id")
-            .and_then(Value::as_str)
-            .ok_or_else(|| "Vault Core returned an invalid folder.".to_owned())?;
-        let page = core.call(
-            "sessions.list",
-            json!({ "folderId": folder_id, "limit": 5 }),
-        )?;
-        folder_sessions.push(json!({ "folderId": folder_id, "page": page }));
-    }
-    Ok(json!({
-        "folders": folders,
-        "globalSessions": global_sessions,
-        "folderSessions": folder_sessions,
-    }))
-}
-
-#[tauri::command]
-async fn choose_folder(
-    app: AppHandle,
-    core: State<'_, CoreBridge>,
-) -> Result<Option<Value>, String> {
-    let Some(selection) = app
-        .dialog()
-        .file()
-        .set_title("Choose a folder for Vault Desk")
-        .blocking_pick_folder()
-    else {
-        return Ok(None);
-    };
-    let path = selection.into_path().map_err(|error| error.to_string())?;
-    Ok(Some(core.call(
-        "folders.add",
-        json!({ "rootPath": path_text(&path)? }),
-    )?))
-}
-
-#[tauri::command]
-async fn create_session(
-    core: State<'_, CoreBridge>,
-    folder_id: Option<String>,
-) -> Result<Value, String> {
-    core.call("sessions.create", json!({ "folderId": folder_id }))
-}
-
-#[tauri::command]
-async fn list_sessions(
-    core: State<'_, CoreBridge>,
-    folder_id: Option<String>,
-    cursor: Option<String>,
-) -> Result<Value, String> {
-    let mut params = json!({ "folderId": folder_id, "limit": 5 });
-    if let Some(cursor) = cursor {
-        params["cursor"] = Value::String(cursor);
-    }
-    core.call("sessions.list", params)
-}
-
-#[tauri::command]
-async fn list_messages(core: State<'_, CoreBridge>, session_id: String) -> Result<Value, String> {
-    core.call("messages.list", json!({ "sessionId": session_id }))
-}
-
-#[tauri::command]
-async fn append_user_message(
-    core: State<'_, CoreBridge>,
-    session_id: String,
-    content: String,
-) -> Result<Value, String> {
-    core.call(
-        "messages.append",
-        json!({ "sessionId": session_id, "role": "user", "content": content }),
-    )
-}
-
 fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -277,12 +209,20 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            append_user_message,
-            choose_folder,
-            create_session,
-            desktop_bootstrap,
-            list_messages,
-            list_sessions,
+            commands::append_user_message,
+            commands::cancel_agent,
+            commands::choose_folder,
+            commands::choose_files,
+            commands::create_session,
+            commands::desktop_bootstrap,
+            commands::get_agent_run,
+            commands::list_attachments,
+            commands::list_messages,
+            commands::list_sessions,
+            commands::load_draft,
+            commands::revoke_folder,
+            commands::save_draft,
+            commands::start_agent,
         ])
         .build(tauri::generate_context!())
         .expect("Vault Desk desktop failed");

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -30,6 +31,8 @@ function credentialPaths(): string[] {
 
 function runtimeReadPaths(workerEntryPath: string): string[] {
   const workerDirectory = dirname(workerEntryPath);
+  const packagedModules = join(workerDirectory, "node_modules");
+  if (existsSync(packagedModules)) return [workerDirectory, packagedModules];
   return [
     resolve(workerDirectory, "../.."),
     resolve(workerDirectory, "../../..", "shared"),
@@ -49,13 +52,18 @@ function parentPaths(path: string): string[] {
   return parents;
 }
 
-function hostDataDeny(readPaths: string[], temporaryRoot: string, modelPath?: string): string {
+function hostDataDeny(
+  readPaths: string[],
+  temporaryRoot: string,
+  runtimeExecutable: string,
+  modelPath?: string,
+): string {
   const exceptions = [
     '(literal "/")',
     ...parentPaths(temporaryRoot).map((path) => `(literal ${literal(path)})`),
     ...SYSTEM_READ_PATHS.map((path) => `(subpath ${literal(path)})`),
     ...readPaths.map((path) => `(subpath ${literal(path)})`),
-    `(literal ${literal(process.execPath)})`,
+    `(literal ${literal(runtimeExecutable)})`,
     `(literal ${literal(temporaryRoot)})`,
     `(subpath ${literal(temporaryRoot)})`,
     ...(modelPath === undefined ? [] : [`(literal ${literal(modelPath)})`]),
@@ -68,8 +76,9 @@ function sandboxProfile(
   request: NativeWorkerLaunchRequest,
   temporaryRoot: string,
   deniedPaths: string[],
+  runtimeExecutable: string,
 ): string {
-  const runtimeExecutables = [process.execPath];
+  const runtimeExecutables = [runtimeExecutable];
   const protectedRules = [...deniedPaths, ...credentialPaths()]
     .map((path) => `(subpath ${literal(path)})`)
     .join(" ");
@@ -79,12 +88,12 @@ function sandboxProfile(
     "(allow default)",
     "(deny network*)",
     '(deny mach-lookup (global-name "com.apple.securityd"))',
-    hostDataDeny(readPaths, temporaryRoot, request.modelPath),
+    hostDataDeny(readPaths, temporaryRoot, runtimeExecutable, request.modelPath),
     `(deny file-write* (require-not (subpath ${literal(temporaryRoot)})))`,
     "(deny process-fork)",
     "(deny process-exec)",
     `(allow process-exec ${runtimeExecutables.map((path) => `(literal ${literal(path)})`).join(" ")})`,
-    `(allow file-read* (literal ${literal(process.execPath)}))`,
+    `(allow file-read* (literal ${literal(runtimeExecutable)}))`,
     ...SYSTEM_READ_PATHS.map((path) => `(allow file-read* (subpath ${literal(path)}))`),
     ...readPaths.map((path) => `(allow file-read* (subpath ${literal(path)}))`),
     ...(request.modelPath === undefined
@@ -97,19 +106,28 @@ function sandboxProfile(
 }
 
 export class MacOsNativeWorkerLauncher implements NativeWorkerLauncher {
-  constructor(private readonly deniedPaths: string[] = []) {}
+  constructor(
+    private readonly deniedPaths: string[] = [],
+    private readonly runtimeExecutable: string = process.execPath,
+  ) {}
 
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: sandbox construction and process cleanup remain paired.
   async launch(request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
       throw new NativeWorkerLaunchError("unsupported", "unsupported_native_worker_platform");
     }
     const temporaryAlias = await mkdtemp(join(tmpdir(), "vault-inference-"));
     const temporaryRoot = await realpath(temporaryAlias);
-    const profile = sandboxProfile(request, temporaryRoot, this.deniedPaths);
+    const profile = sandboxProfile(
+      request,
+      temporaryRoot,
+      this.deniedPaths,
+      this.runtimeExecutable,
+    );
     const args = [
       "-p",
       profile,
-      process.execPath,
+      this.runtimeExecutable,
       "--conditions=vault-runtime",
       request.workerEntryPath,
       "--memory-budget",

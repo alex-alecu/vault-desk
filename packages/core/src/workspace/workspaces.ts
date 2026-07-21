@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type WorkspaceRecord, WorkspaceRecordSchema } from "@vault/shared";
-import type Database from "better-sqlite3";
+import type { DatabasePort } from "./database.js";
 
 interface WorkspaceRow {
   id: string;
@@ -8,10 +8,7 @@ interface WorkspaceRow {
   created_at: string;
 }
 
-export function getOrCreateWorkspace(
-  database: Database.Database,
-  rootPath: string,
-): WorkspaceRecord {
+export function getOrCreateWorkspace(database: DatabasePort, rootPath: string): WorkspaceRecord {
   const existing = database
     .prepare("SELECT id, root_path, created_at FROM workspace LIMIT 1")
     .get() as WorkspaceRow | undefined;

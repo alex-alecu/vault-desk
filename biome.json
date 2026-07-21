@@ -8,6 +8,7 @@
       "!**/dist",
       "!**/.generated",
       "!**/src-tauri/gen",
+      "!packages/desktop/src-tauri/resources",
       "!pnpm-lock.yaml"
     ]
   },
@@ -74,6 +75,11 @@
         "packages/core/src/runtime/models.ts",
         "packages/core/src/runtime/inference.test.ts",
         "packages/core/src/conversations/store.test.ts",
+        "packages/core/src/agent/inputs.ts",
+        "packages/core/src/agent/records.ts",
+        "packages/core/src/agent/store.ts",
+        "packages/core/src/agent/store.test.ts",
+        "packages/core/src/agent/service.test.ts",
         "packages/core/native/windows-pipe-guard/build.ts",
         "packages/cli/src/client.ts",
         "packages/cli/src/endpoint.ts",
@@ -93,6 +99,9 @@
         "packages/workers/native/windows-hcs-helper/build.ts",
         "packages/eval/src/**/*.ts",
         "packages/desktop/build-sidecar.ts",
+        "packages/desktop/build-signing.ts",
+        "packages/desktop/package-compliance.ts",
+        "packages/desktop/runtime-packages.ts",
         "scripts/**/*.ts"
       ],
       "linter": {

@@ -15,16 +15,19 @@ function argument(args: string[], name: string, required = true): string | undef
   return value;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: optional fixed resource flags are validated in one CLI boundary.
 async function main(args: string[]): Promise<void> {
   const workspaceDir = argument(args, "--workspace");
   const modelStoreDir = argument(args, "--model-store");
   const profile = argument(args, "--profile");
   if (workspaceDir === undefined || modelStoreDir === undefined) throw new Error("Missing paths.");
   if (profile !== "local12" && profile !== "local16") throw new Error("Invalid profile.");
-  await initializeEmptyModelStore(modelStoreDir);
+  if (!args.includes("--packaged-model-store")) await initializeEmptyModelStore(modelStoreDir);
   const migrationDirectory = argument(args, "--migration-directory", false);
-  const nativeBinding = argument(args, "--native-binding", false);
   const workerEntryPath = argument(args, "--worker-entry", false);
+  const inferenceRuntimePath = argument(args, "--inference-runtime", false);
+  const agentHelperPath = argument(args, "--agent-helper", false);
+  const agentImageRoot = argument(args, "--agent-image-root", false);
   const readyFile = argument(args, "--ready-file", false);
   const windowsPipeGuardPath = argument(args, "--windows-pipe-guard", false);
   const core = await createVaultCore({
@@ -32,9 +35,11 @@ async function main(args: string[]): Promise<void> {
     modelStoreDir,
     profile,
     ...(migrationDirectory === undefined ? {} : { migrationDirectory }),
-    ...(nativeBinding === undefined ? {} : { nativeBinding }),
     sessionsOnly: args.includes("--sessions-only"),
     ...(workerEntryPath === undefined ? {} : { workerEntryPath }),
+    ...(inferenceRuntimePath === undefined ? {} : { inferenceRuntimePath }),
+    ...(agentHelperPath === undefined ? {} : { agentHelperPath }),
+    ...(agentImageRoot === undefined ? {} : { agentImageRoot }),
   });
   const daemon = await startDaemon(core, workspaceDir, {
     ...(windowsPipeGuardPath === undefined ? {} : { windowsPipeGuardPath }),
