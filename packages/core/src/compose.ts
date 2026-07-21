@@ -6,6 +6,7 @@ import {
   MacOsMicroVmLauncher,
   MacOsNativeWorkerLauncher,
   WindowsNativeWorkerLauncher,
+  windowsNativeWorkerEntryPath,
 } from "@vault/workers";
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
@@ -42,7 +43,9 @@ async function createInference(options: VaultCoreOptions, workspaceRoot: string,
       : new MacOsNativeWorkerLauncher([workspaceRoot], options.inferenceRuntimePath);
   const workerEntryPath =
     options.workerEntryPath ??
-    fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url));
+    (process.platform === "win32"
+      ? windowsNativeWorkerEntryPath()
+      : fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url)));
   return new InferenceSupervisor(
     new InferenceWorkerClient(launcher, workerEntryPath),
     modelResolver,

@@ -37,7 +37,7 @@ if (milestone === "3") {
 } else if (milestone === "2") {
   runPnpm(["verify"]);
   runPnpm(["test:native:m2"]);
-  runPnpm(["test:m2:macos"]);
+  runPnpm(["test:m2:native"]);
 } else if (milestone === "1") {
   runPnpm(["verify"]);
   runPnpm(["test:platform:gate"]);

@@ -13,6 +13,7 @@
     "desktopRustResolution": "packages/desktop/src-tauri/Cargo.lock",
     "windowsPipeGuardRustResolution": "packages/core/native/windows-pipe-guard/Cargo.lock",
     "windowsHelperRustResolution": "packages/workers/native/windows-hcs-helper/Cargo.lock",
+    "windowsAppContainerRustResolution": "packages/workers/native/windows-appcontainer-launcher/Cargo.lock",
     "swiftResolution": "packages/workers/native/macos-vz-helper/Package.resolved",
     "models": "assets/models.json",
     "guestImage": "packages/workers/images/manifest.json",
@@ -71,7 +72,13 @@
       "use": "historical_m1_eval_catalog_and_native_smoke"
     },
     { "name": "esbuild", "version": "0.28.1", "license": "MIT", "use": "sidecar_bundle_build" },
-    { "name": "node-llama-cpp", "version": "3.19.0", "license": "MIT", "use": "native_smoke" },
+    {
+      "name": "node-llama-cpp",
+      "version": "3.19.0",
+      "license": "MIT",
+      "use": "native_smoke_supervised_inference_and_packaged_runtime",
+      "patch": "patches/node-llama-cpp@3.19.0.patch"
+    },
     { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
     { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
     { "name": "react-dom", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },

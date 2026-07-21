@@ -2,7 +2,7 @@
 
 Updated: 2026-07-21
 
-This is the authoritative implementation sequence for the first Vault Desk release. M0 and M1 are complete. The useful macOS portion of M2 is implemented and its unfinished Windows inference work is now part of the cross-platform M3 gate. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS M3 stage is implemented and physically certified; Windows remains required before M3 or Community Desktop V1 can close.
+This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS M3 stage is implemented and physically certified; Windows product integration and physical certification remain required before M3 or Community Desktop V1 can close.
 
 The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python and Node.js programs inside a disposable no-NIC microVM. It receives only user-selected read-only inputs and bounded ephemeral scratch. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
@@ -96,9 +96,9 @@ M0 established the pinned workspace, CI, generic deterministic task fixtures, mo
 
 M1 delivered workspace state, scoped files, atomic artifacts, audit, jobs, current-user daemon transports, CLI health, bounded worker staging, and certified no-NIC microVM launchers on macOS and Windows. Its evidence remains in [M1_STATUS.md](M1_STATUS.md).
 
-### M2 — Supervised inference foundation — incorporated into M3
+### M2 — Supervised inference foundation — complete
 
-The macOS supervisor, model resolver, memory scheduler, typed inference worker, grammar generation, embeddings, containment tests, and real-model canaries are implemented. M3 reuses them and completes the Windows native inference boundary and daemon exposure as part of the product gate. [M2_STATUS.md](M2_STATUS.md) remains the historical stage record.
+The cross-platform supervisor, model resolver, memory scheduler, typed inference worker, grammar generation, embeddings, platform-native confinement, and real-model canaries are implemented. M3 reuses this completed foundation and integrates it into the packaged desktop product. [M2_STATUS.md](M2_STATUS.md) records the completed milestone evidence.
 
 ### M3 — Offline Dev-Agent Desktop V1 — active
 
@@ -114,7 +114,7 @@ Scope:
 - Implement the Vault Core-owned agent loop with bounded turns, typed inference mediation, cancellation, audit, and deterministic fake coverage.
 - Build a reproducible agent guest image with Python, Node.js, the reviewed fixed library set, a typed guest entrypoint, immutable root, read-only inputs, and bounded scratch.
 - Extend the common microVM protocol from the M1 probe to agent tasks, model-completion requests, observations, structured results, and generated scratch artifacts.
-- Complete Windows native inference confinement and verify the real V1 model on both platforms.
+- Integrate the completed Windows native inference boundary into the agent product and verify the real V1 model on both platforms.
 - Package the exact Vault Core sidecar, native helpers, model assets, and guest image with zero-download first launch.
 
 Gate:
@@ -171,9 +171,20 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 
 | Date | Change |
 |---|---|
-| 2026-07-11 | Created the original staged implementation plan. |
-| 2026-07-17 | Closed M0 and began pull-request-only implementation stages. |
-| 2026-07-18 | Closed cross-platform M1. |
-| 2026-07-19 | Activated supervised inference and completed its macOS stage. |
+| 2026-07-11 | Initial milestone plan (M0-M11) created with the three-layer architecture, AI-drivable daemon/CLI, tiered Gemma test models, and ground-truth evaluation. |
+| 2026-07-11 | Added model distribution policy for development downloads and self-contained offline packages. |
+| 2026-07-11 | Reordered the plan after implementation-readiness review: moved accounting, OCR, summary trees, compaction, recovery, and 12B gates before certification; added cross-platform CI and transport, persistent-state and worker-isolation boundaries, held-out/adversarial evaluation, redistribution and supply-chain gates, hardware detection, and pilot-readiness criteria. |
+| 2026-07-12 | Replaced command-level worker network policy with a certified no-NIC microVM, added platform launcher gates and typed socket confinement, and retained a narrow OS-sandboxed native GPU exception. |
+| 2026-07-12 | Added staged Knowledge Bundle contracts at M5 and signed offline import, rollback, and hostile-archive gates at M10. |
+| 2026-07-13 | Replaced Electron with Tauri v2, specified the desktop layout and model selector behavior, and added deterministic document operations with a bounded no-NIC generated-code fallback. |
+| 2026-07-13 | Linked IMPLEMENTATION_STRUCTURE.md as the file-level blueprint for the monorepo layout. |
+| 2026-07-13 | Reconciled phase entry, just-in-time CI, M0 platform harnesses, schema ownership, MIME validation, session persistence, tool policy reuse, scratch-write authority, compaction ownership, and M10 bundle import with IMPLEMENTATION_STRUCTURE.md. |
+| 2026-07-15 | Added the M0 contribution activation gate for licensing, human DCO authorship, GitHub protection, private reporting, and contribution-ready issues. |
+| 2026-07-15 | Applied ADR 0016: Qwen3-Embedding-0.6B replaces EmbeddingGemma in test tiers and gates, two distribution flavors defined with the model-download build deferred after M11, and the Knowledge Bundle ADR renumbered to 0017. |
+| 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 evaluation candidate, gated on stable upstream runtime support and the full model-certification suite. |
+| 2026-07-15 | Recorded the committed Apache 2.0 license as resolved, made development platform-independent with platform-bound items as milestone-closure checkpoints, and moved contribution activation from M0 to the v1 launch with direct-to-main owner commits until then. |
+| 2026-07-17 | Required owner pull requests for every implementation stage from M1 onward while retaining post-M11 activation for external contributors. |
+| 2026-07-19 | Recorded the M1 review follow-up for authenticated and canonical local endpoints, audit-tail anchoring, bounded cancellable staging, and forced-exit recovery. |
+| 2026-07-20 | Recorded cross-platform M2 completion after macOS Seatbelt and Windows AppContainer authority probes plus pinned Qwen and Gemma canaries passed. |
 | 2026-07-20 | Replaced the long pre-product sequence with M3 Offline Dev-Agent Desktop V1, moved document intelligence after V1, and made the generic no-NIC coding agent the first product. |
 | 2026-07-21 | Completed the M3 macOS implementation and physical acceptance while keeping the cross-platform launch gate open for Windows. |

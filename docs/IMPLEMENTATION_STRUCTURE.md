@@ -2,7 +2,7 @@
 
 Updated: 2026-07-21
 
-This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0 and M1 source exists, the macOS M2 inference foundation exists, and the M3 macOS implementation is complete. M3 remains active for its Windows implementation and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
+This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists, and the M3 macOS implementation is complete. M3 remains active for its Windows product integration and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
 
 ## Startup Working Agreement
 

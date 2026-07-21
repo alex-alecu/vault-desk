@@ -19,4 +19,7 @@ export type {
 } from "./native/launcher.js";
 export { NativeWorkerLaunchError } from "./native/launcher.js";
 export { MacOsNativeWorkerLauncher } from "./native/macos.js";
-export { WindowsNativeWorkerLauncher } from "./native/windows.js";
+export {
+  WindowsNativeWorkerLauncher,
+  windowsNativeWorkerEntryPath,
+} from "./native/windows.js";

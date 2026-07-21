@@ -10,7 +10,7 @@ The M3 macOS implementation is complete and passes physical Apple-silicon accept
 - Authority: explicitly activated by the repository owner on 2026-07-20; the owner requested completion of the Mac stage on 2026-07-21.
 - Product surface: New chat, file attachments, folder groups, five recent sessions per folder, Show more, persistent conversations and drafts, agent activity, artifacts, cancellation, and restart recovery.
 - Security boundary: the webview has no host authority; Vault Core owns grants and policy; the guest has zero NICs, immutable root, read-only staged inputs, bounded scratch, typed inference mediation, and no host writes.
-- Platform scope: physical Apple-silicon macOS and supported Windows x64 packages. The remaining Windows inference boundary from M2 is part of this gate.
+- Platform scope: physical Apple-silicon macOS and supported Windows x64 packages. M3 builds on the completed cross-platform M2 inference boundary.
 - Explicitly deferred: canonical document ingestion, OCR and layout, retrieval, citations, workflow packs, Knowledge Bundles, external integrations, and model downloads.
 
 ## Implemented Mac Product
@@ -35,7 +35,7 @@ The M3 macOS implementation is complete and passes physical Apple-silicon accept
 
 ## Remaining Cross-Platform Work
 
-- Windows native inference confinement, executable agent guest integration, desktop packaging, install lifecycle, and physical acceptance are not implemented or run in this Mac stage.
+- Windows M2 native inference confinement is implemented and certified. Windows executable agent guest integration, desktop packaging, install lifecycle, and physical M3 acceptance are not implemented or run in this Mac stage.
 - The authoritative `pnpm test:gate --milestone 3` therefore remains intentionally red after repository verification and reports the Windows handoff. It must not be used to claim global M3 completion until Windows passes.
 - Developer ID signing and Apple notarization were not run because release credentials are not part of this development branch. The verified artifact is an ad-hoc-signed development app bundle, not a notarized public distribution.
 

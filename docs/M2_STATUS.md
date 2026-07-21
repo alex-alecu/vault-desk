@@ -2,53 +2,55 @@
 
 Updated: 2026-07-20
 
-The macOS implementation stage is complete. Windows native-worker confinement and physical-platform evidence were not completed as a standalone M2 stage. On 2026-07-20 the repository owner activated M3 and folded the remaining Windows inference work into the M3 cross-platform desktop gate. This file remains the historical M2 stage record.
+M2 is complete across macOS and Windows. The repository owner subsequently activated M3 Offline Dev-Agent Desktop V1.
 
 ## Change Brief
 
-- Goal: add the smallest supervised local inference path for structured generation and embeddings, prove its macOS authority boundary, and leave an explicit Windows handoff.
+- Goal: add the smallest supervised local inference path for structured generation and embeddings and prove its native authority boundary on macOS and Windows.
 - Authority: the repository owner activated M2 on 2026-07-19 and requested macOS implementation followed by Windows completion on a separate machine.
-- Product boundaries: Vault Core resolves hash-pinned installed models, schedules profile memory, owns audit and cancellation, and receives only typed results. The worker receives one approved model path, sanitized environment, fixed stdio IPC, and no workspace, credential, approval, shell, tool, or external-network authority.
-- Acceptance evidence: deterministic containment tests, macOS Seatbelt authority probes, Qwen embedding smoke, Gemma 4 E2B grammar output, and Gemma 4 12B grammar output under Local 12 and Local 16 memory caps.
-- Dependencies: reuse the M0-reviewed and lockfile-pinned `node-llama-cpp` 3.19.0 runtime. No new dependency or network product capability is introduced.
-- Explicitly excluded: Windows confinement implementation and evidence, M3 ingestion, runtime alternatives, model download product behavior, arbitrary model paths, product UI, and packaging.
+- Product boundaries: Vault Core resolves hash-pinned installed models, schedules profile memory, owns audit and cancellation, and receives only typed results. A worker receives one approved model path, sanitized environment, fixed stdio IPC, and no workspace, credential, approval, shell, tool, or external-network authority.
+- Acceptance evidence: deterministic containment tests, physical macOS Seatbelt and Windows AppContainer authority probes, Qwen embedding smoke, Gemma 4 E2B grammar output, and Gemma 4 12B grammar output under Local 12 and Local 16 memory caps.
+- Explicitly excluded: M3 agent behavior, model-download product behavior, arbitrary model paths, product UI, packaging, and final product certification.
 
-## Implemented macOS Scope
+## Implemented Scope
 
-- `@vault/shared` owns the versioned generation, embedding, native-boundary probe, memory-report, and typed-failure schemas.
-- Vault Core requires an installed-model store and explicit profile, stages a verified immutable model snapshot for each job, and owns the scheduler, inference port, supervisor, audit records, and programmatic generation and embedding facade.
-- `@vault/workers` owns one length-prefixed typed inference protocol, deterministic fake, supervised client, `node-llama-cpp` worker, and macOS launcher.
-- The macOS launcher uses Seatbelt to deny external networking, host file content outside fixed operating-system/runtime paths, the approved staged model, and job scratch, arbitrary workspace access, credential stores and Keychain lookup, every write outside job scratch, process forks, and executable launches except the initial fixed Node worker. It supplies a minimal environment with no inherited credentials or shell variable.
-- Crash, cancellation, timeout, malformed IPC, missing or modified model, and resource-overlap cases have focused deterministic tests.
-- The independent review findings were applied: child Node re-execution, out-of-scope reads and writes, and stdin failure containment are probed; typed worker and unsupported-platform failures are preserved; model staging honors cancellation and the request deadline; active inference is cancelled and drained before Core closes; verified model bytes are staged before launch; and production inference inputs are mandatory.
-- Downloaded models and generated reports remain ignored local evidence and are never committed.
+- `@vault/shared` owns versioned generation, embedding, native-boundary probe, memory-report, and typed-failure schemas.
+- Vault Core verifies and stages immutable installed-model snapshots, schedules profile memory, supervises one-shot workers, owns audit and cancellation, and exposes programmatic generation and embedding methods.
+- `@vault/workers` owns one length-prefixed typed inference protocol, deterministic fake, supervised client, `node-llama-cpp` worker, and platform launchers.
+- The macOS launcher uses Seatbelt to deny external networking, arbitrary host and workspace access, credential stores, writes outside job scratch, process forks, and executable launches except the fixed initial worker.
+- The Windows launcher deploys an ignored, flat, reproducible runtime and uses a signed zero-dependency Rust helper to create a no-capability AppContainer, grant read access only to that runtime and the approved model, grant full access only to job scratch, sanitize the environment, apply a Job Object memory cap and one-process limit from launch, relay fixed inherited stdio, and kill the worker on helper teardown.
+- Crash, cancellation, timeout, malformed IPC, missing or modified models, resource overlap, stdin failure, out-of-scope reads and writes, child Node re-execution, shell execution, and external-network access have focused containment tests.
+- Downloaded models, generated reports, deployed runtimes, signed helpers, and build output remain ignored local evidence.
 
 ## Dependency Review
 
-- Capability and milestone: grammar-enforced local generation and embeddings for M2.
-- Existing repository alternative: none; a custom runtime is explicitly rejected. M0 already adopted `node-llama-cpp` for native load validation.
-- Candidate: exact locked `node-llama-cpp` 3.19.0, MIT, with pinned platform packages in `pnpm-lock.yaml`.
-- Offline and privacy: inference needs no runtime network access; the macOS sandbox denies it. The worker inherits no credential variables, telemetry configuration, shell, or general endpoint.
-- Adapter fit: runtime-specific types remain in `@vault/workers`; Vault Core depends on its own inference port and shared schemas.
-- Decision: adopt the existing pinned dependency for the M2 worker adapter. Windows loading, packaging, and performance remain platform evidence rather than assumptions.
+- The worker reuses the M0-reviewed, MIT-licensed, lockfile-pinned `node-llama-cpp` 3.19.0 runtime and platform packages; no new dependency or product network capability was added.
+- Windows AppContainers deny the runtime's defensive GPU-binding compatibility fork. The tracked pnpm patch skips that fork only when the signed helper supplies `VAULT_APPCONTAINER_LOCKED=1`; the Job Object already limits the worker to one process, and incompatible native loading remains crash-contained and audited.
+- Runtime-specific types and the compatibility exception remain inside `@vault/workers`; Vault Core depends only on its inference port and shared schemas.
+- The Windows Rust helper has no third-party crates and owns only AppContainer, ACL, Job Object, sanitized-launch, and lifecycle capabilities.
 
-## Gate State
+## macOS Evidence
 
-- `pnpm test:gate --milestone 2`: pass after independent-review fixes on the 48 GiB Apple-silicon Mac used for this stage, including source limits, lint, typecheck, 50 unit tests with one platform skip, two native M1 tests, Rust formatting and clippy checks, macOS helper build/signing, the M2 Seatbelt probe, and all model canaries.
-- Shared contracts, supervisor, scheduler, model resolver, fake, and deterministic containment tests: pass on macOS.
-- macOS Seatbelt network, workspace, out-of-scope host read/write, credential, shell, and executable-tool denial probe: pass.
-- Qwen3-Embedding-0.6B smoke: pass with 1,024 dimensions, 1,007,274,336 GPU VRAM bytes, and 169,748,832 CPU RAM bytes under the 2 GiB embedding reservation.
-- Gemma 4 E2B grammar-valid output: pass with `{ "status": "ok" }`, 3,906,235,488 GPU VRAM bytes, and 2,285,189,888 CPU RAM bytes under Local 12.
-- Gemma 4 12B Local 12 and Local 16 capped loads, grammar-valid output, and clean one-shot worker exit: pass with `{ "status": "ok" }`, 8,139,500,736 GPU VRAM bytes, and 845,475,552 CPU RAM bytes under both profile caps.
-- Physical 12 GiB and 16 GiB target hardware evidence: not run on this 48 GiB Mac; the profile-cap results are implementation evidence, not final Local 12 or Local 16 hardware certification.
-- Windows native runtime and authority boundary: not implemented; the launcher returns an explicit unsupported result.
-- Standalone cross-platform M2 gate: retired into M3 before completion.
+- `pnpm test:gate --milestone 2`: pass on a 48 GiB Apple-silicon Mac after independent-review fixes.
+- Seatbelt probe: external network, workspace, out-of-scope host read/write, credential, shell, executable-tool, and child Node authority denied.
+- Qwen3-Embedding-0.6B: 1,024 dimensions; 1,007,274,336 GPU VRAM bytes and 169,748,832 CPU RAM bytes under the 2 GiB embedding reservation.
+- Gemma 4 E2B: `{ "status": "ok" }`; 3,906,235,488 GPU VRAM bytes and 2,285,189,888 CPU RAM bytes under Local 12.
+- Gemma 4 12B: `{ "status": "ok" }`; 8,139,500,736 GPU VRAM bytes and 845,475,552 CPU RAM bytes under both Local 12 and Local 16 caps; clean one-shot exit.
 
-## Windows Handoff
+## Windows Evidence
 
-- Implement `WindowsNativeWorkerLauncher` with an OS-enforced external-network denial boundary, a sanitized credential-free environment, the fixed Node worker executable, the approved model file only, fixed stdio IPC, and forced teardown.
-- Extend the native authority probe to run on physical Windows and prove network, arbitrary workspace, credential, shell, and executable-tool denial without command or destination matching.
-- Run the same Qwen, E2B, and 12B structured-output gates with the pinned runtime and model hashes, record Local 12 and Local 16 memory reports, and verify clean shutdown, cancellation, timeout, malformed IPC, crash, and out-of-memory containment.
-- Run `pnpm verify`, the Windows M2 native project, `pnpm test:gate --milestone 2`, and `git diff --check`; record exact pass, failure, and not-run results here before claiming M2 complete.
+- Host: Windows x64, NVIDIA GeForce RTX 4080 Laptop GPU with 12,282 MiB VRAM, 31.2 GiB system memory, Node 24.18.0, pnpm 11.13.1, and Rust 1.97.0.
+- `pnpm verify`: pass; source limit, Biome, TypeScript, 50 unit tests with one platform skip, two native M1 tests, all Rust format/clippy checks, signed helper builds, and both platform microVM helper builds passed.
+- M2 AppContainer project: one Windows test passed and the macOS test skipped; physical probes denied external network, arbitrary workspace and temp reads/writes, credential and shell environment, `cmd.exe`, and child Node execution.
+- Qwen3-Embedding-0.6B: 1,024 dimensions; 1,005,177,168 GPU VRAM bytes and 169,748,896 CPU RAM bytes under the 2 GiB embedding reservation.
+- Gemma 4 E2B: `{ "status": "ok" }`; 1,994,185,264 GPU VRAM bytes and 2,285,190,176 CPU RAM bytes under Local 12.
+- Gemma 4 12B: `{ "status": "ok" }`; 8,139,499,872 GPU VRAM bytes and 845,475,808 CPU RAM bytes under both Local 12 and Local 16 caps; clean one-shot exit.
+- `pnpm test:gate --milestone 2`: pass, including the complete repository verification, native authority gate, hash verification of all three pinned GGUFs, and four real-model canaries.
 
-Conclusion: the macOS inference foundation is implemented. The Windows handoff is now required evidence for [M3](M3_STATUS.md), not a separate release blocker.
+## Gate Interpretation
+
+- The physical 12 GiB Windows GPU supplies the early Local 12-class target. The 48 GiB unified-memory Mac, exercised under the Local 16 cap, supplies the early Local 16-class target required before later LLM work.
+- These are M2 loading, grammar, memory-cap, authority, and shutdown canaries. They are not final product certification; M3 still requires the complete agent, recovery, packaging, and desktop suite on both platforms.
+- macOS and Windows implement the same typed inference contract and prove equivalent authority denials through their platform-native boundaries.
+
+Conclusion: ready; cross-platform M2 is complete. Active M3 product evidence is recorded in [M3_STATUS.md](M3_STATUS.md).
