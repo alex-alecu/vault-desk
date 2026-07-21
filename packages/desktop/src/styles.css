@@ -3,7 +3,7 @@
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  background: #fbfaf9;
+  background: #fff;
 }
 
 * {
@@ -41,20 +41,24 @@ textarea:focus-visible {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: 304px 1fr;
+  display: flex;
   width: 100%;
   height: 100%;
   min-width: 0;
-  background: #fbfaf9;
+  background: #fff;
 }
 
 .sidebar {
-  display: grid;
-  grid-template-rows: auto auto auto 1fr;
-  min-width: 0;
+  display: flex;
+  width: 244px;
+  min-width: 208px;
+  max-width: 340px;
+  flex: 0 0 auto;
+  flex-direction: column;
   padding: 22px 12px 14px;
-  background: #f2efed;
+  overflow: hidden;
+  resize: horizontal;
+  background: rgb(244 241 246 / 90%);
   border-right: 1px solid #e2dfdc;
 }
 
@@ -94,7 +98,7 @@ textarea:focus-visible {
 }
 
 .sidebar-label {
-  margin: 22px 10px 8px;
+  margin: 18px 10px 8px;
   color: #9a9591;
   font-size: 13px;
   font-weight: 600;
@@ -103,7 +107,7 @@ textarea:focus-visible {
 }
 
 .folder-scroll {
-  min-height: 0;
+  min-height: 72px;
   overflow-y: auto;
 }
 
@@ -127,7 +131,7 @@ textarea:focus-visible {
   width: auto;
   flex: 1;
   min-height: 38px;
-  padding: 0 9px;
+  padding: 0 10px;
   font-weight: 600;
 }
 
@@ -183,6 +187,7 @@ textarea:focus-visible {
 }
 
 .session-row span:first-child {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -206,7 +211,8 @@ textarea:focus-visible {
   grid-template-rows: 1fr auto;
   min-width: 0;
   min-height: 0;
-  background: #fcfbfa;
+  flex: 1 1 auto;
+  background: #fff;
 }
 
 .welcome {
@@ -317,7 +323,7 @@ textarea:focus-visible {
   border: 1px solid #dfdbd8;
   border-radius: 18px;
   background: #fff;
-  box-shadow: 0 8px 24px rgb(56 46 39 / 8%);
+  box-shadow: 0 4px 14px rgb(56 46 39 / 5%);
 }
 
 .composer textarea {
@@ -430,7 +436,7 @@ textarea:focus-visible {
   margin-left: 0;
   border-radius: 50%;
   color: #fff;
-  background: #716b67;
+  background: #111;
   cursor: pointer;
 }
 
@@ -460,6 +466,123 @@ textarea:focus-visible {
   stroke-width: 1.7;
 }
 
+.activity-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 20px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  color: #5f5a56;
+  background: #fff;
+  cursor: pointer;
+}
+
+.activity-toggle:hover,
+.activity-header button:hover {
+  background: #f2efed;
+}
+
+.activity-drawer {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: min(360px, 86%);
+  flex-direction: column;
+  border-left: 1px solid #e6e2df;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: -8px 0 24px rgb(56 46 39 / 5%);
+}
+
+.activity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 18px 16px;
+  border-bottom: 1px solid #eeeae7;
+}
+
+.activity-header h2,
+.activity-header p {
+  margin: 0;
+}
+
+.activity-header h2 {
+  font-size: 16px;
+}
+
+.activity-header p,
+.activity-empty {
+  margin-top: 4px;
+  color: #8a847f;
+  font-size: 12px;
+}
+
+.activity-header button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.activity-scroll {
+  min-height: 0;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid #e6e2df;
+  border-radius: 12px;
+  color: #6f6965;
+  background: #faf9f8;
+  font-size: 13px;
+}
+
+.activity-item p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.activity-item details {
+  margin-top: 10px;
+}
+
+.activity-item summary {
+  width: max-content;
+  color: #6159d9;
+  cursor: pointer;
+}
+
+.activity-item pre {
+  max-height: 320px;
+  margin: 10px 0 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #eeeae7;
+  font:
+    12px / 1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .error-banner {
   position: absolute;
   z-index: 2;
@@ -486,10 +609,6 @@ textarea:focus-visible {
 }
 
 @media (max-width: 960px) {
-  .app-shell {
-    grid-template-columns: 246px 1fr;
-  }
-
   .suggestions {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -497,14 +616,19 @@ textarea:focus-visible {
 
 @media (max-width: 720px) {
   .app-shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(190px, 40%) minmax(0, 1fr);
+    flex-direction: column;
   }
 
   .sidebar {
     display: flex;
+    width: 100%;
+    max-width: none;
+    min-height: 190px;
+    max-height: 40%;
+    flex: 0 0 40%;
     flex-direction: column;
     overflow-y: auto;
+    resize: none;
     border-right: 0;
     border-bottom: 1px solid #e2dfdc;
   }

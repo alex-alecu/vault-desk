@@ -16,6 +16,7 @@ import {
   saveDraft,
   startAgent,
 } from "./api.js";
+import { Activity } from "./components/activity.js";
 import { Composer } from "./components/composer.js";
 import { Conversation } from "./components/conversation.js";
 import { Sidebar } from "./components/sidebar.js";
@@ -193,6 +194,7 @@ export function App() {
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   useEffect(() => {
     void bootstrapDesktop()
       .then((snapshot) => dispatch({ type: "desktop.hydrate", snapshot }))
@@ -226,6 +228,13 @@ export function App() {
         }
       />
       <main aria-busy={!state.loaded} className="workspace">
+        <Activity
+          artifacts={state.artifacts}
+          onClose={() => setActivityOpen(false)}
+          onOpen={() => setActivityOpen(true)}
+          open={activityOpen}
+          timeline={state.timeline}
+        />
         {desktopError === undefined ? null : (
           <div className="error-banner" role="alert">
             <span>{desktopError}</span>

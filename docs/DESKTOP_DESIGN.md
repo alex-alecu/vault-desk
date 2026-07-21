@@ -26,7 +26,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a persistent sidebar and a conversation workspace. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable translucent sidebar and a white conversation workspace. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
 
 ## Sidebar
 
@@ -63,7 +63,7 @@ The conversation timeline supports:
 
 - User and assistant messages.
 - Streaming assistant text.
-- Compact agent activity rows for scripts, commands, and observations.
+- A top-right activity control that opens scripts, commands, observations, resource limits, generated files, and other technical details in a right-side drawer rather than the main conversation.
 - Expandable Python or Node.js source and bounded stdout/stderr.
 - Generated scratch artifacts with type, size, and preview/download eligibility.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.

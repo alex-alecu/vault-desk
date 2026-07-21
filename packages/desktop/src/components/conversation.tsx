@@ -57,34 +57,21 @@ function EmptyConversation({
   );
 }
 
-export function Conversation({ artifacts, ready, timeline, onSuggestion }: ConversationProps) {
-  const itemCount = timeline.length + artifacts.length;
-  if (timeline.length === 0 && artifacts.length === 0) {
+export function Conversation({ ready, timeline, onSuggestion }: ConversationProps) {
+  const messages = timeline.filter((item) => item.kind !== "activity");
+  if (messages.length === 0) {
     return <EmptyConversation onSuggestion={onSuggestion} ready={ready} />;
   }
   return (
     <section aria-label="Conversation" aria-live="polite" className="timeline">
-      {timeline.map((item) => (
+      {messages.map((item) => (
         <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-          {item.kind === "activity" ? <span className="activity-label">Activity</span> : null}
           <p>{item.text}</p>
-          {item.detail === undefined ? null : (
-            <details>
-              <summary>Show details</summary>
-              <pre>{item.detail}</pre>
-            </details>
-          )}
-        </article>
-      ))}
-      {artifacts.map((item) => (
-        <article className="timeline-item timeline-activity" key={item.id}>
-          <span className="activity-label">Generated file</span>
-          <p>{item.name}</p>
         </article>
       ))}
       <div
         aria-hidden="true"
-        key={itemCount}
+        key={messages.length}
         ref={(node) => node?.scrollIntoView({ block: "end" })}
       />
     </section>
