@@ -89,6 +89,11 @@ function rpc(
   });
 }
 
+function rpcResult(response: RpcResponse): unknown {
+  if ("result" in response) return response.result;
+  throw new Error("RPC method failed.");
+}
+
 function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   const helper = join(
     process.cwd(),
@@ -257,7 +262,7 @@ describe("M1 daemon recovery", () => {
 });
 
 describe("M3 conversation daemon methods", () => {
-  it("returns safe summaries and typed invalid-folder failures", async () => {
+  it("returns safe summaries, deletes sessions, and types invalid-folder failures", async () => {
     const root = await temporaryRoot("vault-m3-daemon-");
     const selected = await temporaryRoot("vault-m3-selected-");
     const core = await createTestCore(root);
@@ -272,23 +277,30 @@ describe("M3 conversation daemon methods", () => {
       method: "folders.add",
       params: { rootPath: selected },
     });
-    if (!("result" in added)) throw new Error("Folder grant failed.");
-    const folder = FolderSummarySchema.parse(added.result);
+    const folder = FolderSummarySchema.parse(rpcResult(added));
     expect(folder).not.toHaveProperty("rootPath");
     const created = await rpcMethod(daemon.endpoint, {
       method: "sessions.create",
       params: { folderId: folder.id },
     });
-    if (!("result" in created)) throw new Error("Session creation failed.");
-    const session = SessionSummarySchema.parse(created.result);
+    const session = SessionSummarySchema.parse(rpcResult(created));
     const listed = await rpcMethod(daemon.endpoint, {
       method: "sessions.list",
       params: { folderId: folder.id },
     });
-    if (!("result" in listed)) throw new Error("Session listing failed.");
-    expect(SessionPageSchema.parse(listed.result).items.map((item) => item.id)).toEqual([
+    expect(SessionPageSchema.parse(rpcResult(listed)).items.map((item) => item.id)).toEqual([
       session.id,
     ]);
+    const deleted = await rpcMethod(daemon.endpoint, {
+      method: "sessions.delete",
+      params: { sessionId: session.id },
+    });
+    expect(rpcResult(deleted)).toEqual({ deleted: true });
+    const afterDelete = await rpcMethod(daemon.endpoint, {
+      method: "sessions.list",
+      params: { folderId: folder.id },
+    });
+    expect(SessionPageSchema.parse(rpcResult(afterDelete)).items).toEqual([]);
 
     await daemon.close();
     await core.close();

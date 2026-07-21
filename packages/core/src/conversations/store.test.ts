@@ -75,6 +75,67 @@ describe("ConversationStore sessions", () => {
   });
 });
 
+describe("ConversationStore session deletion", () => {
+  it("deletes a conversation and its dependent records", () => {
+    const catalog = openWorkspaceCatalog(temporaryRoot("delete-session"));
+    const store = new ConversationStore(catalog.database);
+    const session = store.createSession(null);
+    const now = new Date().toISOString();
+    const jobId = "82af7e84-38da-43e2-8f61-3154126ab4e1";
+    const runId = "f2359fd9-0f64-4ded-8e14-cb1d25ee5275";
+    catalog.database
+      .prepare(
+        "INSERT INTO jobs (id, kind, idempotency_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(jobId, "agent", "deleted-session", "succeeded", now, now);
+    catalog.database
+      .prepare(
+        "INSERT INTO agent_runs (id, session_id, job_id, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(runId, session.id, jobId, "succeeded", now, now);
+    store.appendMessage(session.id, "user", "Temporary work");
+    store.appendMessage(session.id, "assistant", "Temporary result", runId);
+    catalog.database
+      .prepare("INSERT INTO session_drafts (session_id, content, updated_at) VALUES (?, ?, ?)")
+      .run(session.id, "draft", new Date().toISOString());
+
+    expect(store.deleteSession(session.id)).toBe(true);
+    expect(store.listSessions(null).items).toEqual([]);
+    expect(store.listMessages(session.id)).toEqual([]);
+    expect(
+      catalog.database.prepare("SELECT 1 FROM session_drafts WHERE session_id = ?").get(session.id),
+    ).toBeUndefined();
+    expect(
+      catalog.database.prepare("SELECT 1 FROM agent_runs WHERE id = ?").get(runId),
+    ).toBeUndefined();
+    catalog.close();
+  });
+});
+
+describe("ConversationStore active session deletion", () => {
+  it("refuses to delete a running conversation", () => {
+    const catalog = openWorkspaceCatalog(temporaryRoot("delete-running-session"));
+    const store = new ConversationStore(catalog.database);
+    const session = store.createSession(null);
+    const now = new Date().toISOString();
+    const jobId = "7c2de6fd-c3d7-47a4-a921-a76029e6679c";
+    catalog.database
+      .prepare(
+        "INSERT INTO jobs (id, kind, idempotency_key, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run(jobId, "agent", "running-session", "running", now, now);
+    catalog.database
+      .prepare(
+        "INSERT INTO agent_runs (id, session_id, job_id, state, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .run("adf56702-0f6e-4db1-827a-8b817ade5239", session.id, jobId, "running", now, now);
+
+    expect(() => store.deleteSession(session.id)).toThrow("session_busy");
+    expect(store.listSessions(null).items).toEqual([session]);
+    catalog.close();
+  });
+});
+
 describe("ConversationStore message validation", () => {
   it("rejects whitespace without corrupting the session title", () => {
     const catalog = openWorkspaceCatalog(temporaryRoot("message"));

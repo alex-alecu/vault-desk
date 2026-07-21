@@ -157,6 +157,16 @@ export class ConversationStore {
     return session;
   }
 
+  deleteSession(sessionId: string): boolean {
+    const running = this.database
+      .prepare(
+        "SELECT 1 FROM agent_runs WHERE session_id = ? AND state IN ('queued', 'running') LIMIT 1",
+      )
+      .get(sessionId);
+    if (running !== undefined) throw new Error("session_busy");
+    return this.database.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId).changes === 1;
+  }
+
   revokeFolder(folderId: string): boolean {
     const now = new Date().toISOString();
     return (

@@ -39,15 +39,16 @@ Each folder group:
 - Shows its five most recently active sessions, newest first.
 - Shows **Show more** only when older sessions exist; activation appends the next bounded page.
 - Highlights the active session and may show concise running, failed, or unread status.
+- Reveals a delete control on session hover or keyboard focus; deletion always requires explicit confirmation and is unavailable while that conversation is running.
 - Provides a narrow menu for starting a session, removing the grant, or revealing non-sensitive folder metadata.
 
-Removing a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
+Every remove action requires confirmation. Removing a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
 
 ## New Chat
 
 New chat prepares a blank composer with no folder grant; pressing it repeatedly does not persist placeholder conversations. The session is created when the user submits its first message or selects attachments. Users can attach one or more files through a native file dialog or drag and drop. Vault Core copies and verifies those files into session-owned read-only inputs before the agent can access them.
 
-New chat must never silently inherit the previously selected folder. Attachments are visible as removable chips before sending and as immutable input records after the turn begins.
+New chat must never silently inherit the previously selected folder. Attachments are visible as removable chips before sending and as immutable input records after the turn begins. Removing a pending attachment requires confirmation and never changes the original host file.
 
 ## Folder Sessions
 

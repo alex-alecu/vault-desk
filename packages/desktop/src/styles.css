@@ -106,9 +106,13 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
+.sidebar-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .folder-scroll {
   min-height: 72px;
-  overflow-y: auto;
 }
 
 .sidebar-empty {
@@ -141,6 +145,13 @@ textarea:focus-visible {
   border-radius: 8px;
   color: #8b8580;
   cursor: pointer;
+  opacity: 0;
+}
+
+.folder-heading-row:focus-within .folder-remove,
+.folder-heading-row:hover .folder-remove,
+.folder-remove:hover {
+  opacity: 1;
 }
 
 .folder-remove:hover {
@@ -168,6 +179,24 @@ textarea:focus-visible {
   padding-left: 26px;
 }
 
+.global-session-list {
+  padding-left: 0;
+}
+
+.session-row-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  width: 100%;
+  min-width: 0;
+  border-radius: 9px;
+}
+
+.session-row-shell:hover,
+.session-row-shell:focus-within,
+.session-row-shell:has(.session-row[aria-current="page"]) {
+  background: #e9e5e2;
+}
+
 .session-row,
 .new-folder-session,
 .show-more {
@@ -177,13 +206,40 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
+.session-row {
+  min-width: 0;
+}
+
+.session-delete {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  align-self: center;
+  place-items: center;
+  border-radius: 8px;
+  color: #7a746f;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.session-row-shell:focus-within .session-delete,
+.session-row-shell:hover .session-delete {
+  opacity: 1;
+}
+
+.session-delete:hover {
+  color: #8b3429;
+  background: #ddd8d5;
+}
+
 .new-folder-session {
   color: #7a746f;
 }
 
 .session-row[aria-current="page"] {
   color: #2f2b29;
-  background: #e2dedb;
+  background: transparent;
 }
 
 .session-row span:first-child {
@@ -466,6 +522,11 @@ textarea:focus-visible {
   stroke-width: 1.7;
 }
 
+.session-delete .icon {
+  width: 15px;
+  height: 15px;
+}
+
 .activity-toggle {
   position: absolute;
   z-index: 3;
@@ -581,6 +642,59 @@ textarea:focus-visible {
     monospace;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.confirmation-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgb(27 24 22 / 24%);
+}
+
+.confirmation-dialog {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid #e2dfdc;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 54px rgb(27 24 22 / 18%);
+}
+
+.confirmation-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+}
+
+.confirmation-dialog p {
+  margin: 10px 0 22px;
+  color: #6f6965;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirmation-actions button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #ddd8d5;
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.confirmation-actions .confirmation-remove {
+  border-color: #a64135;
+  color: #fff;
+  background: #a64135;
 }
 
 .error-banner {

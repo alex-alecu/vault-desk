@@ -214,6 +214,7 @@ fn main() {
             commands::choose_folder,
             commands::choose_files,
             commands::create_session,
+            commands::delete_session,
             commands::desktop_bootstrap,
             commands::get_agent_run,
             commands::list_agent_runs,

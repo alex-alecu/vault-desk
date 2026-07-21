@@ -27,6 +27,9 @@ function executionFailure(request: RpcRequest, error: unknown): RpcResponse {
   if (message === "folder_not_found" || message === "session_not_found") {
     return failure(request, "not_found", "The requested record was not found.");
   }
+  if (message === "session_busy") {
+    return failure(request, "workspace_busy", "Stop the running conversation before deleting it.");
+  }
   if (message === "folder_grant_invalid") {
     return failure(request, "path_out_of_scope", "The selected folder is not available.");
   }
@@ -62,6 +65,12 @@ async function createSession(core: VaultCore, request: RpcRequest): Promise<RpcR
   const folderId = nullableFolderId(request.params.folderId);
   if (folderId === undefined) return failure(request, "invalid_request", "Invalid folder id.");
   return success(request, await core.createSession(folderId));
+}
+
+async function deleteSession(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const sessionId = SessionIdSchema.safeParse(request.params.sessionId);
+  if (!sessionId.success) return failure(request, "invalid_request", "Invalid session id.");
+  return success(request, { deleted: await core.deleteSession(sessionId.data) });
 }
 
 async function listSessions(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
@@ -161,6 +170,7 @@ async function cancelJob(core: VaultCore, request: RpcRequest): Promise<RpcRespo
   return success(request, { cancelled: await core.cancelJob(jobId.data) });
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the exhaustive protocol switch keeps routing explicit.
 async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   switch (request.method) {
     case "status":
@@ -173,6 +183,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return revokeFolder(core, request);
     case "sessions.create":
       return createSession(core, request);
+    case "sessions.delete":
+      return deleteSession(core, request);
     case "sessions.list":
       return listSessions(core, request);
     case "messages.append":

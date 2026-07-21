@@ -91,6 +91,14 @@ pub(crate) async fn create_session(
 }
 
 #[tauri::command]
+pub(crate) async fn delete_session(
+    core: State<'_, CoreBridge>,
+    session_id: String,
+) -> Result<Value, String> {
+    core.call("sessions.delete", json!({ "sessionId": session_id }))
+}
+
+#[tauri::command]
 pub(crate) async fn list_sessions(
     core: State<'_, CoreBridge>,
     folder_id: Option<String>,

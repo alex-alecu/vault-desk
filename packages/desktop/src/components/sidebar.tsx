@@ -2,7 +2,7 @@ import type { SessionSummary } from "@vault/shared";
 import type { Dispatch } from "react";
 import type { DesktopAction, FolderGroup } from "../state.js";
 import { Icon } from "./icons.js";
-import { SessionList } from "./session-list.js";
+import { SessionList, SessionRow } from "./session-list.js";
 
 interface SidebarProps {
   activeSessionId: string | undefined;
@@ -12,6 +12,7 @@ interface SidebarProps {
   globalSessions: SessionSummary[];
   onAddFolder(): void;
   onNewSession(folderId: string | null): void;
+  onDeleteSession(session: SessionSummary): void;
   onRevokeFolder(folderId: string): void;
   onSelectSession(sessionId: string): void;
   onShowMore(folderId: string): void;
@@ -51,6 +52,7 @@ function FolderSection(props: SidebarProps) {
           disabled={props.disabled}
           folder={folder}
           onNewSession={props.onNewSession}
+          onDeleteSession={props.onDeleteSession}
           onSelectSession={props.onSelectSession}
           onShowMore={props.onShowMore}
         />
@@ -83,28 +85,24 @@ export function Sidebar(props: SidebarProps) {
           Add folder
         </button>
       </nav>
-      {props.globalSessions.length === 0 ? null : (
-        <>
-          <h2 className="sidebar-label">Chats</h2>
-          <div className="session-list">
-            {props.globalSessions.map((session) => (
-              <button
-                aria-current={session.id === props.activeSessionId ? "page" : undefined}
-                className="session-row"
-                disabled={props.disabled}
-                key={session.id}
-                onClick={() => props.onSelectSession(session.id)}
-                type="button"
-              >
-                <span>{session.title}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-      <h2 className="sidebar-label">Folders</h2>
-      <div className="folder-scroll">
-        <FolderSection {...props} />
+      <div className="sidebar-content">
+        <h2 className="sidebar-label">Chats</h2>
+        <div className="session-list global-session-list">
+          {props.globalSessions.map((session) => (
+            <SessionRow
+              activeSessionId={props.activeSessionId}
+              disabled={props.disabled}
+              key={session.id}
+              onDeleteSession={props.onDeleteSession}
+              onSelectSession={props.onSelectSession}
+              session={session}
+            />
+          ))}
+        </div>
+        <h2 className="sidebar-label">Folders</h2>
+        <div className="folder-scroll">
+          <FolderSection {...props} />
+        </div>
       </div>
     </aside>
   );

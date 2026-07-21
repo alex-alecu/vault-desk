@@ -106,13 +106,15 @@ index.html
 src/main.tsx
 src/app.tsx
 src/api.ts                 typed Tauri command adapter
-src/state.tsx              plain React context and reducer
+src/desktop-actions.ts     narrow desktop workflow calls
+src/state.ts               plain React reducer
 src/styles.css
 src/components/sidebar.tsx
 src/components/session-list.tsx
 src/components/conversation.tsx
 src/components/activity.tsx
 src/components/composer.tsx
+src/components/confirmation.tsx
 src-tauri/Cargo.toml
 src-tauri/Cargo.lock
 src-tauri/build.rs

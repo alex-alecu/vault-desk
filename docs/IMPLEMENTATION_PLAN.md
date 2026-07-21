@@ -29,7 +29,7 @@ The desktop communicates only through narrow typed Tauri commands and the curren
 
 ## V1 User Experience
 
-The left sidebar has one global **New chat** action followed by folder groups. Each folder group shows its five most recent sessions and a **Show more** control when older sessions exist. A folder selection creates a new session in that folder unless an existing session is selected.
+The compact resizable left sidebar has one global **New chat** action, recent chats, then folder groups. Each folder group shows its five most recent sessions and a **Show more** control when older sessions exist. Session rows expose deletion on hover or keyboard focus. All conversation, folder-grant, and attachment removals require explicit confirmation.
 
 A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
 

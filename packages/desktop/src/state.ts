@@ -47,6 +47,7 @@ export type DesktopAction =
   | { type: "folder.page"; folderId: string; page: SessionPage }
   | { type: "folder.refresh"; folderId: string; page: SessionPage }
   | { type: "session.created"; session: SessionSummary }
+  | { type: "session.deleted"; sessionId: string }
   | { type: "session.new"; folderId: string | null }
   | { type: "session.select"; sessionId: string }
   | { type: "messages.load"; sessionId: string; messages: ConversationMessage[] }
@@ -78,6 +79,19 @@ export const initialDesktopState: DesktopState = {
   loaded: false,
 };
 
+function emptyConversation(newSessionFolderId: string | null | undefined) {
+  return {
+    activeSessionId: undefined,
+    newSessionFolderId,
+    draft: "",
+    timeline: [],
+    attachments: [],
+    removableAttachmentIds: [],
+    activeRun: undefined,
+    artifacts: [],
+  };
+}
+
 function hydrate(state: DesktopState, snapshot: DesktopBootstrap): DesktopState {
   const pages = new Map(snapshot.folderSessions.map((item) => [item.folderId, item.page]));
   return {
@@ -108,27 +122,15 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
   if (session.folderId === null) {
     return {
       ...state,
+      ...emptyConversation(undefined),
       activeSessionId: session.id,
-      newSessionFolderId: undefined,
-      draft: "",
-      timeline: [],
-      attachments: [],
-      removableAttachmentIds: [],
-      activeRun: undefined,
-      artifacts: [],
       globalSessions: [session, ...state.globalSessions].slice(0, 5),
     };
   }
   return {
     ...state,
+    ...emptyConversation(undefined),
     activeSessionId: session.id,
-    newSessionFolderId: undefined,
-    draft: "",
-    timeline: [],
-    attachments: [],
-    removableAttachmentIds: [],
-    activeRun: undefined,
-    artifacts: [],
     folders: state.folders.map((folder) =>
       folder.id === session.folderId
         ? { ...folder, expanded: true, sessions: [session, ...folder.sessions] }
@@ -168,18 +170,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     return {
       ...state,
       folders: state.folders.filter((folder) => folder.id !== action.folderId),
-      ...(activeRemoved
-        ? {
-            activeSessionId: undefined,
-            newSessionFolderId: undefined,
-            timeline: [],
-            attachments: [],
-            removableAttachmentIds: [],
-            artifacts: [],
-            activeRun: undefined,
-            draft: "",
-          }
-        : {}),
+      ...(activeRemoved ? emptyConversation(undefined) : {}),
       ...(state.newSessionFolderId === action.folderId ? { newSessionFolderId: null } : {}),
     };
   }
@@ -203,30 +194,26 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     };
   }
   if (action.type === "session.created") return addSession(state, action.session);
-  if (action.type === "session.new") {
+  if (action.type === "session.deleted") {
+    const activeDeleted = state.activeSessionId === action.sessionId;
     return {
       ...state,
-      activeSessionId: undefined,
-      newSessionFolderId: action.folderId,
-      timeline: [],
-      attachments: [],
-      removableAttachmentIds: [],
-      activeRun: undefined,
-      artifacts: [],
-      draft: "",
+      globalSessions: state.globalSessions.filter((session) => session.id !== action.sessionId),
+      folders: state.folders.map((folder) => ({
+        ...folder,
+        sessions: folder.sessions.filter((session) => session.id !== action.sessionId),
+      })),
+      ...(activeDeleted ? emptyConversation(null) : {}),
     };
+  }
+  if (action.type === "session.new") {
+    return { ...state, ...emptyConversation(action.folderId) };
   }
   if (action.type === "session.select") {
     return {
       ...state,
+      ...emptyConversation(undefined),
       activeSessionId: action.sessionId,
-      newSessionFolderId: undefined,
-      timeline: [],
-      attachments: [],
-      removableAttachmentIds: [],
-      activeRun: undefined,
-      artifacts: [],
-      draft: "",
     };
   }
   if (action.type === "messages.load") {

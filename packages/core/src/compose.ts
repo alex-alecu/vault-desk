@@ -63,6 +63,23 @@ function unavailableInference() {
   return { generate: unsupported, embed: unsupported, async close() {} };
 }
 
+function deleteConversationSession(
+  conversations: ConversationStore,
+  audit: AuditLog,
+  database: ReturnType<typeof openWorkspaceCatalog>["database"],
+  sessionId: string,
+): boolean {
+  return database.transaction(() => {
+    const deleted = conversations.deleteSession(sessionId);
+    audit.append({
+      type: "session.deleted",
+      outcome: deleted ? "succeeded" : "failed",
+      metadata: { sessionId },
+    });
+    return deleted;
+  })();
+}
+
 function createConversationPorts(
   conversations: ConversationStore,
   audit: AuditLog,
@@ -73,6 +90,7 @@ function createConversationPorts(
   | "listFolders"
   | "revokeFolder"
   | "createSession"
+  | "deleteSession"
   | "listSessions"
   | "appendMessage"
   | "listMessages"
@@ -111,6 +129,9 @@ function createConversationPorts(
         });
         return session;
       })();
+    },
+    async deleteSession(sessionId) {
+      return deleteConversationSession(conversations, audit, database, sessionId);
     },
     async listSessions(folderId, cursor, limit) {
       return conversations.listSessions(folderId, cursor, limit);

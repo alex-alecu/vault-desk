@@ -62,7 +62,7 @@ describe("desktop navigation state", () => {
   });
 });
 
-describe("global desktop sessions", () => {
+describe("blank and deleted desktop sessions", () => {
   it("does not persist repeated blank New chat actions", () => {
     const first = desktopReducer(initialDesktopState, { type: "session.new", folderId: null });
     const repeated = desktopReducer(first, { type: "session.new", folderId: null });
@@ -79,6 +79,23 @@ describe("global desktop sessions", () => {
     expect(state.folders[0]?.sessions).toEqual([]);
   });
 
+  it("removes a deleted conversation and clears it when selected", () => {
+    const withFolder = desktopReducer(initialDesktopState, { type: "folder.add", folder });
+    const selected = desktopReducer(withFolder, {
+      type: "session.created",
+      session: firstSession,
+    });
+    const state = desktopReducer(selected, {
+      type: "session.deleted",
+      sessionId: firstSession.id,
+    });
+    expect(state.folders[0]?.sessions).toEqual([]);
+    expect(state.activeSessionId).toBeUndefined();
+    expect(state.newSessionFolderId).toBeNull();
+  });
+});
+
+describe("global desktop sessions", () => {
   it("keeps New chat outside a folder", () => {
     const globalSession = SessionSummarySchema.parse({
       ...firstSession,

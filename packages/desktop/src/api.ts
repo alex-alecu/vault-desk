@@ -82,6 +82,11 @@ export async function createSession(folderId: string | null): Promise<SessionSum
   return SessionSummarySchema.parse(await invoke("create_session", { folderId }));
 }
 
+export async function deleteSession(sessionId: string): Promise<boolean> {
+  const value = record(await invoke("delete_session", { sessionId }));
+  return value.deleted === true;
+}
+
 export async function listSessions(folderId: string | null, cursor?: string): Promise<SessionPage> {
   return SessionPageSchema.parse(await invoke("list_sessions", { folderId, cursor }));
 }
