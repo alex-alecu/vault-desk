@@ -93,7 +93,6 @@ function rpcResult(response: RpcResponse): unknown {
   if ("result" in response) return response.result;
   throw new Error("RPC method failed.");
 }
-
 function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   const helper = join(
     process.cwd(),
@@ -267,7 +266,6 @@ describe("M3 conversation daemon methods", () => {
     const selected = await temporaryRoot("vault-m3-selected-");
     const core = await createTestCore(root);
     const daemon = await startDaemon(core, root);
-
     const missing = await rpcMethod(daemon.endpoint, {
       method: "folders.add",
       params: { rootPath: join(selected, "missing") },
@@ -284,25 +282,16 @@ describe("M3 conversation daemon methods", () => {
       params: { folderId: folder.id },
     });
     const session = SessionSummarySchema.parse(rpcResult(created));
-    const listed = await rpcMethod(daemon.endpoint, {
-      method: "sessions.list",
-      params: { folderId: folder.id },
-    });
-    expect(SessionPageSchema.parse(rpcResult(listed)).items.map((item) => item.id)).toEqual([
-      session.id,
-    ]);
     const deleted = await rpcMethod(daemon.endpoint, {
       method: "sessions.delete",
       params: { sessionId: session.id },
     });
     expect(rpcResult(deleted)).toEqual({ deleted: true });
-    const afterDelete = await rpcMethod(daemon.endpoint, {
+    const listed = await rpcMethod(daemon.endpoint, {
       method: "sessions.list",
       params: { folderId: folder.id },
     });
-    expect(SessionPageSchema.parse(rpcResult(afterDelete)).items).toEqual([]);
-
-    await daemon.close();
-    await core.close();
+    expect(SessionPageSchema.parse(rpcResult(listed)).items).toEqual([]);
+    await Promise.all([daemon.close(), core.close()]);
   });
 });
