@@ -175,6 +175,9 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     async startAgent(sessionId, task) {
       return agent?.start(sessionId, task) ?? unavailableAgent();
     },
+    async listAgentRuns(sessionId) {
+      return agent?.listRuns(sessionId) ?? unavailableAgent();
+    },
     async getAgentRun(runId) {
       return agent?.snapshot(runId) ?? unavailableAgent();
     },

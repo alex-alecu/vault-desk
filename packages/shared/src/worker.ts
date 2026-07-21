@@ -5,7 +5,7 @@ import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const WorkerLimitsSchema = z.object({
   wallTimeMs: z.number().int().positive().max(300_000),
-  inputCount: z.number().int().nonnegative().max(32),
+  inputCount: z.number().int().nonnegative().max(64),
   inputBytes: z
     .number()
     .int()
@@ -43,6 +43,12 @@ export const AgentGuestInputSchema = z.object({
     .int()
     .nonnegative()
     .max(512 * 1024 * 1024),
+  deviceIndex: z.number().int().nonnegative().max(7),
+  byteOffset: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(8 * 1024 * 1024 * 1024),
 });
 
 export const AgentGuestRequestSchema = z.object({
@@ -52,7 +58,7 @@ export const AgentGuestRequestSchema = z.object({
   operation: z.literal("execute"),
   language: AgentLanguageSchema,
   code: z.string().min(1).max(128_000),
-  inputs: z.array(AgentGuestInputSchema).max(32),
+  inputs: z.array(AgentGuestInputSchema).max(64),
   limits: z.object({
     wallTimeMs: z.number().int().positive().max(300_000),
     memoryBytes: z

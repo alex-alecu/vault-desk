@@ -145,6 +145,10 @@ async function getAgentRun(core: VaultCore, request: RpcRequest): Promise<RpcRes
   return success(request, await core.getAgentRun(runId.data));
 }
 
+async function listAgentRuns(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  return success(request, await core.listAgentRuns(sessionIdParam(request)));
+}
+
 async function cancelAgent(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const jobId = JobIdSchema.safeParse(request.params.jobId);
   if (!jobId.success) return failure(request, "invalid_request", "Invalid job id.");
@@ -187,6 +191,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return removeAttachment(core, request);
     case "agent.start":
       return startAgent(core, request);
+    case "agent.list":
+      return listAgentRuns(core, request);
     case "agent.get":
       return getAgentRun(core, request);
     case "agent.cancel":

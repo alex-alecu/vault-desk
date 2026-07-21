@@ -125,7 +125,12 @@ export class AgentLoop {
     const executions: AgentExecutionResult[] = [];
     for (let step = 0; step <= MAX_EXECUTIONS; step += 1) {
       input.signal?.throwIfAborted();
-      input.onEvent?.("inference.started", `Planning step ${step + 1}.`);
+      input.onEvent?.(
+        "inference.started",
+        step === 0
+          ? "Loading the local model and planning the task."
+          : `Planning step ${step + 1}.`,
+      );
       const generated = await this.inference.generate(
         generationInput(input, executions),
         input.signal,

@@ -106,7 +106,7 @@
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "bae6d164a807a88a5648ba3dd2f68607023b12ec0e66a07f5c16f219adff9b50"
+      "initramfsSha256": "ba90ef48e1968bce58a90b75e897d87cbea690ef9c0df1fde2ce065e3e745d77"
     }
   }
 }

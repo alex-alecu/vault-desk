@@ -107,6 +107,11 @@ export async function listAttachments(sessionId: string): Promise<AttachmentSumm
   return AttachmentSummarySchema.array().parse(await invoke("list_attachments", { sessionId }));
 }
 
+export async function removeAttachment(sessionId: string, attachmentId: string): Promise<boolean> {
+  const value = record(await invoke("remove_attachment", { sessionId, attachmentId }));
+  return value.removed === true;
+}
+
 export async function saveDraft(sessionId: string, content: string): Promise<SessionDraft> {
   return SessionDraftSchema.parse(await invoke("save_draft", { sessionId, content }));
 }
@@ -122,6 +127,10 @@ export async function startAgent(sessionId: string, task: string): Promise<Agent
 
 export async function getAgentRun(runId: string): Promise<AgentRunSnapshot> {
   return AgentRunSnapshotSchema.parse(await invoke("get_agent_run", { runId }));
+}
+
+export async function listAgentRuns(sessionId: string): Promise<AgentRunSummary[]> {
+  return AgentRunSummarySchema.array().parse(await invoke("list_agent_runs", { sessionId }));
 }
 
 export async function cancelAgent(jobId: string): Promise<boolean> {

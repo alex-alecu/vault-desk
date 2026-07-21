@@ -172,6 +172,26 @@ pub(crate) async fn get_agent_run(
 }
 
 #[tauri::command]
+pub(crate) async fn list_agent_runs(
+    core: State<'_, CoreBridge>,
+    session_id: String,
+) -> Result<Value, String> {
+    core.call("agent.list", json!({ "sessionId": session_id }))
+}
+
+#[tauri::command]
+pub(crate) async fn remove_attachment(
+    core: State<'_, CoreBridge>,
+    session_id: String,
+    attachment_id: String,
+) -> Result<Value, String> {
+    core.call(
+        "attachments.remove",
+        json!({ "sessionId": session_id, "attachmentId": attachment_id }),
+    )
+}
+
+#[tauri::command]
 pub(crate) async fn cancel_agent(
     core: State<'_, CoreBridge>,
     job_id: String,

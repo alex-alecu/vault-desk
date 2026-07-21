@@ -9,6 +9,8 @@ import type {
   SessionSummary,
 } from "@vault/shared";
 import type { DesktopBootstrap } from "./api.js";
+import { appendMessage } from "./message-state.js";
+import { eventItem } from "./timeline.js";
 
 export interface FolderGroup extends FolderSummary {
   sessions: SessionSummary[];
@@ -20,6 +22,7 @@ export interface TimelineItem {
   id: string;
   kind: "user" | "assistant" | "activity";
   text: string;
+  detail?: string;
 }
 
 export interface DesktopState {
@@ -29,6 +32,7 @@ export interface DesktopState {
   draft: string;
   timeline: TimelineItem[];
   attachments: AttachmentSummary[];
+  removableAttachmentIds: string[];
   activeRun: AgentRunSummary | undefined;
   artifacts: AgentArtifactSummary[];
   loaded: boolean;
@@ -45,8 +49,14 @@ export type DesktopAction =
   | { type: "session.select"; sessionId: string }
   | { type: "messages.load"; sessionId: string; messages: ConversationMessage[] }
   | { type: "message.append"; message: ConversationMessage }
-  | { type: "attachments.load"; sessionId: string; attachments: AttachmentSummary[] }
+  | {
+      type: "attachments.load";
+      sessionId: string;
+      attachments: AttachmentSummary[];
+      removableIds: string[];
+    }
   | { type: "attachments.add"; attachments: AttachmentSummary[] }
+  | { type: "attachment.remove"; attachmentId: string }
   | { type: "agent.started"; run: AgentRunSummary }
   | { type: "agent.snapshot"; snapshot: AgentRunSnapshot }
   | { type: "draft.load"; sessionId: string; draft: string }
@@ -59,6 +69,7 @@ export const initialDesktopState: DesktopState = {
   draft: "",
   timeline: [],
   attachments: [],
+  removableAttachmentIds: [],
   activeRun: undefined,
   artifacts: [],
   loaded: false,
@@ -98,6 +109,7 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
       draft: "",
       timeline: [],
       attachments: [],
+      removableAttachmentIds: [],
       activeRun: undefined,
       artifacts: [],
       globalSessions: [session, ...state.globalSessions].slice(0, 5),
@@ -109,6 +121,7 @@ function addSession(state: DesktopState, session: SessionSummary): DesktopState 
     draft: "",
     timeline: [],
     attachments: [],
+    removableAttachmentIds: [],
     activeRun: undefined,
     artifacts: [],
     folders: state.folders.map((folder) =>
@@ -139,47 +152,6 @@ function appendFolderPage(state: DesktopState, folderId: string, page: SessionPa
   };
 }
 
-function appendMessage(state: DesktopState, message: ConversationMessage): DesktopState {
-  const timeline = [
-    ...state.timeline,
-    { id: message.id, kind: message.role, text: message.content } satisfies TimelineItem,
-  ];
-  const title =
-    message.role === "user" ? message.content.replaceAll(/\s+/gu, " ").slice(0, 60) : undefined;
-  return {
-    ...state,
-    draft: "",
-    timeline,
-    globalSessions: state.globalSessions.map((session) =>
-      session.id === message.sessionId && session.title === "New chat" && title !== undefined
-        ? { ...session, title }
-        : session,
-    ),
-    folders: state.folders.map((folder) => ({
-      ...folder,
-      sessions: folder.sessions.map((session) =>
-        session.id === message.sessionId && session.title === "New chat" && title !== undefined
-          ? { ...session, title }
-          : session,
-      ),
-    })),
-  };
-}
-
-function eventText(event: AgentRunSnapshot["events"][number]): string {
-  return [
-    event.summary,
-    event.code === null ? undefined : `Code:\n${event.code}`,
-    event.stdout === null || event.stdout.length === 0 ? undefined : `Output:\n${event.stdout}`,
-    event.stderr === null || event.stderr.length === 0
-      ? undefined
-      : `Error output:\n${event.stderr}`,
-    event.termination === null ? undefined : `Termination: ${event.termination}`,
-  ]
-    .filter((item): item is string => item !== undefined)
-    .join("\n\n");
-}
-
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one exhaustive reducer keeps desktop transitions deterministic.
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: reducer cases are intentionally flat and side-effect free.
 export function desktopReducer(state: DesktopState, action: DesktopAction): DesktopState {
@@ -196,6 +168,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
             activeSessionId: undefined,
             timeline: [],
             attachments: [],
+            removableAttachmentIds: [],
             artifacts: [],
             activeRun: undefined,
             draft: "",
@@ -229,6 +202,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       activeSessionId: action.sessionId,
       timeline: [],
       attachments: [],
+      removableAttachmentIds: [],
       activeRun: undefined,
       artifacts: [],
       draft: "",
@@ -264,20 +238,40 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
   if (action.type === "message.append") return appendMessage(state, action.message);
   if (action.type === "attachments.load") {
     return state.activeSessionId === action.sessionId
-      ? { ...state, attachments: action.attachments }
+      ? {
+          ...state,
+          attachments: action.attachments,
+          removableAttachmentIds: action.removableIds,
+        }
       : state;
   }
   if (action.type === "attachments.add") {
-    return { ...state, attachments: [...state.attachments, ...action.attachments] };
+    return {
+      ...state,
+      attachments: [...state.attachments, ...action.attachments],
+      removableAttachmentIds: [
+        ...state.removableAttachmentIds,
+        ...action.attachments.map((item) => item.id),
+      ],
+    };
   }
-  if (action.type === "agent.started") return { ...state, activeRun: action.run, draft: "" };
+  if (action.type === "attachment.remove") {
+    return {
+      ...state,
+      attachments: state.attachments.filter((item) => item.id !== action.attachmentId),
+      removableAttachmentIds: state.removableAttachmentIds.filter(
+        (item) => item !== action.attachmentId,
+      ),
+    };
+  }
+  if (action.type === "agent.started") {
+    return { ...state, activeRun: action.run, draft: "", removableAttachmentIds: [] };
+  }
   if (action.type === "agent.snapshot") {
     if (action.snapshot.run.sessionId !== state.activeSessionId) return state;
     const known = new Set(state.timeline.map((item) => item.id));
     const knownArtifacts = new Set(state.artifacts.map((item) => item.id));
-    const activity = action.snapshot.events
-      .filter((item) => !known.has(item.id))
-      .map((item) => ({ id: item.id, kind: "activity" as const, text: eventText(item) }));
+    const activity = action.snapshot.events.filter((item) => !known.has(item.id)).map(eventItem);
     return {
       ...state,
       activeRun: action.snapshot.run,
@@ -289,7 +283,9 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     };
   }
   if (action.type === "draft.load") {
-    return state.activeSessionId === action.sessionId ? { ...state, draft: action.draft } : state;
+    return state.activeSessionId === action.sessionId && state.draft.length === 0
+      ? { ...state, draft: action.draft }
+      : state;
   }
   return { ...state, draft: action.draft };
 }

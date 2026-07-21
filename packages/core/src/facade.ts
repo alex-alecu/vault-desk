@@ -31,6 +31,7 @@ export interface VaultCorePorts extends InferenceService {
   listAttachments(sessionId: string): Promise<AttachmentSummary[]>;
   removeAttachment(sessionId: string, attachmentId: string): Promise<boolean>;
   startAgent(sessionId: string, task: string): Promise<AgentRunSummary>;
+  listAgentRuns(sessionId: string): Promise<AgentRunSummary[]>;
   getAgentRun(runId: string): Promise<AgentRunSnapshot>;
   cancelAgent(jobId: string): Promise<boolean>;
   cancelJob(jobId: string): Promise<boolean>;
@@ -56,6 +57,7 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     listAttachments: (sessionId) => ports.listAttachments(sessionId),
     removeAttachment: (sessionId, attachmentId) => ports.removeAttachment(sessionId, attachmentId),
     startAgent: (sessionId, task) => ports.startAgent(sessionId, task),
+    listAgentRuns: (sessionId) => ports.listAgentRuns(sessionId),
     getAgentRun: (runId) => ports.getAgentRun(runId),
     cancelAgent: (jobId) => ports.cancelAgent(jobId),
     cancelJob: (jobId) => ports.cancelJob(jobId),

@@ -92,6 +92,7 @@ describe("M3 persisted agent lifecycle", () => {
     const run = service.start(session.id, "Build a result");
     const snapshot = await waitForTerminal(service, run.id);
 
+    expect(service.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
     expect(snapshot.run).toMatchObject({ state: "succeeded", response: "Finished safely." });
     expect(snapshot.events.map((item) => item.type)).toEqual([
       "run.started",

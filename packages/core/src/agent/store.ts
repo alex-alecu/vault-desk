@@ -234,6 +234,15 @@ export class AgentStore {
     return AgentRunSnapshotSchema.parse({ run: runFromRow(runRow), events, artifacts });
   }
 
+  listRuns(sessionId: string): AgentRunSummary[] {
+    const rows = this.database
+      .prepare(
+        "SELECT * FROM (SELECT * FROM agent_runs WHERE session_id = ? ORDER BY created_at DESC, id DESC LIMIT 100) ORDER BY created_at, id",
+      )
+      .all(sessionId) as RunRow[];
+    return rows.map(runFromRow);
+  }
+
   recoverInterrupted(): number {
     const now = new Date().toISOString();
     return this.database.transaction(() => {

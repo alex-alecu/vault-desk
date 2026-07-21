@@ -1,5 +1,6 @@
 import {
   AgentRunSnapshotSchema,
+  AttachmentSummarySchema,
   ConversationMessageSchema,
   FolderSummarySchema,
   SessionPageSchema,
@@ -122,5 +123,89 @@ describe("background agent updates", () => {
       artifacts: [],
     });
     expect(desktopReducer(selected, { type: "agent.snapshot", snapshot })).toBe(selected);
+  });
+});
+
+describe("agent activity presentation", () => {
+  it("keeps activity details bounded and separate from the summary", () => {
+    const selected = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: firstSession,
+    });
+    const snapshot = AgentRunSnapshotSchema.parse({
+      run: {
+        id: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+        sessionId: firstSession.id,
+        jobId: "ea31a359-3b01-4d54-9950-e3d46e807381",
+        state: "running",
+        response: null,
+        error: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      events: [
+        {
+          id: "d59ff233-f216-4ee7-a156-a5a1c6cb5ed1",
+          runId: "77ff5b22-555d-4ef2-9170-fdd7118738f1",
+          sequence: 0,
+          type: "execution.completed",
+          summary: "Python completed.",
+          code: "print('ok')",
+          stdout: "x".repeat(25_000),
+          stderr: "",
+          termination: "completed",
+          createdAt: timestamp,
+        },
+      ],
+      artifacts: [],
+    });
+    const state = desktopReducer(selected, { type: "agent.snapshot", snapshot });
+    expect(state.timeline[0]?.text).toBe("Python completed.");
+    expect(state.timeline[0]?.detail).toContain("… output truncated");
+    expect(state.timeline[0]?.detail?.length).toBeLessThan(21_000);
+  });
+});
+
+describe("desktop attachment and draft state", () => {
+  it("removes only the selected pending attachment", () => {
+    const selected = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: firstSession,
+    });
+    const attachment = AttachmentSummarySchema.parse({
+      id: "6712ff10-f0d1-4cdc-8bbc-25097c29da35",
+      sessionId: firstSession.id,
+      name: "notes.txt",
+      mediaType: "text/plain",
+      byteLength: 5,
+      contentHash: `sha256:${"a".repeat(64)}`,
+      createdAt: timestamp,
+    });
+    const loaded = desktopReducer(selected, {
+      type: "attachments.load",
+      sessionId: firstSession.id,
+      attachments: [attachment],
+      removableIds: [attachment.id],
+    });
+    const removed = desktopReducer(loaded, {
+      type: "attachment.remove",
+      attachmentId: attachment.id,
+    });
+    expect(removed.attachments).toEqual([]);
+    expect(removed.removableAttachmentIds).toEqual([]);
+  });
+
+  it("does not overwrite text entered while a saved draft loads", () => {
+    const selected = desktopReducer(initialDesktopState, {
+      type: "session.created",
+      session: firstSession,
+    });
+    const typed = desktopReducer(selected, { type: "draft.change", draft: "new text" });
+    const loaded = desktopReducer(typed, {
+      type: "draft.load",
+      sessionId: firstSession.id,
+      draft: "older saved text",
+    });
+    expect(loaded.draft).toBe("new text");
   });
 });

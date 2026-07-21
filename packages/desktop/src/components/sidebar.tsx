@@ -6,6 +6,7 @@ import { SessionList } from "./session-list.js";
 
 interface SidebarProps {
   activeSessionId: string | undefined;
+  disabled: boolean;
   dispatch: Dispatch<DesktopAction>;
   folders: FolderGroup[];
   globalSessions: SessionSummary[];
@@ -26,6 +27,7 @@ function FolderSection(props: SidebarProps) {
         <button
           aria-expanded={folder.expanded}
           className="folder-heading"
+          disabled={props.disabled}
           onClick={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
           type="button"
         >
@@ -36,6 +38,7 @@ function FolderSection(props: SidebarProps) {
         <button
           aria-label={`Remove ${folder.name}`}
           className="folder-remove"
+          disabled={props.disabled}
           onClick={() => props.onRevokeFolder(folder.id)}
           type="button"
         >
@@ -45,6 +48,7 @@ function FolderSection(props: SidebarProps) {
       {folder.expanded ? (
         <SessionList
           activeSessionId={props.activeSessionId}
+          disabled={props.disabled}
           folder={folder}
           onNewSession={props.onNewSession}
           onSelectSession={props.onSelectSession}
@@ -60,11 +64,21 @@ export function Sidebar(props: SidebarProps) {
     <aside className="sidebar">
       <div className="brand">Vault Desk</div>
       <nav aria-label="Workspace navigation">
-        <button className="nav-action" onClick={() => props.onNewSession(null)} type="button">
+        <button
+          className="nav-action"
+          disabled={props.disabled}
+          onClick={() => props.onNewSession(null)}
+          type="button"
+        >
           <Icon name="message" />
           New chat
         </button>
-        <button className="nav-action" onClick={props.onAddFolder} type="button">
+        <button
+          className="nav-action"
+          disabled={props.disabled}
+          onClick={props.onAddFolder}
+          type="button"
+        >
           <Icon name="add" />
           Add folder
         </button>
@@ -77,6 +91,7 @@ export function Sidebar(props: SidebarProps) {
               <button
                 aria-current={session.id === props.activeSessionId ? "page" : undefined}
                 className="session-row"
+                disabled={props.disabled}
                 key={session.id}
                 onClick={() => props.onSelectSession(session.id)}
                 type="button"

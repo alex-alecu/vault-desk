@@ -28,6 +28,12 @@ button {
   border: 0;
 }
 
+button:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 button:focus-visible,
 textarea:focus-visible {
   outline: 2px solid #6159d9;
@@ -258,6 +264,8 @@ textarea:focus-visible {
 }
 
 .timeline {
+  height: 100%;
+  min-height: 0;
   width: min(820px, calc(100% - 72px));
   margin: 0 auto;
   padding: 48px 0 36px;
@@ -343,31 +351,73 @@ textarea:focus-visible {
 }
 
 .attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   max-width: 240px;
-  overflow: hidden;
   padding: 5px 9px;
-  border: 1px solid var(--border);
+  border: 1px solid #dfdbd8;
   border-radius: 999px;
-  color: var(--text-secondary);
+  color: #6f6965;
   font-size: 12px;
+}
+
+.attachment-chip span {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.attachment-chip button {
+  flex: 0 0 auto;
+  padding: 0 1px;
+  color: #8b8580;
+  background: transparent;
+  cursor: pointer;
 }
 
 .timeline-activity p {
   white-space: pre-wrap;
 }
 
+.timeline-activity details {
+  margin-top: 10px;
+}
+
+.timeline-activity summary {
+  width: max-content;
+  color: #6159d9;
+  cursor: pointer;
+}
+
+.timeline-activity pre {
+  max-height: 320px;
+  margin: 10px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 9px;
+  background: #eeeae7;
+  font:
+    12px / 1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .icon-button,
-.send-button {
+.send-button,
+.stop-button {
   display: grid;
-  width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 50%;
 }
 
 .icon-button {
+  width: 34px;
+  border-radius: 50%;
   background: transparent;
 }
 
@@ -376,7 +426,18 @@ textarea:focus-visible {
 }
 
 .send-button {
+  width: 34px;
   margin-left: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: #716b67;
+  cursor: pointer;
+}
+
+.stop-button {
+  min-width: 58px;
+  padding: 0 14px;
+  border-radius: 999px;
   color: #fff;
   background: #716b67;
   cursor: pointer;
@@ -411,6 +472,17 @@ textarea:focus-visible {
   color: #8b3429;
   background: #fff1ef;
   font-size: 13px;
+  display: flex;
+  max-width: min(520px, calc(100% - 32px));
+  align-items: center;
+  gap: 12px;
+}
+
+.error-banner button {
+  padding: 0 2px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
 @media (max-width: 960px) {
@@ -448,7 +520,7 @@ textarea:focus-visible {
   .welcome {
     align-self: stretch;
     min-height: 0;
-    padding: 20px 0;
+    padding: 20px 0 12px;
     overflow-y: auto;
   }
 
@@ -459,6 +531,11 @@ textarea:focus-visible {
   .composer {
     width: calc(100% - 24px);
     margin-bottom: 10px;
+  }
+
+  .timeline {
+    width: calc(100% - 24px);
+    padding: 20px 0;
   }
 
   .timeline-item {

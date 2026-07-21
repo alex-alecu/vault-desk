@@ -70,6 +70,26 @@ describe("M3 session-owned inputs", () => {
   });
 });
 
+describe("M3 folder input capacity", () => {
+  it("accepts a small folder with more than 32 files", async () => {
+    const { root, catalog, store, conversations } = await fixture();
+    const selected = join(root, "selected-folder");
+    await mkdir(selected);
+    await Promise.all(
+      Array.from({ length: 37 }, async (_, index) => {
+        await writeFile(join(selected, `${index.toString().padStart(2, "0")}.txt`), `${index}`);
+      }),
+    );
+    const folder = conversations.addFolder(selected);
+    const session = conversations.createSession(folder.id);
+
+    const snapshot = await new AgentInputResolver(catalog.database, store).resolve(session.id);
+    expect(snapshot.files).toHaveLength(37);
+    await snapshot.dispose();
+    catalog.close();
+  });
+});
+
 describe("M3 interrupted run recovery", () => {
   it("makes an interrupted run explicitly failed and observable", async () => {
     const { catalog, store, conversations, jobs } = await fixture();
@@ -79,6 +99,7 @@ describe("M3 interrupted run recovery", () => {
     jobs.transition(job.id, "running");
     store.transitionRun(run.id, "running");
 
+    expect(store.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
     expect(store.recoverInterrupted()).toBe(1);
     const recovered = store.snapshot(run.id);
     expect(recovered.run).toMatchObject({ state: "failed", error: "core_restarted" });

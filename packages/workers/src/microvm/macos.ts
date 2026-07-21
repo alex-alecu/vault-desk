@@ -11,6 +11,7 @@ import {
   type WorkerLimits,
   WorkerLimitsSchema,
 } from "@vault/shared";
+import { stagePackedAgentInputs } from "./agent-staging.js";
 import type {
   CodeAgentLauncher,
   MicroVmAgentRequest,
@@ -205,8 +206,12 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
     signal.throwIfAborted();
     const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.jobId}-`));
     try {
-      const inputPaths = request.readonlyInputs.map((input) => input.path);
-      const inputs = await stageInputs(inputPaths, temporaryRoot, request, signal);
+      const inputs = await stagePackedAgentInputs(
+        request.readonlyInputs,
+        temporaryRoot,
+        request.limits,
+        signal,
+      );
       const scratch = join(temporaryRoot, "scratch.img");
       const scratchHandle = await open(scratch, "wx", 0o600);
       await scratchHandle.close();
@@ -218,12 +223,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
         operation: "execute",
         language: request.language,
         code: request.code,
-        inputs: await Promise.all(
-          request.readonlyInputs.map(async (input) => ({
-            name: input.name,
-            byteLength: (await stat(input.path)).size,
-          })),
-        ),
+        inputs: inputs.entries,
         limits: {
           wallTimeMs: request.limits.wallTimeMs,
           memoryBytes: request.limits.memoryBytes,
@@ -234,14 +234,20 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
       const requestPath = join(temporaryRoot, "request.json");
       await writeFile(requestPath, JSON.stringify(frame), { encoding: "utf8", mode: 0o600 });
       const artifacts = await verifiedAgentArtifacts(this.imageRoot);
-      const args = helperArguments({ artifacts, inputs, request, scratch, requestPath });
+      const args = helperArguments({
+        artifacts,
+        inputs: inputs.devices,
+        request,
+        scratch,
+        requestPath,
+      });
       const report = MicroVmAgentReportSchema.parse(
         JSON.parse(await runHelper(this.helperPath, args, signal)),
       );
       const certified =
         report.networkDeviceCount === 0 &&
         report.socketDeviceCount === 1 &&
-        report.readOnlyInputCount === request.readonlyInputs.length &&
+        report.readOnlyInputCount === inputs.devices.length &&
         report.scratchBytes === request.limits.scratchBytes &&
         report.guest.nonLoopbackNetworkDeviceCount === 0;
       if (!certified || report.classification !== "certified") {

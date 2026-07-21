@@ -6,7 +6,7 @@ import type { AgentInputFile } from "@vault/workers";
 import type { DatabasePort } from "../workspace/database.js";
 import type { AgentStore } from "./store.js";
 
-const MAX_INPUTS = 32;
+const MAX_INPUTS = 64;
 const MAX_INPUT_BYTES = 8 * 1024 * 1024 * 1024;
 const MAX_FILE_BYTES = 512 * 1024 * 1024;
 

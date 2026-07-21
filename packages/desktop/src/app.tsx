@@ -6,10 +6,12 @@ import {
   chooseFolder,
   createSession,
   getAgentRun,
+  listAgentRuns,
   listAttachments,
   listMessages,
   listSessions,
   loadDraft,
+  removeAttachment,
   revokeFolder,
   saveDraft,
   startAgent,
@@ -17,6 +19,7 @@ import {
 import { Composer } from "./components/composer.js";
 import { Conversation } from "./components/conversation.js";
 import { Sidebar } from "./components/sidebar.js";
+import { retryLocalRequest, waitForAgentRun } from "./run-polling.js";
 import { type DesktopAction, desktopReducer, initialDesktopState } from "./state.js";
 
 type Dispatch = (action: DesktopAction) => void;
@@ -48,18 +51,29 @@ async function startSession(folderId: string | null, dispatch: Dispatch, setErro
 }
 
 async function selectSession(sessionId: string, dispatch: Dispatch, setError: SetError) {
+  setError(undefined);
   dispatch({ type: "session.select", sessionId });
   try {
-    const [messages, attachments, draft] = await Promise.all([
+    const [messages, attachments, draft, runs] = await Promise.all([
       listMessages(sessionId),
       listAttachments(sessionId),
       loadDraft(sessionId),
+      listAgentRuns(sessionId),
     ]);
+    const lastUserMessage = messages.filter((message) => message.role === "user").at(-1);
     dispatch({ type: "messages.load", sessionId, messages });
-    dispatch({ type: "attachments.load", sessionId, attachments });
+    dispatch({
+      type: "attachments.load",
+      sessionId,
+      attachments,
+      removableIds: attachments
+        .filter(
+          (item) => lastUserMessage === undefined || item.createdAt > lastUserMessage.createdAt,
+        )
+        .map((item) => item.id),
+    });
     dispatch({ type: "draft.load", sessionId, draft: draft?.content ?? "" });
-    const runIds = messages.flatMap((message) => (message.runId === null ? [] : [message.runId]));
-    for (const snapshot of await Promise.all(runIds.map((runId) => getAgentRun(runId)))) {
+    for (const snapshot of await Promise.all(runs.map((run) => getAgentRun(run.id)))) {
       dispatch({ type: "agent.snapshot", snapshot });
     }
   } catch {
@@ -82,27 +96,56 @@ async function showMore(
   }
 }
 
-async function send(
-  text: string,
-  activeSessionId: string | undefined,
-  dispatch: Dispatch,
-  setError: SetError,
-) {
-  const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
-  if (sessionId === undefined) return;
+interface SendOptions {
+  text: string;
+  activeSessionId: string | undefined;
+  dispatch: Dispatch;
+  setError: SetError;
+  setSubmitting(value: boolean): void;
+}
+
+async function send({ text, activeSessionId, dispatch, setError, setSubmitting }: SendOptions) {
+  setSubmitting(true);
+  setError(undefined);
+  let started = false;
   try {
+    const sessionId = activeSessionId ?? (await startSession(null, dispatch, setError));
+    if (sessionId === undefined) return;
     const run = await startAgent(sessionId, text);
+    started = true;
     dispatch({ type: "agent.started", run });
-    dispatch({ type: "messages.load", sessionId, messages: await listMessages(sessionId) });
-    while (true) {
-      const snapshot = await getAgentRun(run.id);
-      dispatch({ type: "agent.snapshot", snapshot });
-      if (snapshot.run.state !== "queued" && snapshot.run.state !== "running") break;
-      await new Promise((accept) => setTimeout(accept, 350));
+    setSubmitting(false);
+    try {
+      dispatch({
+        type: "messages.load",
+        sessionId,
+        messages: await retryLocalRequest(() => listMessages(sessionId)),
+      });
+    } catch {
+      // The persisted user message is restored with the terminal refresh below.
     }
-    dispatch({ type: "messages.load", sessionId, messages: await listMessages(sessionId) });
+    await waitForAgentRun({
+      runId: run.id,
+      read: getAgentRun,
+      onSnapshot: (snapshot) => dispatch({ type: "agent.snapshot", snapshot }),
+    });
+    try {
+      dispatch({
+        type: "messages.load",
+        sessionId,
+        messages: await retryLocalRequest(() => listMessages(sessionId)),
+      });
+    } catch {
+      setError("The task completed. Reopen this chat to restore its response.");
+    }
   } catch {
-    setError("The offline task could not be completed.");
+    setError(
+      started
+        ? "The task status could not be refreshed. Reopen this chat to restore the latest result."
+        : "The offline task could not be started.",
+    );
+  } finally {
+    setSubmitting(false);
   }
 }
 
@@ -114,6 +157,22 @@ async function attach(activeSessionId: string | undefined, dispatch: Dispatch, s
     if (attachments.length > 0) dispatch({ type: "attachments.add", attachments });
   } catch {
     setError("The selected files could not be attached.");
+  }
+}
+
+async function remove(
+  sessionId: string,
+  attachmentId: string,
+  dispatch: Dispatch,
+  setError: SetError,
+) {
+  setError(undefined);
+  try {
+    if (await removeAttachment(sessionId, attachmentId)) {
+      dispatch({ type: "attachment.remove", attachmentId });
+    }
+  } catch {
+    setError("The attached file could not be removed.");
   }
 }
 
@@ -133,6 +192,7 @@ function changeDraft(
 export function App() {
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
     void bootstrapDesktop()
       .then((snapshot) => dispatch({ type: "desktop.hydrate", snapshot }))
@@ -142,6 +202,7 @@ export function App() {
     <div className="app-shell">
       <Sidebar
         activeSessionId={state.activeSessionId}
+        disabled={!state.loaded}
         dispatch={dispatch}
         folders={state.folders}
         globalSessions={state.globalSessions}
@@ -164,10 +225,22 @@ export function App() {
           )
         }
       />
-      <main className="workspace">
-        {desktopError === undefined ? null : <div className="error-banner">{desktopError}</div>}
+      <main aria-busy={!state.loaded} className="workspace">
+        {desktopError === undefined ? null : (
+          <div className="error-banner" role="alert">
+            <span>{desktopError}</span>
+            <button
+              aria-label="Dismiss error"
+              onClick={() => setDesktopError(undefined)}
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <Conversation
           artifacts={state.artifacts}
+          ready={state.loaded}
           onSuggestion={(draft) =>
             changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
           }
@@ -176,13 +249,36 @@ export function App() {
         <Composer
           attachments={state.attachments}
           draft={state.draft}
+          disabled={!state.loaded}
           onAttach={() => void attach(state.activeSessionId, dispatch, setDesktopError)}
           onCancel={() => {
-            if (state.activeRun !== undefined) void cancelAgent(state.activeRun.jobId);
+            if (state.activeRun !== undefined) {
+              void cancelAgent(state.activeRun.jobId).catch(() =>
+                setDesktopError("The task could not be cancelled."),
+              );
+            }
           }}
           onChange={(draft) => changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)}
-          onSend={(text) => void send(text, state.activeSessionId, dispatch, setDesktopError)}
-          running={state.activeRun?.state === "queued" || state.activeRun?.state === "running"}
+          onRemoveAttachment={(attachmentId) => {
+            if (state.activeSessionId !== undefined) {
+              void remove(state.activeSessionId, attachmentId, dispatch, setDesktopError);
+            }
+          }}
+          onSend={(text) =>
+            void send({
+              text,
+              activeSessionId: state.activeSessionId,
+              dispatch,
+              setError: setDesktopError,
+              setSubmitting,
+            })
+          }
+          removableAttachmentIds={state.removableAttachmentIds}
+          running={
+            submitting ||
+            state.activeRun?.state === "queued" ||
+            state.activeRun?.state === "running"
+          }
         />
       </main>
     </div>

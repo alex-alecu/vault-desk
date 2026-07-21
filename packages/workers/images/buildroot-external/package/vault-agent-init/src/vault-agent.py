@@ -4,7 +4,6 @@ import json
 import os
 import pathlib
 import resource
-import shutil
 import signal
 import socket
 import struct
@@ -94,14 +93,25 @@ def prepare_workspace(request):
     artifacts_dir.mkdir(mode=0o770)
     devices = block_devices()
     inputs = request["inputs"]
-    if len(devices) != len(inputs) + 1:
+    input_device_count = max((item["deviceIndex"] for item in inputs), default=-1) + 1
+    if len(devices) != input_device_count + 1:
         raise RuntimeError("device_count_mismatch")
-    for index, item in enumerate(inputs):
+    for item in inputs:
         byte_length = item["byteLength"]
+        device_index = item["deviceIndex"]
+        byte_offset = item["byteOffset"]
+        if device_index < 0 or device_index >= input_device_count or byte_offset < 0:
+            raise RuntimeError("invalid_input_location")
         destination = inputs_dir / safe_name(item["name"])
-        with devices[index].open("rb", buffering=0) as source, destination.open("xb") as target:
-            shutil.copyfileobj(source, target, length=min(byte_length, 1024 * 1024))
-            target.truncate(byte_length)
+        with devices[device_index].open("rb", buffering=0) as source, destination.open("xb") as target:
+            source.seek(byte_offset)
+            remaining = byte_length
+            while remaining:
+                chunk = source.read(min(remaining, 1024 * 1024))
+                if not chunk:
+                    raise RuntimeError("input_truncated")
+                target.write(chunk)
+                remaining -= len(chunk)
         destination.chmod(0o444)
     os.chown("/work", NOBODY, NOBODY)
     os.chown(artifacts_dir, NOBODY, NOBODY)

@@ -21,7 +21,7 @@ import type { AgentStore } from "./store.js";
 const MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 const LIMITS: WorkerLimits = {
   wallTimeMs: 120_000,
-  inputCount: 32,
+  inputCount: 64,
   inputBytes: 8 * 1024 * 1024 * 1024,
   memoryBytes: 4 * 1024 * 1024 * 1024,
   scratchBytes: 128 * 1024 * 1024,
@@ -37,6 +37,19 @@ interface ActiveRun {
 function failureText(error: unknown): string {
   if (error instanceof Error && error.message.length > 0) return error.message.slice(0, 1_000);
   return "agent_run_failed";
+}
+
+function failureSummary(detail: string): string {
+  if (detail === "worker_input_limit_exceeded") {
+    return "The selected files exceed this task's supported input limit.";
+  }
+  if (detail.includes("memory")) {
+    return "The local model needs more available memory to complete this task.";
+  }
+  if (detail.includes("model") || detail.includes("Inference")) {
+    return "The local model could not be loaded or did not respond.";
+  }
+  return "The local task could not be completed safely.";
 }
 
 export class AgentService {
@@ -111,6 +124,10 @@ export class AgentService {
     return this.store.snapshot(runId);
   }
 
+  listRuns(sessionId: string): AgentRunSummary[] {
+    return this.store.listRuns(sessionId);
+  }
+
   cancel(jobId: string): boolean {
     const active = this.active.get(jobId);
     const cancelled = this.jobs.cancel(jobId) !== undefined;
@@ -129,7 +146,7 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           "run.started",
-          "Offline limits: 6 executions, 120 seconds each, 4 CPUs, 4 GiB memory, 128 MiB scratch.",
+          "Offline limits: 64 selected files, 6 executions, 120 seconds each, 4 CPUs, 4 GiB memory, 128 MiB scratch.",
         );
       })();
       resolved = await this.inputs.resolve(run.sessionId);
@@ -187,7 +204,7 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           cancelled ? "run.cancelled" : "run.failed",
-          cancelled ? "Task cancelled." : "Task failed safely.",
+          cancelled ? "Task cancelled." : failureSummary(detail),
         );
       })();
       this.audit.append({
