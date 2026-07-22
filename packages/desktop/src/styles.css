@@ -466,6 +466,7 @@ textarea:focus-visible {
   margin-bottom: 18px;
   padding: 12px 15px;
   border-radius: 14px;
+  color: rgb(13 13 13);
 }
 
 .timeline-item p {
