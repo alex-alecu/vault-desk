@@ -6,7 +6,13 @@ import type {
   RequestId,
   StructuredGenerationRequest,
 } from "@vault/shared";
-import type { Llama, LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
+import type {
+  Llama,
+  LlamaChatResponseChunk,
+  LlamaChatSession,
+  LlamaEmbeddingContext,
+  LlamaModel,
+} from "node-llama-cpp";
 import {
   encodeInferenceMessage,
   encodeInferenceResponse,
@@ -19,6 +25,7 @@ import {
   resolveRuntimeMemoryBudget,
 } from "./memory.js";
 import { probe } from "./probe.js";
+import { structuredValue } from "./structured.js";
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -203,30 +210,22 @@ async function generate(
   emit: (message: InferenceWorkerMessage) => void,
 ): Promise<InferenceWorkerResponse> {
   const session = await generationSession(request, runtime);
-  const grammar = await runtime.llama.createGrammarForJsonSchema(request.jsonSchema as never);
   const initialMeter = session.sequence.tokenMeter.getState();
   const startedAt = performance.now();
   let firstTokenAt: number | undefined;
-  const output = await session.prompt(request.prompt, {
-    grammar,
-    maxTokens: request.maxTokens,
-    temperature: 0,
-    ...(request.modelId.startsWith("gemma-4")
-      ? { budgets: { thoughtTokens: Math.min(384, Math.floor(request.maxTokens / 2)) } }
-      : {}),
-    onResponseChunk(chunk) {
-      if (chunk.tokens.length > 0) firstTokenAt ??= performance.now();
-      if (chunk.type === "segment" && chunk.segmentType === "thought" && chunk.text.length > 0) {
-        emit({
-          protocolVersion: 1,
-          requestId: request.requestId,
-          status: "stream",
-          event: "thinking.delta",
-          text: chunk.text,
-        });
-      }
-    },
-  });
+  const onResponseChunk = (chunk: LlamaChatResponseChunk) => {
+    if (chunk.tokens.length > 0) firstTokenAt ??= performance.now();
+    if (chunk.type === "segment" && chunk.segmentType === "thought" && chunk.text.length > 0) {
+      emit({
+        protocolVersion: 1,
+        requestId: request.requestId,
+        status: "stream",
+        event: "thinking.delta",
+        text: chunk.text,
+      });
+    }
+  };
+  const value = await structuredValue(request, runtime.llama, session, onResponseChunk);
   const completedAt = performance.now();
   const finalMeter = session.sequence.tokenMeter.getState();
   return {
@@ -234,7 +233,7 @@ async function generate(
     requestId: request.requestId,
     status: "ok",
     operation: "generate",
-    value: grammar.parse(output),
+    value,
     memory: await memoryReport(runtime, session.sequence.contextSize),
     performance: performanceReport({
       initial: initialMeter,

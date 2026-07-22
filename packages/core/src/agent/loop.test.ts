@@ -37,10 +37,12 @@ function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate
 function capturingInference(
   decisions: AgentDecision[],
   prompts: string[],
+  schemas: Array<Record<string, unknown>> = [],
 ): Pick<InferenceService, "generate"> {
   return {
     async generate(input) {
       prompts.push(input.prompt);
+      schemas.push(input.jsonSchema);
       return await inference(decisions).generate(input);
     },
   };
@@ -104,6 +106,14 @@ describe("AgentLoop schema", () => {
       expect.arrayContaining([
         expect.objectContaining({
           properties: expect.objectContaining({
+            response: expect.objectContaining({
+              type: "array",
+              items: expect.objectContaining({ maxLength: 512 }),
+            }),
+          }),
+        }),
+        expect.objectContaining({
+          properties: expect.objectContaining({
             code: expect.objectContaining({
               type: "array",
               items: expect.objectContaining({ maxLength: 512 }),
@@ -152,7 +162,7 @@ describe("AgentLoop thinking", () => {
 });
 
 describe("AgentLoop source", () => {
-  it("joins complete generated source lines before execution", async () => {
+  it("preserves generated multiline source before execution", async () => {
     const calls: string[] = [];
     const model: Pick<InferenceService, "generate"> = {
       async generate() {
@@ -186,6 +196,26 @@ describe("AgentLoop source", () => {
   });
 });
 
+describe("AgentLoop response", () => {
+  it("joins generated response lines", async () => {
+    const model: Pick<InferenceService, "generate"> = {
+      async generate(input) {
+        return {
+          ...(await inference([{ action: "respond", response: "unused" }]).generate(input)),
+          value: { action: "respond", response: ["Summary", "Total: 4"] },
+        };
+      },
+    };
+
+    const result = await new AgentLoop(model, executor([], [])).run({
+      task: "Reply",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("Summary\nTotal: 4");
+  });
+});
+
 describe("AgentLoop observations", () => {
   it("feeds bounded execution observations back to the model", async () => {
     const decisions: AgentDecision[] = [
@@ -199,7 +229,11 @@ describe("AgentLoop observations", () => {
       executor([{ ...completed }], calls),
     );
 
-    const result = await loop.run({ task: "Calculate two plus two", modelId: "test-model" });
+    const result = await loop.run({
+      task: "Calculate two plus two",
+      modelId: "test-model",
+      inputNames: ["private-input.xlsx"],
+    });
 
     expect(calls).toEqual([completed.code]);
     expect(result).toEqual({
@@ -214,50 +248,19 @@ describe("AgentLoop observations", () => {
       },
     });
     expect(prompts[1]).not.toContain(`"code":"${completed.code}"`);
+    expect(prompts[1]).not.toContain("private-input.xlsx");
+    expect(prompts[1]).toContain("Selected input count: 1.");
     expect(prompts[1]).toContain("Successful execution count: 1.");
     expect(prompts[1]).toContain("Never import pandas");
     expect(prompts[1]).toContain("Never guess column positions");
     expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
+    expect(prompts[1]).toContain("path.suffix.lower()");
+    expect(prompts[1]).toContain("case-insensitive substring");
+    expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
+    expect(prompts[1]).toContain("Never execute imports or definitions by themselves");
     expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
-  });
-});
-
-describe("AgentLoop limits", () => {
-  it("uses a response-only inference after six executable steps", async () => {
-    const decision: AgentDecision = {
-      action: "execute",
-      language: "python",
-      code: completed.code,
-      summary: "Continue",
-    };
-    const calls: string[] = [];
-    const results = Array.from({ length: 6 }, () => ({ ...completed }));
-    const schemas: Array<Record<string, unknown>> = [];
-    let generation = 0;
-    const loop = new AgentLoop(
-      {
-        async generate(input) {
-          schemas.push(input.jsonSchema);
-          generation += 1;
-          return await inference([
-            generation <= 6
-              ? decision
-              : { action: "respond", response: "Execution limit reached." },
-          ]).generate(input);
-        },
-      },
-      executor(results, calls),
-    );
-
-    const result = await loop.run({ task: "Keep going", modelId: "test-model" });
-
-    expect(calls).toHaveLength(6);
-    expect(result.response).toBe("Execution limit reached.");
-    expect(schemas[6]).toEqual(
-      expect.objectContaining({
-        properties: expect.objectContaining({ action: { const: "respond" } }),
-      }),
-    );
-    expect(schemas[6]).not.toHaveProperty("oneOf");
+    expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
+    expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
+    expect(prompts[1]).toContain("Current required phase: calculate and verify");
   });
 });

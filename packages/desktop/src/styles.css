@@ -298,6 +298,7 @@ textarea:focus-visible {
 
 .model-title-row {
   min-width: 0;
+  align-items: baseline;
   gap: 8px;
 }
 
