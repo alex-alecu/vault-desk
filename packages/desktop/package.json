@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node --import tsx run-tauri.ts build",
     "build:sidecar": "node --import tsx build-sidecar.ts",
     "dev": "vite --port 1420 --strictPort",
     "build:web": "vite build",
-    "tauri": "tauri"
+    "tauri": "node --import tsx run-tauri.ts"
   },
   "dependencies": {
     "@vault/shared": "workspace:*",

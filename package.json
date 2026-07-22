@@ -8,6 +8,7 @@
     "pnpm": "11.13.1"
   },
   "scripts": {
+    "build": "pnpm --filter @vault/desktop build",
     "check:source": "node --import tsx scripts/check-source-limits.ts",
     "lint": "biome check .",
     "lint:boundaries": "biome lint packages/shared/src packages/core/src packages/workers packages/cli/src packages/eval/src scripts",
