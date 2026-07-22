@@ -1,4 +1,5 @@
 import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
+import Markdown from "react-markdown";
 import type { TimelineItem } from "../state.js";
 
 interface ConversationProps {
@@ -83,6 +84,16 @@ function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) 
   );
 }
 
+function AssistantResponse({ children }: { children: string }) {
+  return (
+    <div className="assistant-markdown">
+      <Markdown disallowedElements={["a", "img"]} skipHtml unwrapDisallowed>
+        {children}
+      </Markdown>
+    </div>
+  );
+}
+
 export function Conversation({
   ready,
   timeline,
@@ -103,7 +114,11 @@ export function Conversation({
           item.id === lastAssistantId && item.runId === runId && performance !== null;
         return (
           <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-            <p>{item.text}</p>
+            {item.kind === "assistant" ? (
+              <AssistantResponse>{item.text}</AssistantResponse>
+            ) : (
+              <p>{item.text}</p>
+            )}
             {showMetrics ? <ResponseMetrics performance={performance} /> : null}
           </article>
         );

@@ -33,3 +33,37 @@ describe("conversation performance presentation", () => {
     expect(markup).toContain("I am checking the local context.");
   });
 });
+
+describe("conversation Markdown presentation", () => {
+  it("renders assistant CommonMark without interpreting user Markdown or raw HTML", () => {
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        ready: true,
+        timeline: [
+          { id: "user", kind: "user", text: "## Keep this literal" },
+          {
+            id: "assistant",
+            kind: "assistant",
+            text: "## Result\n\n- **Safe** output\n\n[Reference](https://example.test/page)\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
+            runId: "run",
+          },
+        ],
+        onSuggestion: () => undefined,
+        performance: null,
+        runId: "run",
+        thinking: null,
+      }),
+    );
+
+    expect(markup).toContain("<p>## Keep this literal</p>");
+    expect(markup).toContain("<h2>Result</h2>");
+    expect(markup).toContain("<li><strong>Safe</strong> output</li>");
+    expect(markup).toContain("<p>Reference</p>");
+    expect(markup).not.toContain("<a href");
+    expect(markup).not.toContain("<img");
+    expect(markup).not.toContain("example.test");
+    expect(markup).not.toContain("<script>");
+    expect(markup).not.toContain("alert");
+  });
+});

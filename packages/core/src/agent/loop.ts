@@ -79,6 +79,7 @@ function prompt(task: string, inputNames: string[], executions: AgentExecutionRe
     "When the task names a language or number of execution steps, follow it exactly and respond only after those steps succeed.",
     "The code field is an array of at most 24 complete source lines, with no newline inside an item.",
     "Never request packages, networks, credentials, host writes, or shell access.",
+    "Format final responses as concise CommonMark Markdown when formatting improves readability. Use plain text when it does not, and never return raw HTML.",
     "Selected files are not in the current directory. Read them only by joining their names to the VAULT_INPUT_DIR environment variable.",
     "Write proposed files only by joining their names to the VAULT_ARTIFACT_DIR environment variable.",
     "The code field must contain compact executable source only: no Markdown, comments, explanations, or repeated filler.",

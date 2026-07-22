@@ -82,6 +82,12 @@
     { "name": "postject", "version": "1.0.0-alpha.6", "license": "MIT", "use": "node_sea_build" },
     { "name": "react", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
     { "name": "react-dom", "version": "19.2.7", "license": "MIT", "use": "desktop_ui" },
+    {
+      "name": "react-markdown",
+      "version": "10.1.0",
+      "license": "MIT",
+      "use": "safe_desktop_assistant_markdown"
+    },
     { "name": "tar-stream", "version": "3.2.0", "license": "MIT", "use": "development_validation" },
     { "name": "tsx", "version": "4.23.1", "license": "MIT", "use": "development" },
     { "name": "tuf-js", "version": "6.0.0", "license": "MIT", "use": "development_validation" },

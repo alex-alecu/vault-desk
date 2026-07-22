@@ -2,7 +2,8 @@ import type { SessionSummary } from "@vault/shared";
 import type { Dispatch } from "react";
 import type { DesktopAction, FolderGroup } from "../state.js";
 import { Icon } from "./icons.js";
-import { SessionList, SessionRow } from "./session-list.js";
+import { SessionList } from "./session-list.js";
+import { SidebarItemRow } from "./sidebar-item-row.js";
 
 interface SidebarProps {
   activeSessionId: string | undefined;
@@ -24,28 +25,15 @@ function FolderSection(props: SidebarProps) {
   }
   return props.folders.map((folder) => (
     <section className="folder-group" key={folder.id}>
-      <div className="folder-heading-row">
-        <button
-          aria-expanded={folder.expanded}
-          className="folder-heading"
-          disabled={props.disabled}
-          onClick={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
-          type="button"
-        >
-          <Icon name="chevron" />
-          <Icon name="folder" />
-          <span>{folder.name}</span>
-        </button>
-        <button
-          aria-label={`Remove ${folder.name}`}
-          className="folder-remove"
-          disabled={props.disabled}
-          onClick={() => props.onRevokeFolder(folder.id)}
-          type="button"
-        >
-          ×
-        </button>
-      </div>
+      <SidebarItemRow
+        deleteLabel={`Remove ${folder.name}`}
+        disabled={props.disabled}
+        expanded={folder.expanded}
+        label={folder.name}
+        onDelete={() => props.onRevokeFolder(folder.id)}
+        onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
+        startIcon="folder"
+      />
       {folder.expanded ? (
         <SessionList
           activeSessionId={props.activeSessionId}
@@ -79,13 +67,14 @@ export function Sidebar(props: SidebarProps) {
         </button>
         <div className="session-list global-session-list">
           {props.globalSessions.map((session) => (
-            <SessionRow
-              activeSessionId={props.activeSessionId}
+            <SidebarItemRow
+              active={session.id === props.activeSessionId}
+              deleteLabel={`Delete ${session.title}`}
               disabled={props.disabled}
               key={session.id}
-              onDeleteSession={props.onDeleteSession}
-              onSelectSession={props.onSelectSession}
-              session={session}
+              label={session.title}
+              onDelete={() => props.onDeleteSession(session)}
+              onSelect={() => props.onSelectSession(session.id)}
             />
           ))}
         </div>
@@ -97,7 +86,7 @@ export function Sidebar(props: SidebarProps) {
           type="button"
         >
           <Icon name="add" />
-          New folder
+          Add folder
         </button>
         <div className="folder-scroll">
           <FolderSection {...props} />

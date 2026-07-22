@@ -64,6 +64,7 @@ Switching sessions restores conversation turns, agent activity summaries, artifa
 The conversation timeline supports:
 
 - User and assistant messages.
+- CommonMark rendering for assistant responses, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
 - Streaming assistant text.
 - A top-right activity control that opens scripts, commands, observations, resource limits, generated files, and other technical details in a right-side drawer rather than the main conversation.
 - Expandable Python or Node.js source and bounded stdout/stderr.
@@ -118,3 +119,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |
 | 2026-07-22 | Grouped creation actions under Chats and Folders and standardized the white, low-contrast bordered shell. |
 | 2026-07-22 | Added resident-model controls, transient supported thinking, and response performance presentation. |
+| 2026-07-22 | Added safe CommonMark presentation for assistant responses. |

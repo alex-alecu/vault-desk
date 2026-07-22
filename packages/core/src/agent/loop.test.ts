@@ -187,6 +187,7 @@ describe("AgentLoop observations", () => {
     });
     expect(prompts[1]).toContain(`"code":"${completed.code}"`);
     expect(prompts[1]).toContain("Successful execution count: 1.");
+    expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
   });
 });
 

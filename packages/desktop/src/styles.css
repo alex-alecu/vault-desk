@@ -486,6 +486,88 @@ textarea:focus-visible {
   background: #fff;
 }
 
+.assistant-markdown {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.assistant-markdown > :first-child {
+  margin-top: 0;
+}
+
+.assistant-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.assistant-markdown h1,
+.assistant-markdown h2,
+.assistant-markdown h3,
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 {
+  margin: 1.15em 0 0.45em;
+  line-height: 1.25;
+}
+
+.assistant-markdown h1 {
+  font-size: 1.45rem;
+}
+
+.assistant-markdown h2 {
+  font-size: 1.25rem;
+}
+
+.assistant-markdown h3,
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6 {
+  font-size: 1.05rem;
+}
+
+.assistant-markdown p,
+.assistant-markdown ul,
+.assistant-markdown ol,
+.assistant-markdown pre,
+.assistant-markdown blockquote {
+  margin: 0 0 0.85em;
+}
+
+.assistant-markdown ul,
+.assistant-markdown ol {
+  padding-left: 1.5em;
+}
+
+.assistant-markdown li + li {
+  margin-top: 0.25em;
+}
+
+.assistant-markdown code {
+  padding: 0.15em 0.35em;
+  border-radius: 5px;
+  background: #f3f0ee;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.assistant-markdown pre {
+  overflow-x: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #f8f6f4;
+}
+
+.assistant-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.assistant-markdown blockquote {
+  padding-left: 12px;
+  border-left: 3px solid #d9d4d0;
+  color: #6f6965;
+}
+
 .response-metrics {
   display: flex;
   flex-wrap: wrap;
