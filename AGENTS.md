@@ -26,6 +26,16 @@ Do not build a legacy enterprise-grade system that attempts to anticipate every 
 
 Minimum implementation does not mean incomplete implementation. Keep required security, privacy, authorization, evidence, correctness, recovery, and cross-platform invariants complete, and add focused tests when a realistic failure could violate one of those invariants.
 
+## Real Headless M3 Test Rule
+
+Use the real Gemma worker and no-NIC guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence.
+
+- Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python and Node tasks, artifacts, automatic context and memory evidence, guest isolation, timeout, and output limits without launching the desktop UI.
+- For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createVaultCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
+- Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; do not classify that sandbox denial as a product failure.
+- Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
+- Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused real-model reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
+
 ## Commit Authorship Rule
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.

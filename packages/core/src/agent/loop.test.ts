@@ -103,7 +103,12 @@ describe("AgentLoop schema", () => {
     expect(schema?.oneOf).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          properties: expect.objectContaining({ code: expect.objectContaining({ type: "array" }) }),
+          properties: expect.objectContaining({
+            code: expect.objectContaining({
+              type: "array",
+              items: expect.objectContaining({ maxLength: 512 }),
+            }),
+          }),
         }),
       ]),
     );
@@ -208,14 +213,17 @@ describe("AgentLoop observations", () => {
         totalDurationMs: 1_200,
       },
     });
-    expect(prompts[1]).toContain(`"code":"${completed.code}"`);
+    expect(prompts[1]).not.toContain(`"code":"${completed.code}"`);
     expect(prompts[1]).toContain("Successful execution count: 1.");
+    expect(prompts[1]).toContain("Never import pandas");
+    expect(prompts[1]).toContain("Never guess column positions");
+    expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
     expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
   });
 });
 
 describe("AgentLoop limits", () => {
-  it("stops after six executable steps", async () => {
+  it("uses a response-only inference after six executable steps", async () => {
     const decision: AgentDecision = {
       action: "execute",
       language: "python",
@@ -224,14 +232,32 @@ describe("AgentLoop limits", () => {
     };
     const calls: string[] = [];
     const results = Array.from({ length: 6 }, () => ({ ...completed }));
+    const schemas: Array<Record<string, unknown>> = [];
+    let generation = 0;
     const loop = new AgentLoop(
-      inference(Array.from({ length: 7 }, () => decision)),
+      {
+        async generate(input) {
+          schemas.push(input.jsonSchema);
+          generation += 1;
+          return await inference([
+            generation <= 6
+              ? decision
+              : { action: "respond", response: "Execution limit reached." },
+          ]).generate(input);
+        },
+      },
       executor(results, calls),
     );
 
-    await expect(loop.run({ task: "Keep going", modelId: "test-model" })).rejects.toThrow(
-      "agent_execution_limit_exceeded",
-    );
+    const result = await loop.run({ task: "Keep going", modelId: "test-model" });
+
     expect(calls).toHaveLength(6);
+    expect(result.response).toBe("Execution limit reached.");
+    expect(schemas[6]).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({ action: { const: "respond" } }),
+      }),
+    );
+    expect(schemas[6]).not.toHaveProperty("oneOf");
   });
 });
