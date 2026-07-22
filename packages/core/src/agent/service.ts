@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   AgentArtifactSummary,
+  AgentRunPerformance,
   AgentRunSnapshot,
   AgentRunSummary,
   AttachmentSummary,
@@ -32,6 +33,12 @@ const LIMITS: WorkerLimits = {
 interface ActiveRun {
   controller: AbortController;
   finished: Promise<void>;
+  runId: string;
+  thinking: string | null;
+}
+
+function rate(tokens: number, milliseconds: number): number {
+  return milliseconds <= 0 ? 0 : tokens / (milliseconds / 1_000);
 }
 
 function failureText(error: unknown): string {
@@ -116,12 +123,14 @@ export class AgentService {
     const finished = this.execute(run, task, controller.signal).finally(() => {
       this.active.delete(run.jobId);
     });
-    this.active.set(run.jobId, { controller, finished });
+    this.active.set(run.jobId, { controller, finished, runId: run.id, thinking: null });
     return run;
   }
 
   snapshot(runId: string): AgentRunSnapshot {
-    return this.store.snapshot(runId);
+    const snapshot = this.store.snapshot(runId);
+    const thinking = [...this.active.values()].find((run) => run.runId === runId)?.thinking ?? null;
+    return { ...snapshot, thinking };
   }
 
   listRuns(sessionId: string): AgentRunSummary[] {
@@ -142,7 +151,7 @@ export class AgentService {
     try {
       this.database.transaction(() => {
         this.jobs.transition(run.jobId, "running");
-        this.store.transitionRun(run.id, "running");
+        this.store.transitionRun(run.id, { state: "running" });
         this.store.appendEvent(
           run.id,
           "run.started",
@@ -166,6 +175,10 @@ export class AgentService {
         modelId: MODEL_ID,
         inputNames: resolved.files.map((item) => item.name),
         signal,
+        onThinking: (thinking) => {
+          const active = this.active.get(run.jobId);
+          if (active !== undefined) active.thinking = thinking;
+        },
         onEvent: (type, summary, detail) => this.store.appendEvent(run.id, type, summary, detail),
       });
       const outputs: Array<Omit<AgentArtifactSummary, "id" | "runId" | "createdAt">> = [];
@@ -183,10 +196,26 @@ export class AgentService {
           });
         }
       }
+      const performance: AgentRunPerformance = {
+        promptTokens: result.inference.promptTokens,
+        outputTokens: result.inference.outputTokens,
+        tokensPerSecond: rate(result.inference.outputTokens, result.inference.generationDurationMs),
+        promptTokensPerSecond: rate(
+          result.inference.promptTokens,
+          result.inference.promptDurationMs,
+        ),
+        totalDurationMs: Math.max(0, Date.now() - Date.parse(run.createdAt)),
+      };
+      const active = this.active.get(run.jobId);
+      if (active !== undefined) active.thinking = null;
       this.database.transaction(() => {
         for (const output of outputs) this.store.addArtifact(run.id, output);
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
-        this.store.transitionRun(run.id, "succeeded", result.response);
+        this.store.transitionRun(run.id, {
+          state: "succeeded",
+          response: result.response,
+          performance,
+        });
         this.jobs.transition(run.jobId, "succeeded");
       })();
       this.audit.append({
@@ -198,8 +227,10 @@ export class AgentService {
       const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);
       const state = cancelled ? "cancelled" : "failed";
       const detail = cancelled ? "cancelled" : failureText(error);
+      const active = this.active.get(run.jobId);
+      if (active !== undefined) active.thinking = null;
       this.database.transaction(() => {
-        this.store.transitionRun(run.id, state, undefined, detail);
+        this.store.transitionRun(run.id, { state, error: detail });
         if (!cancelled) this.jobs.transition(run.jobId, "failed");
         this.store.appendEvent(
           run.id,

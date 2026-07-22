@@ -64,8 +64,14 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     cancelAgent: (jobId) => ports.cancelAgent(jobId),
     cancelJob: (jobId) => ports.cancelJob(jobId),
     verifyAudit: () => ports.verifyAudit(),
-    generate: (input: GenerationInput, signal?: AbortSignal) => ports.generate(input, signal),
+    generate: (
+      input: GenerationInput,
+      signal?: AbortSignal,
+      onThinkingDelta?: (text: string) => void,
+    ) => ports.generate(input, signal, onThinkingDelta),
     embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
+    modelStatus: () => ports.modelStatus(),
+    unloadModel: () => ports.unloadModel(),
     close: () => ports.close(),
   };
 }

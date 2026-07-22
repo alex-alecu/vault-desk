@@ -1,6 +1,10 @@
 import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@vault/shared";
 
 export class FakeInferenceWorker {
+  async unload(): Promise<boolean> {
+    return true;
+  }
+
   async execute(input: {
     request: InferenceWorkerRequest;
     memoryBudgetBytes: number;
@@ -40,6 +44,13 @@ export class FakeInferenceWorker {
       operation: "generate",
       value: { result: request.prompt },
       memory,
+      performance: {
+        promptTokens: 2,
+        outputTokens: 1,
+        promptDurationMs: 2,
+        generationDurationMs: 1,
+        totalDurationMs: 3,
+      },
     };
   }
 }

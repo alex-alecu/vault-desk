@@ -106,8 +106,16 @@ export const InstalledModelStoreSchema = z
   })
   .strict();
 
+export const ModelRuntimeStatusSchema = z.object({
+  modelId: ModelIdSchema,
+  name: z.string().min(1),
+  state: z.enum(["unloaded", "loading", "ready", "busy"]),
+  thinkingSupported: z.boolean(),
+});
+
 export type ModelRedistributionStatus = z.infer<typeof ModelRedistributionStatusSchema>;
 export type ModelAsset = z.infer<typeof ModelAssetSchema>;
 export type ModelManifest = z.infer<typeof ModelManifestSchema>;
 export type InstalledModelIdentity = z.infer<typeof InstalledModelIdentitySchema>;
 export type InstalledModelStore = z.infer<typeof InstalledModelStoreSchema>;
+export type ModelRuntimeStatus = z.infer<typeof ModelRuntimeStatusSchema>;

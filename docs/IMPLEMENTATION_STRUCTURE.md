@@ -109,6 +109,7 @@ src/api.ts                 typed Tauri command adapter
 src/desktop-actions.ts     narrow desktop workflow calls
 src/state.ts               plain React reducer
 src/styles.css
+src/components/chat-header.tsx
 src/components/sidebar.tsx
 src/components/session-list.tsx
 src/components/conversation.tsx
@@ -160,7 +161,7 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Sessions and folder/global membership.
 - Turns and drafts.
 - Attachment identities and immutable staged bytes.
-- Agent runs, terminal state, and observable events.
+- Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
 - Generated artifact metadata and immutable bytes accepted from guest scratch.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.
@@ -195,3 +196,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 |---|---|
 | 2026-07-13 | Created the original milestone-to-folder blueprint. |
 | 2026-07-20 | Replaced the former pre-product blueprint with the M3 generic offline dev-agent desktop structure. |
+| 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |

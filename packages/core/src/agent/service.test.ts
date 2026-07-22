@@ -55,6 +55,13 @@ describe("M3 persisted agent lifecycle", () => {
           operation: "generate",
           value,
           memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          performance: {
+            promptTokens: 10,
+            outputTokens: 5,
+            promptDurationMs: 100,
+            generationDurationMs: 500,
+            totalDurationMs: 600,
+          },
         };
       },
     };
@@ -94,6 +101,13 @@ describe("M3 persisted agent lifecycle", () => {
 
     expect(service.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
     expect(snapshot.run).toMatchObject({ state: "succeeded", response: "Finished safely." });
+    expect(snapshot.run.performance).toMatchObject({
+      promptTokens: 20,
+      outputTokens: 10,
+      tokensPerSecond: 10,
+      promptTokensPerSecond: 100,
+    });
+    expect(snapshot.thinking).toBeNull();
     expect(snapshot.events.map((item) => item.type)).toEqual([
       "run.started",
       "inference.started",

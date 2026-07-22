@@ -4,7 +4,12 @@ import type { DesktopState, TimelineItem } from "./state.js";
 export function appendMessage(state: DesktopState, message: ConversationMessage): DesktopState {
   const timeline = [
     ...state.timeline,
-    { id: message.id, kind: message.role, text: message.content } satisfies TimelineItem,
+    {
+      id: message.id,
+      kind: message.role,
+      text: message.content,
+      runId: message.runId,
+    } satisfies TimelineItem,
   ];
   const title =
     message.role === "user" ? message.content.replaceAll(/\s+/gu, " ").slice(0, 60) : undefined;

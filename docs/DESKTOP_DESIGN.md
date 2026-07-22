@@ -27,7 +27,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which align with the sidebar content inset, and the native title text is hidden. The otherwise empty header area remains draggable across the full width of both regions. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which align with the sidebar content inset, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, on-device state, supported-thinking state, manual unload action, and activity control without displacing folder navigation.
 
 ## Sidebar
 
@@ -70,8 +70,9 @@ The conversation timeline supports:
 - Generated scratch artifacts with type, size, and preview/download eligibility.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
 - Security or unsupported-operation warnings.
+- A compact performance row beneath the newest assistant response with generation tokens per second, prompt-processing tokens per second, and total run time.
 
-Hidden model reasoning is never shown or persisted. Activity describes observable actions and results only.
+When the approved model and runtime expose a typed thought segment, the current segment may stream into a clearly labeled transient card while generation is active. It is held only in memory and disappears at the terminal result. Hidden or unsegmented internal reasoning is never inferred, exposed, or persisted. Activity describes observable actions and results only.
 
 The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring a folder, building a small artifact, reviewing files, or diagnosing a failure.
 
@@ -87,7 +88,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 
 ## Model Presentation
 
-A build with one runnable generation model shows its human-readable name as static text. It does not show a chevron or configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
+A build with one runnable generation model shows its human-readable name and current state in the conversation header. The model loads on first use, remains resident and ready between turns, and can be unloaded manually only while idle. After unload, the next message loads the same approved model again. There is no picker or arbitrary configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
 
 Runtime, quantization, context-window, endpoint, and model-file vocabulary stays out of the ordinary interface.
 
@@ -116,3 +117,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-13 | Defined the initial Tauri desktop layout and security boundary. |
 | 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |
 | 2026-07-22 | Grouped creation actions under Chats and Folders and standardized the white, low-contrast bordered shell. |
+| 2026-07-22 | Added resident-model controls, transient supported thinking, and response performance presentation. |

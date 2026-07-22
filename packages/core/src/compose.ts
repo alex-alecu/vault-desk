@@ -60,7 +60,22 @@ function unavailableInference() {
   const unsupported = async (): Promise<never> => {
     throw Object.assign(new Error("inference_not_packaged"), { code: "unsupported" });
   };
-  return { generate: unsupported, embed: unsupported, async close() {} };
+  return {
+    generate: unsupported,
+    embed: unsupported,
+    async modelStatus() {
+      return {
+        modelId: "gemma-4-12b-it-qat-q4_0",
+        name: "Gemma 4 12B",
+        state: "unloaded" as const,
+        thinkingSupported: true,
+      };
+    },
+    async unloadModel() {
+      return false;
+    },
+    async close() {},
+  };
 }
 
 function deleteConversationSession(
@@ -217,6 +232,8 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     verifyAudit: async () => audit.verify(),
     generate: (input, signal) => inference.generate(input, signal),
     embed: (input, signal) => inference.embed(input, signal),
+    modelStatus: () => inference.modelStatus(),
+    unloadModel: () => inference.unloadModel(),
     async close() {
       await agent?.close();
       await inference.close();

@@ -82,6 +82,8 @@ impl CoreBridge {
             path_text(&core_resources.join("migrations"))?,
             "--ready-file".to_owned(),
             path_text(&ready_file)?,
+            "--parent-pid".to_owned(),
+            std::process::id().to_string(),
         ];
         add_platform_arguments(&mut arguments, &core_resources)?;
         let command = app
@@ -222,10 +224,12 @@ fn main() {
             commands::list_messages,
             commands::list_sessions,
             commands::load_draft,
+            commands::model_status,
             commands::remove_attachment,
             commands::revoke_folder,
             commands::save_draft,
             commands::start_agent,
+            commands::unload_model,
         ])
         .build(tauri::generate_context!())
         .expect("Vault Desk desktop failed");

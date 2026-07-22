@@ -17,4 +17,12 @@ describe("desktop window layout", () => {
     expect(markup).toMatch(/>Chats<\/h2>.*>New chat<\/button>.*global-session-list/s);
     expect(markup).toMatch(/>Folders<\/h2>.*>New folder<\/button>.*folder-scroll/s);
   });
+
+  it("keeps model identity and memory controls in the chat header", () => {
+    const markup = renderToStaticMarkup(createElement(App));
+
+    expect(markup).toContain("Gemma 4 12B");
+    expect(markup).toContain("Thinking on");
+    expect(markup).toMatch(/<button[^>]*class="header-action unload-action"[^>]*>.*Unload/s);
+  });
 });

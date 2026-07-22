@@ -1,6 +1,8 @@
+import type { ModelRuntimeStatus } from "@vault/shared";
 import { useEffect, useReducer, useState } from "react";
-import { bootstrapDesktop, cancelAgent, revokeFolder } from "./api.js";
+import { bootstrapDesktop, cancelAgent, getModelStatus, revokeFolder, unloadModel } from "./api.js";
 import { Activity } from "./components/activity.js";
+import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
 import { Confirmation } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
@@ -31,11 +33,32 @@ export function App() {
   const [submitting, setSubmitting] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
+  const [model, setModel] = useState<ModelRuntimeStatus>({
+    modelId: "gemma-4-12b-it-qat-q4_0",
+    name: "Gemma 4 12B",
+    state: "unloaded",
+    thinkingSupported: true,
+  });
   useEffect(() => {
     void bootstrapDesktop()
-      .then((snapshot) => dispatch({ type: "desktop.hydrate", snapshot }))
+      .then((snapshot) => {
+        setModel(snapshot.model);
+        dispatch({ type: "desktop.hydrate", snapshot });
+      })
       .catch(() => setDesktopError("Vault Core could not be started."));
   }, []);
+  useEffect(() => {
+    if (!state.loaded) return;
+    const running = state.activeRun?.state === "queued" || state.activeRun?.state === "running";
+    const refresh = () =>
+      void getModelStatus()
+        .then(setModel)
+        .catch(() => undefined);
+    refresh();
+    if (!running) return;
+    const timer = window.setInterval(refresh, 700);
+    return () => window.clearInterval(timer);
+  }, [state.activeRun?.state, state.loaded]);
   return (
     <div className="app-shell">
       <Sidebar
@@ -83,10 +106,23 @@ export function App() {
       />
       <main aria-busy={!state.loaded} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
+        <ChatHeader
+          activityOpen={activityOpen}
+          model={model}
+          onActivityOpen={() => setActivityOpen(true)}
+          onUnload={() => {
+            void unloadModel()
+              .then(async (unloaded) => {
+                if (!unloaded)
+                  setDesktopError("The model is still in use and could not be unloaded.");
+                setModel(await getModelStatus());
+              })
+              .catch(() => setDesktopError("The model could not be unloaded."));
+          }}
+        />
         <Activity
           artifacts={state.artifacts}
           onClose={() => setActivityOpen(false)}
-          onOpen={() => setActivityOpen(true)}
           open={activityOpen}
           timeline={state.timeline}
         />
@@ -109,6 +145,9 @@ export function App() {
             changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
           }
           timeline={state.timeline}
+          performance={state.activeRun?.performance ?? null}
+          runId={state.activeRun?.id}
+          thinking={state.thinking}
         />
         <Composer
           attachments={state.attachments}

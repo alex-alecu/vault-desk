@@ -32,7 +32,7 @@ The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns on
 
 The webview receives no generic shell, process launcher, environment reader, network client, local-endpoint selector, or unrestricted filesystem API. It works with opaque folder, session, attachment, job, and artifact identifiers through narrow typed commands.
 
-The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with New folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. The composer remains anchored at the bottom.
+The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with New folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, supported-thinking state, and manual unload control. The composer remains anchored at the bottom.
 
 ## Vault Core
 
@@ -84,7 +84,9 @@ OpenCode informs interaction and loop design but is not a runtime dependency. A 
 
 The first runtime is node-llama-cpp with an approved hash-pinned local model. It remains host-native for Metal, CUDA, HIP, or Vulkan acceleration, but runs under an operating-system capability boundary with no external networking, credentials, shell, tools, arbitrary workspace access, or approval authority.
 
-The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit.
+The agent guest never connects directly to inference. Vault Core mediates each request, enforces model identity, schema, token and output limits, cancellation, memory budget, and audit. After a successful request, the worker process and approved model remain resident for the next turn. An idle-only typed unload command, a model switch, a contained failure, or Core shutdown terminates the complete worker; the operating system then reclaims the model and cached contexts as one process-scoped unit.
+
+Gemma 4 reasoning is enabled through its supported chat wrapper. Only explicitly typed `thought` segments may cross the worker stream into bounded, transient active-run memory for live display. Those segments never enter the workspace database, conversation, agent event, or audit log. Token counts and timing measurements cross in the terminal typed response and are aggregated into persisted numeric run metrics.
 
 ## State And Recovery
 
@@ -92,7 +94,7 @@ Authoritative data uses the schema-versioned SQLite workspace catalog, immutable
 
 M3 adds folder grants, sessions, turns, drafts, attachments, agent runs, observable events, and artifact metadata. An interrupted transaction cannot leave a partial conversation. After daemon restart, the last committed state remains readable and in-flight jobs become an explicit interrupted state before retry or cancellation.
 
-Raw hidden model reasoning is never persisted.
+Raw hidden model reasoning is never persisted. Supported typed thought segments exist only while their run is active.
 
 ## Security Boundaries
 

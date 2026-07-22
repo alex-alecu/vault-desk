@@ -33,7 +33,7 @@ The compact resizable left sidebar has a Chats section whose first option is the
 
 A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
 
-The main pane is conversation-first. It shows streamed assistant output, concise code/tool activity, generated artifacts, warnings, failures, and cancellation state. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
+The main pane is conversation-first. Its header shows the approved model name, on-device residency state, supported-thinking state, and an idle-only manual unload action. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
 
 ## Agent Execution Contract
 
@@ -73,10 +73,12 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 - Conversation turns and agent-run summaries commit atomically.
 - A daemon or guest crash leaves the previous committed conversation readable and the interrupted run explicitly failed or resumable.
 - Raw hidden model reasoning is never persisted.
+- Typed model thought segments are transient active-run state only; completed snapshots, events, audit, and conversation records never contain them.
+- Generation speed, prompt-processing speed, and total response time are stored as bounded numeric run evidence.
 
 ## Model And Asset Distribution
 
-The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest.
+The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest. The inference worker keeps the approved model resident after first use. Manual unload or Core shutdown terminates the complete worker process so all native model and context resources are reclaimed together; the next request launches and verifies it again.
 
 Downloaded development models, generated guest images, signed helpers, build output, coverage, reports, installers, and dependency directories remain ignored artifacts. Distribution requires notices, SBOMs, hashes, signatures, and platform package verification. A model-download build remains post-V1 work.
 
@@ -127,6 +129,9 @@ Gate:
 - Traversal, symlink/junction escape, time-of-check/time-of-use replacement, malformed IPC, oversized input/output, process storms, timeout, cancellation, guest crash, daemon crash, and low-disk cases are contained and produce typed durable outcomes.
 - The webview cannot invoke arbitrary shell commands, processes, paths, URLs, local endpoints, environments, model files, or filesystem operations.
 - The agent activity view exposes executed code, concise logs, generated artifacts, resource limits, and termination reason without persisting hidden reasoning.
+- The approved model remains loaded between successful turns, reports its state in the desktop header, and unloads only through the typed idle-only Core command or Core shutdown.
+- Supported Gemma thought segments stream through typed IPC into transient active-run state and are absent from persisted events, messages, audit, and terminal snapshots.
+- The newest assistant response shows measured generation speed, prompt-processing speed, and total run time.
 - Keyboard navigation, visible focus, screen-reader labels, reduced motion, resizing, and 200 percent scaling pass on both platform webviews.
 - Packaged application checks cover install, first launch with zero downloads, sidecar and helper identity, restart, upgrade, uninstall, and preservation of user workspace state.
 - Required notices, SBOMs, artifact manifests, hashes, signatures, and unsupported-hardware messages are present and accurate.

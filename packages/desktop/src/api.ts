@@ -10,6 +10,8 @@ import {
   ConversationMessageSchema,
   type FolderSummary,
   FolderSummarySchema,
+  type ModelRuntimeStatus,
+  ModelRuntimeStatusSchema,
   type SessionDraft,
   SessionDraftSchema,
   type SessionPage,
@@ -27,6 +29,7 @@ export interface DesktopBootstrap {
   folders: FolderSummary[];
   globalSessions: SessionPage;
   folderSessions: FolderSessionPage[];
+  model: ModelRuntimeStatus;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -53,6 +56,7 @@ function parseBootstrap(value: unknown): DesktopBootstrap {
     folders: FolderSummarySchema.array().parse(input.folders),
     globalSessions: SessionPageSchema.parse(input.globalSessions),
     folderSessions,
+    model: ModelRuntimeStatusSchema.parse(input.model),
   };
 }
 
@@ -62,9 +66,32 @@ export async function bootstrapDesktop(): Promise<DesktopBootstrap> {
       folders: [],
       globalSessions: { items: [], nextCursor: null },
       folderSessions: [],
+      model: {
+        modelId: "gemma-4-12b-it-qat-q4_0",
+        name: "Gemma 4 12B",
+        state: "unloaded",
+        thinkingSupported: true,
+      },
     };
   }
   return parseBootstrap(await invoke<unknown>("desktop_bootstrap"));
+}
+
+export async function getModelStatus(): Promise<ModelRuntimeStatus> {
+  if (!hasTauriHost()) {
+    return {
+      modelId: "gemma-4-12b-it-qat-q4_0",
+      name: "Gemma 4 12B",
+      state: "unloaded",
+      thinkingSupported: true,
+    };
+  }
+  return ModelRuntimeStatusSchema.parse(await invoke("model_status"));
+}
+
+export async function unloadModel(): Promise<boolean> {
+  const value = record(await invoke("unload_model"));
+  return value.unloaded === true;
 }
 
 export async function chooseFolder(): Promise<FolderSummary | undefined> {

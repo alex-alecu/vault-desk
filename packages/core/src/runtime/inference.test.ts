@@ -44,6 +44,14 @@ const generationInput = {
   maxTokens: 8,
 };
 
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((accept) => {
+    resolve = accept;
+  });
+  return { promise, resolve };
+}
+
 async function supervisor(port: InferencePort, events: AuditEventInput[]) {
   return new InferenceSupervisor(
     port,
@@ -110,6 +118,69 @@ describe("M2 inference orchestration", () => {
   });
 });
 
+describe("M3 model residency", () => {
+  it("keeps a successful model resident until manual unload", async () => {
+    const events: AuditEventInput[] = [];
+    const inference = await supervisor(new FakeInferenceWorker(), events);
+
+    await inference.generate(generationInput);
+    await inference.generate(generationInput);
+
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: "ready" });
+    await expect(inference.unloadModel()).resolves.toBe(true);
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
+  });
+});
+
+describe("M3 resident worker concurrency", () => {
+  it("rejects overlap without unloading the active resident worker", async () => {
+    const events: AuditEventInput[] = [];
+    const started = deferred();
+    const generationFinished = deferred();
+    let unloads = 0;
+    const port: InferencePort = {
+      async unload() {
+        unloads += 1;
+        return true;
+      },
+      async execute(execution) {
+        started.resolve();
+        await generationFinished.promise;
+        return {
+          protocolVersion: 1,
+          requestId: execution.request.requestId,
+          status: "ok",
+          operation: "generate",
+          value: { result: "ready" },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: execution.memoryBudgetBytes,
+          },
+          performance: {
+            promptTokens: 1,
+            outputTokens: 1,
+            promptDurationMs: 1,
+            generationDurationMs: 1,
+            totalDurationMs: 2,
+          },
+        };
+      },
+    };
+    const inference = await supervisor(port, events);
+
+    const first = inference.generate(generationInput);
+    await started.promise;
+    await expect(inference.generate(generationInput)).rejects.toMatchObject({
+      code: "out_of_memory",
+    });
+    expect(unloads).toBe(0);
+    generationFinished.resolve();
+    await expect(first).resolves.toMatchObject({ value: { result: "ready" } });
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: "ready" });
+  });
+});
+
 describe("M2 model staging cancellation", () => {
   it("cancels before copying and hashing completes", async () => {
     const resolver = await modelResolver();
@@ -126,6 +197,9 @@ describe("M2 inference failure audit", () => {
     async (code) => {
       const events: AuditEventInput[] = [];
       const port: InferencePort = {
+        async unload() {
+          return false;
+        },
         async execute() {
           throw Object.assign(new Error(code), { code });
         },
@@ -145,6 +219,9 @@ describe("M2 inference failure audit", () => {
       markStarted = () => accept();
     });
     const port: InferencePort = {
+      async unload() {
+        return true;
+      },
       execute(execution) {
         markStarted();
         return new Promise((_accept, reject) => {
@@ -187,6 +264,9 @@ describe("M2 inference response validation", () => {
       },
     ];
     const port: InferencePort = {
+      async unload() {
+        return true;
+      },
       async execute(execution) {
         const response = responses.shift();
         if (response === undefined) throw new Error("Missing test response.");

@@ -1,5 +1,8 @@
 :root {
   --border-color: #0000000d;
+  --accent: #6558d9;
+  --accent-soft: #f0edff;
+  --success: #2e9360;
   color: #282523;
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -276,11 +279,144 @@ textarea:focus-visible {
 .workspace {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: 68px minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
   background: #fff;
+}
+
+.chat-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 8px 22px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgb(255 255 255 / 88%);
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.model-identity,
+.model-title-row,
+.model-state,
+.header-actions,
+.header-action {
+  display: flex;
+  align-items: center;
+}
+
+.model-identity {
+  min-width: 0;
+  gap: 11px;
+}
+
+.model-monogram {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(101 88 217 / 14%);
+  border-radius: 12px;
+  color: #4f45b7;
+  background: linear-gradient(145deg, #f5f2ff, #ebe7ff);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 80%),
+    0 5px 16px rgb(71 59 170 / 10%);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+}
+
+.model-copy {
+  min-width: 0;
+}
+
+.model-title-row {
+  min-width: 0;
+  gap: 8px;
+}
+
+.model-title-row strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thinking-badge {
+  padding: 3px 7px;
+  border: 1px solid rgb(101 88 217 / 12%);
+  border-radius: 999px;
+  color: #5a4fc1;
+  background: var(--accent-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.model-state {
+  gap: 6px;
+  margin-top: 3px;
+  color: #88817c;
+  font-size: 11px;
+}
+
+.model-state i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #aaa4a0;
+  box-shadow: 0 0 0 3px rgb(170 164 160 / 10%);
+}
+
+.model-state-ready i {
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgb(46 147 96 / 11%);
+}
+
+.model-state-busy i,
+.model-state-loading i {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgb(101 88 217 / 11%);
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+
+.header-actions {
+  gap: 7px;
+}
+
+.header-action {
+  min-height: 34px;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: #625c58;
+  background: rgb(250 249 248 / 82%);
+  cursor: pointer;
+}
+
+.header-action:hover:not(:disabled) {
+  border-color: rgb(101 88 217 / 18%);
+  color: #4f45b7;
+  background: #f6f3ff;
+}
+
+.unload-action {
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.activity-action {
+  width: 36px;
 }
 
 .welcome {
@@ -342,7 +478,7 @@ textarea:focus-visible {
   min-height: 0;
   width: min(820px, calc(100% - 72px));
   margin: 0 auto;
-  padding: 48px 0 36px;
+  padding: 30px 0 36px;
   overflow-y: auto;
 }
 
@@ -356,6 +492,7 @@ textarea:focus-visible {
 .timeline-item p {
   margin: 0;
   line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .timeline-user {
@@ -364,7 +501,72 @@ textarea:focus-visible {
 }
 
 .timeline-assistant {
+  max-width: 88%;
+  padding-left: 2px;
   background: #fff;
+}
+
+.response-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 13px;
+  color: #8a837e;
+  font-size: 10px;
+}
+
+.response-metrics span {
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #faf9f8;
+  letter-spacing: 0.005em;
+}
+
+.response-metrics strong {
+  color: #5f5752;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.thinking-stream {
+  width: min(620px, 88%);
+  margin: 4px 0 20px;
+  padding: 13px 15px 14px;
+  border: 1px solid rgb(101 88 217 / 13%);
+  border-radius: 14px;
+  color: #625b70;
+  background: linear-gradient(135deg, rgb(248 246 255 / 92%), rgb(253 252 255 / 92%));
+  box-shadow: 0 8px 26px rgb(69 55 145 / 5%);
+}
+
+.thinking-stream header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6558c8;
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.thinking-stream p {
+  max-height: 190px;
+  margin: 9px 0 0;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.thinking-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgb(101 88 217 / 11%);
+  animation: status-pulse 1.5s ease-in-out infinite;
 }
 
 .timeline-activity {
@@ -501,7 +703,7 @@ textarea:focus-visible {
 
 .send-button {
   width: 34px;
-  margin-left: 0;
+  margin-left: auto;
   border-radius: 50%;
   color: #fff;
   background: #111;
@@ -510,17 +712,12 @@ textarea:focus-visible {
 
 .stop-button {
   min-width: 58px;
+  margin-left: auto;
   padding: 0 14px;
   border-radius: 999px;
   color: #fff;
   background: #716b67;
   cursor: pointer;
-}
-
-.model-label {
-  margin-left: auto;
-  color: #817b76;
-  font-size: 12px;
 }
 
 .icon {
@@ -534,27 +731,16 @@ textarea:focus-visible {
   stroke-width: 1.7;
 }
 
+.header-action .icon {
+  width: 16px;
+  height: 16px;
+}
+
 .session-delete .icon {
   width: 15px;
   height: 15px;
 }
 
-.activity-toggle {
-  position: absolute;
-  z-index: 3;
-  top: 18px;
-  right: 20px;
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border-radius: 10px;
-  color: #5f5a56;
-  background: #fff;
-  cursor: pointer;
-}
-
-.activity-toggle:hover,
 .activity-header button:hover {
   background: #f2efed;
 }
@@ -712,7 +898,7 @@ textarea:focus-visible {
 .error-banner {
   position: absolute;
   z-index: 2;
-  top: 18px;
+  top: 78px;
   left: 50%;
   padding: 9px 13px;
   transform: translateX(-50%);
@@ -725,6 +911,19 @@ textarea:focus-visible {
   max-width: min(520px, calc(100% - 32px));
   align-items: center;
   gap: 12px;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .error-banner button {
@@ -766,6 +965,21 @@ textarea:focus-visible {
 
   .workspace {
     overflow: hidden;
+  }
+
+  .chat-header {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .thinking-badge,
+  .unload-action span {
+    display: none;
+  }
+
+  .unload-action {
+    width: 36px;
+    padding: 0;
   }
 
   .welcome {

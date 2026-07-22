@@ -26,7 +26,18 @@ pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Val
         "folders": folders,
         "globalSessions": global_sessions,
         "folderSessions": folder_sessions,
+        "model": core.call("model.status", json!({}))?,
     }))
+}
+
+#[tauri::command]
+pub(crate) async fn model_status(core: State<'_, CoreBridge>) -> Result<Value, String> {
+    core.call("model.status", json!({}))
+}
+
+#[tauri::command]
+pub(crate) async fn unload_model(core: State<'_, CoreBridge>) -> Result<Value, String> {
+    core.call("model.unload", json!({}))
 }
 
 #[tauri::command]

@@ -7,6 +7,7 @@ import {
   type AgentEventDetail,
   AgentEventSchema,
   type AgentEventType,
+  type AgentRunPerformance,
   type AgentRunSnapshot,
   AgentRunSnapshotSchema,
   type AgentRunState,
@@ -31,6 +32,13 @@ import {
   readSelectedFile,
   runFromRow,
 } from "./records.js";
+
+interface RunTransition {
+  state: AgentRunState;
+  response?: string;
+  error?: string;
+  performance?: AgentRunPerformance;
+}
 
 export class AgentStore {
   constructor(
@@ -126,7 +134,9 @@ export class AgentStore {
       updatedAt: now,
     });
     this.database
-      .prepare("INSERT INTO agent_runs VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
       .run(
         result.id,
         result.sessionId,
@@ -136,17 +146,25 @@ export class AgentStore {
         null,
         result.createdAt,
         result.updatedAt,
+        null,
       );
     return result;
   }
 
-  transitionRun(id: string, state: AgentRunState, response?: string, error?: string): void {
+  transitionRun(id: string, transition: RunTransition): void {
     const updatedAt = new Date().toISOString();
     const update = this.database
       .prepare(
-        "UPDATE agent_runs SET state = ?, response = ?, error = ?, updated_at = ? WHERE id = ?",
+        "UPDATE agent_runs SET state = ?, response = ?, error = ?, updated_at = ?, performance_json = ? WHERE id = ?",
       )
-      .run(state, response ?? null, error ?? null, updatedAt, id);
+      .run(
+        transition.state,
+        transition.response ?? null,
+        transition.error ?? null,
+        updatedAt,
+        transition.performance === undefined ? null : JSON.stringify(transition.performance),
+        id,
+      );
     if (update.changes !== 1) throw new Error("run_not_found");
   }
 

@@ -7,6 +7,7 @@ import {
   JobIdSchema,
   SessionIdSchema,
 } from "./ids.js";
+import { InferencePerformanceSchema } from "./inference.js";
 
 export const AgentLanguageSchema = z.enum(["python", "node"]);
 
@@ -46,6 +47,15 @@ export const AgentExecutionResultSchema = z.object({
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
   executions: z.array(AgentExecutionResultSchema).max(6),
+  inference: InferencePerformanceSchema,
+});
+
+export const AgentRunPerformanceSchema = z.object({
+  promptTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  tokensPerSecond: z.number().finite().nonnegative(),
+  promptTokensPerSecond: z.number().finite().nonnegative(),
+  totalDurationMs: z.number().int().nonnegative(),
 });
 
 export const AgentRunStateSchema = z.enum([
@@ -63,6 +73,7 @@ export const AgentRunSummarySchema = z.object({
   state: AgentRunStateSchema,
   response: z.string().max(256_000).nullable(),
   error: z.string().max(1_000).nullable(),
+  performance: AgentRunPerformanceSchema.nullable().default(null),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -112,12 +123,14 @@ export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
   events: z.array(AgentEventSchema).max(1_000),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
+  thinking: z.string().max(64_000).nullable().default(null),
 });
 
 export type AgentLanguage = z.infer<typeof AgentLanguageSchema>;
 export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
 export type AgentExecutionResult = z.infer<typeof AgentExecutionResultSchema>;
 export type AgentRunResult = z.infer<typeof AgentRunResultSchema>;
+export type AgentRunPerformance = z.infer<typeof AgentRunPerformanceSchema>;
 export type AgentRunState = z.infer<typeof AgentRunStateSchema>;
 export type AgentRunSummary = z.infer<typeof AgentRunSummarySchema>;
 export type AgentEventType = z.infer<typeof AgentEventTypeSchema>;

@@ -1,8 +1,9 @@
 import {
+  type InferenceWorkerMessage,
+  InferenceWorkerMessageSchema,
   type InferenceWorkerRequest,
   InferenceWorkerRequestSchema,
   type InferenceWorkerResponse,
-  InferenceWorkerResponseSchema,
 } from "@vault/shared";
 
 const HEADER_BYTES = 4;
@@ -24,15 +25,19 @@ export function encodeInferenceRequest(request: InferenceWorkerRequest): Buffer 
 }
 
 export function encodeInferenceResponse(response: InferenceWorkerResponse): Buffer {
-  return encode(InferenceWorkerResponseSchema.parse(response));
+  return encode(InferenceWorkerMessageSchema.parse(response));
+}
+
+export function encodeInferenceMessage(message: InferenceWorkerMessage): Buffer {
+  return encode(InferenceWorkerMessageSchema.parse(message));
 }
 
 export class InferenceResponseDecoder {
   private pending = Buffer.alloc(0);
 
-  push(chunk: Buffer): InferenceWorkerResponse[] {
+  push(chunk: Buffer): InferenceWorkerMessage[] {
     this.pending = Buffer.concat([this.pending, chunk]);
-    const responses: InferenceWorkerResponse[] = [];
+    const responses: InferenceWorkerMessage[] = [];
     while (this.pending.length >= HEADER_BYTES) {
       const length = this.pending.readUInt32BE(0);
       if (length === 0 || length > MAX_FRAME_BYTES) {
@@ -40,10 +45,34 @@ export class InferenceResponseDecoder {
       }
       if (this.pending.length < HEADER_BYTES + length) break;
       const payload = this.pending.subarray(HEADER_BYTES, HEADER_BYTES + length);
-      responses.push(InferenceWorkerResponseSchema.parse(JSON.parse(payload.toString("utf8"))));
+      responses.push(InferenceWorkerMessageSchema.parse(JSON.parse(payload.toString("utf8"))));
       this.pending = this.pending.subarray(HEADER_BYTES + length);
     }
     return responses;
+  }
+
+  finish(): void {
+    if (this.pending.length !== 0) throw new Error("Incomplete inference frame.");
+  }
+}
+
+export class InferenceRequestDecoder {
+  private pending = Buffer.alloc(0);
+
+  push(chunk: Buffer): InferenceWorkerRequest[] {
+    this.pending = Buffer.concat([this.pending, chunk]);
+    const requests: InferenceWorkerRequest[] = [];
+    while (this.pending.length >= HEADER_BYTES) {
+      const length = this.pending.readUInt32BE(0);
+      if (length === 0 || length > MAX_FRAME_BYTES) {
+        throw new Error("Invalid inference frame length.");
+      }
+      if (this.pending.length < HEADER_BYTES + length) break;
+      const payload = this.pending.subarray(HEADER_BYTES, HEADER_BYTES + length);
+      requests.push(InferenceWorkerRequestSchema.parse(JSON.parse(payload.toString("utf8"))));
+      this.pending = this.pending.subarray(HEADER_BYTES + length);
+    }
+    return requests;
   }
 
   finish(): void {

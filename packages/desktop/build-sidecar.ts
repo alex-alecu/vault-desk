@@ -24,6 +24,7 @@ const migrationNames = [
   "0002-audit-head.sql",
   "0003-conversations.sql",
   "0004-agent.sql",
+  "0005-agent-performance.sql",
 ];
 
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {

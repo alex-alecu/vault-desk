@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import type { InferenceService } from "../runtime/inference.js";
 import { type AgentExecutor, AgentLoop } from "./loop.js";
 
+const performance = {
+  promptTokens: 10,
+  outputTokens: 5,
+  promptDurationMs: 100,
+  generationDurationMs: 500,
+  totalDurationMs: 600,
+};
+
 function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate"> {
   return {
     async generate() {
@@ -15,6 +23,7 @@ function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate
         operation: "generate",
         value,
         memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+        performance,
       };
     },
   };
@@ -67,6 +76,7 @@ describe("AgentLoop schema", () => {
           operation: "generate",
           value: { action: "respond", response: "Done." },
           memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          performance,
         };
       },
     };
@@ -88,6 +98,36 @@ describe("AgentLoop schema", () => {
   });
 });
 
+describe("AgentLoop thinking", () => {
+  it("forwards transient thinking without adding it to the result", async () => {
+    const updates: Array<string | null> = [];
+    const model: Pick<InferenceService, "generate"> = {
+      async generate(_input, _signal, onThinkingDelta) {
+        onThinkingDelta?.("First ");
+        onThinkingDelta?.("thought.");
+        return {
+          protocolVersion: 1,
+          requestId: "test",
+          status: "ok",
+          operation: "generate",
+          value: { action: "respond", response: "Done." },
+          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          performance,
+        };
+      },
+    };
+
+    const result = await new AgentLoop(model, executor([], [])).run({
+      task: "Reply",
+      modelId: "test-model",
+      onThinking: (text) => updates.push(text),
+    });
+
+    expect(updates).toEqual([null, "First ", "First thought.", null]);
+    expect(JSON.stringify(result)).not.toContain("thought");
+  });
+});
+
 describe("AgentLoop source", () => {
   it("joins complete generated source lines before execution", async () => {
     const calls: string[] = [];
@@ -105,6 +145,7 @@ describe("AgentLoop source", () => {
             summary: "Calculate",
           },
           memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          performance,
         };
       },
     };
@@ -133,7 +174,17 @@ describe("AgentLoop observations", () => {
     const result = await loop.run({ task: "Calculate two plus two", modelId: "test-model" });
 
     expect(calls).toEqual([completed.code]);
-    expect(result).toEqual({ response: "The answer is 4.", executions: [completed] });
+    expect(result).toEqual({
+      response: "The answer is 4.",
+      executions: [completed],
+      inference: {
+        promptTokens: 20,
+        outputTokens: 10,
+        promptDurationMs: 200,
+        generationDurationMs: 1_000,
+        totalDurationMs: 1_200,
+      },
+    });
     expect(prompts[1]).toContain(`"code":"${completed.code}"`);
     expect(prompts[1]).toContain("Successful execution count: 1.");
   });

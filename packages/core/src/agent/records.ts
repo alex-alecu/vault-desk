@@ -6,6 +6,7 @@ import {
   AgentArtifactSummarySchema,
   type AgentEvent,
   AgentEventSchema,
+  AgentRunPerformanceSchema,
   type AgentRunSummary,
   AgentRunSummarySchema,
   type AttachmentSummary,
@@ -21,6 +22,7 @@ export interface RunRow {
   state: string;
   response: string | null;
   error: string | null;
+  performance_json: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +62,10 @@ export interface AttachmentRow {
 }
 
 export function runFromRow(row: RunRow): AgentRunSummary {
+  const performance =
+    row.performance_json === null
+      ? null
+      : AgentRunPerformanceSchema.parse(JSON.parse(row.performance_json));
   return AgentRunSummarySchema.parse({
     id: row.id,
     sessionId: row.session_id,
@@ -67,6 +73,7 @@ export function runFromRow(row: RunRow): AgentRunSummary {
     state: row.state,
     response: row.response,
     error: row.error,
+    performance,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });

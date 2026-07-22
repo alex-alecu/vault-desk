@@ -47,6 +47,14 @@ export const InferenceMemoryReportSchema = z.object({
   budgetBytes: z.number().int().positive(),
 });
 
+export const InferencePerformanceSchema = z.object({
+  promptTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  promptDurationMs: z.number().int().nonnegative(),
+  generationDurationMs: z.number().int().nonnegative(),
+  totalDurationMs: z.number().int().nonnegative(),
+});
+
 const ResponseBaseSchema = z.object({
   protocolVersion: z.literal(1),
   requestId: RequestIdSchema,
@@ -57,6 +65,7 @@ export const StructuredGenerationResultSchema = ResponseBaseSchema.extend({
   operation: z.literal("generate"),
   value: z.unknown(),
   memory: InferenceMemoryReportSchema,
+  performance: InferencePerformanceSchema,
 });
 
 export const EmbeddingResultSchema = ResponseBaseSchema.extend({
@@ -84,6 +93,14 @@ export const InferenceWorkerFailureSchema = z.object({
   error: VaultErrorSchema,
 });
 
+export const InferenceWorkerThinkingEventSchema = z.object({
+  protocolVersion: z.literal(1),
+  requestId: RequestIdSchema,
+  status: z.literal("stream"),
+  event: z.literal("thinking.delta"),
+  text: z.string().min(1).max(4_096),
+});
+
 export const InferenceWorkerResponseSchema = z.union([
   StructuredGenerationResultSchema,
   EmbeddingResultSchema,
@@ -91,11 +108,19 @@ export const InferenceWorkerResponseSchema = z.union([
   InferenceWorkerFailureSchema,
 ]);
 
+export const InferenceWorkerMessageSchema = z.union([
+  InferenceWorkerResponseSchema,
+  InferenceWorkerThinkingEventSchema,
+]);
+
 export type InferenceProfile = z.infer<typeof InferenceProfileSchema>;
 export type InferenceOperation = z.infer<typeof InferenceOperationSchema>;
 export type StructuredGenerationRequest = z.infer<typeof StructuredGenerationRequestSchema>;
 export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
+export type NativeWorkerProbeRequest = z.infer<typeof NativeWorkerProbeRequestSchema>;
 export type InferenceWorkerRequest = z.infer<typeof InferenceWorkerRequestSchema>;
 export type InferenceWorkerResponse = z.infer<typeof InferenceWorkerResponseSchema>;
+export type InferenceWorkerMessage = z.infer<typeof InferenceWorkerMessageSchema>;
+export type InferencePerformance = z.infer<typeof InferencePerformanceSchema>;
 export type StructuredGenerationResult = z.infer<typeof StructuredGenerationResultSchema>;
 export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;

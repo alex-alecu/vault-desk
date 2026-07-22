@@ -16,6 +16,8 @@ export {
   ModelManifestSchema,
   type ModelRedistributionStatus,
   ModelRedistributionStatusSchema,
+  type ModelRuntimeStatus,
+  ModelRuntimeStatusSchema,
 } from "./model.js";
 export * from "./policy.js";
 export * from "./rpc.js";

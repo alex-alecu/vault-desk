@@ -7,23 +7,12 @@ interface ActivityProps {
   open: boolean;
   timeline: TimelineItem[];
   onClose(): void;
-  onOpen(): void;
 }
 
-export function Activity({ artifacts, open, timeline, onClose, onOpen }: ActivityProps) {
+export function Activity({ artifacts, open, timeline, onClose }: ActivityProps) {
   const activity = timeline.filter((item) => item.kind === "activity");
   return (
     <>
-      {open ? null : (
-        <button
-          aria-label="Open activity and technical details"
-          className="activity-toggle"
-          onClick={onOpen}
-          type="button"
-        >
-          <Icon name="activity" />
-        </button>
-      )}
       {open ? (
         <aside aria-label="Activity and technical details" className="activity-drawer">
           <header className="activity-header">

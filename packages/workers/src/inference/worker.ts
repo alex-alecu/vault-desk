@@ -1,12 +1,18 @@
 import type {
   EmbeddingRequest,
+  InferenceWorkerMessage,
   InferenceWorkerRequest,
   InferenceWorkerResponse,
   RequestId,
   StructuredGenerationRequest,
 } from "@vault/shared";
-import type { Llama, LlamaModel } from "node-llama-cpp";
-import { encodeInferenceResponse, readInferenceRequest } from "./frames.js";
+import type { Llama, LlamaChatSession, LlamaEmbeddingContext, LlamaModel } from "node-llama-cpp";
+import {
+  encodeInferenceMessage,
+  encodeInferenceResponse,
+  InferenceRequestDecoder,
+} from "./frames.js";
+import { probe } from "./probe.js";
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -26,231 +32,181 @@ function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse 
   };
 }
 
-async function operationDenied(operation: () => Promise<unknown>): Promise<boolean> {
-  try {
-    await operation();
-    return false;
-  } catch {
-    return true;
-  }
-}
-
-function shellCommand(): string[] {
-  return process.platform === "win32"
-    ? [joinWindows(process.env.WINDIR ?? "C:\\Windows", "System32", "cmd.exe"), "/c", "exit 0"]
-    : ["/bin/sh", "-c", "exit 0"];
-}
-
-function processDenial(error: unknown): { denied: boolean; evidence: string } {
-  const code =
-    error instanceof Error && "code" in error && typeof error.code === "string"
-      ? error.code
-      : error instanceof Error
-        ? error.message
-        : "unknown";
-  const syscall = error instanceof Error && "syscall" in error ? String(error.syscall) : "unknown";
-  const windowsJobDenied =
-    process.platform === "win32" && code === "UNKNOWN" && syscall.startsWith("spawn");
-  return {
-    denied: windowsJobDenied || ["EACCES", "EAGAIN", "EPERM"].includes(code),
-    evidence: `${code}:${syscall}`,
-  };
-}
-
-async function processDenied(
-  spawn: typeof import("node:child_process").spawn,
-  command: string,
-  arguments_: string[],
-): Promise<{ denied: boolean; evidence: string }> {
-  try {
-    await new Promise<void>((accept, reject) => {
-      const child = spawn(command, arguments_, {
-        signal: AbortSignal.timeout(1_000),
-        stdio: "ignore",
-      });
-      child.once("error", reject);
-      child.once("exit", (code) => {
-        if (code === 0) accept();
-        else reject(new Error(`authority_probe_exit_${String(code)}`));
-      });
-    });
-    return { denied: false, evidence: "process_exited_zero" };
-  } catch (error) {
-    return processDenial(error);
-  }
-}
-
-async function executableToolsDenied(
-  spawn: typeof import("node:child_process").spawn,
-): Promise<{ denied: boolean; evidence: string }> {
-  const shell = shellCommand();
-  return processDenied(spawn, shell[0] as string, shell.slice(1));
-}
-
-function credentialsAbsent(): boolean {
-  return Object.keys(process.env).every(
-    (name) => !/TOKEN|SECRET|PASSWORD|CREDENTIAL|API_KEY/iu.test(name),
-  );
-}
-
-async function networkAccessDenied(): Promise<boolean> {
-  const { connect } = await import("node:net");
-  try {
-    await new Promise<void>((accept, reject) => {
-      const socket = connect({ host: "1.1.1.1", port: 443 });
-      socket.once("connect", () => {
-        socket.destroy();
-        accept();
-      });
-      socket.once("error", reject);
-      socket.setTimeout(1_000, () => {
-        socket.destroy(new Error("network_probe_timeout"));
-      });
-    });
-    return false;
-  } catch (error) {
-    return (
-      error instanceof Error &&
-      "code" in error &&
-      (error.code === "EACCES" || error.code === "EPERM")
-    );
-  }
-}
-
-function failedProbeNames(
-  probes: Record<string, boolean>,
-  tools: { denied: boolean; evidence: string },
-  nodeReexec: { denied: boolean; evidence: string },
-): string[] {
-  return Object.entries(probes)
-    .filter(([, denied]) => !denied)
-    .map(([name]) => {
-      if (name === "executableToolsDenied") return `${name}:${tools.evidence}`;
-      if (name === "nodeReexecDenied") return `${name}:${nodeReexec.evidence}`;
-      return name;
-    });
-}
-
-async function probe(request: InferenceWorkerRequest): Promise<InferenceWorkerResponse> {
-  if (request.operation !== "probe") throw new Error("Invalid probe request.");
-  const { spawn } = await import("node:child_process");
-  const { readFile, writeFile } = await import("node:fs/promises");
-  const networkDenied = await networkAccessDenied();
-  const credentialEnvironmentAbsent = credentialsAbsent();
-  const workspaceDenied = await operationDenied(() => readFile(request.authorityProbePath));
-  const outOfScopeReadDenied = await operationDenied(() => readFile(request.outOfScopeReadPath));
-  const outOfScopeWriteDenied = await operationDenied(() =>
-    writeFile(request.outOfScopeWritePath, "denial probe", { flag: "wx" }),
-  );
-  const tools = await executableToolsDenied(spawn);
-  const nodeReexec = await processDenied(spawn, process.execPath, ["-e", "process.exit(0)"]);
-  const failed = failedProbeNames(
-    {
-      networkDenied,
-      credentialEnvironmentAbsent,
-      shellEnvironmentAbsent: process.env.SHELL === undefined && process.env.ComSpec === undefined,
-      workspaceDenied,
-      outOfScopeReadDenied,
-      outOfScopeWriteDenied,
-      executableToolsDenied: tools.denied,
-      nodeReexecDenied: nodeReexec.denied,
-    },
-    tools,
-    nodeReexec,
-  );
-  if (failed.length > 0) {
-    throw new Error(`native_worker_authority_probe_failed:${failed.join(",")}`);
-  }
-  return {
-    protocolVersion: 1,
-    requestId: request.requestId,
-    status: "ok",
-    operation: "probe",
-    networkDenied: true,
-    credentialEnvironmentAbsent: true,
-    shellEnvironmentAbsent: true,
-    workspaceDenied: true,
-    outOfScopeReadDenied: true,
-    outOfScopeWriteDenied: true,
-    executableToolsDenied: true,
-    nodeReexecDenied: true,
-  };
-}
-
-function joinWindows(root: string, ...parts: string[]): string {
-  return [root.replace(/[\\/]+$/u, ""), ...parts].join("\\");
-}
-
 async function embed(
   request: EmbeddingRequest,
-  llama: Llama,
-  model: LlamaModel,
-  budget: number,
+  runtime: LoadedRuntime,
 ): Promise<InferenceWorkerResponse> {
-  const context = await model.createEmbeddingContext({ contextSize: request.contextSize });
-  const embedding = await context.getEmbeddingFor(request.input);
-  const memory = await llama.getLlamaMemoryUsage();
+  runtime.embedding ??= {
+    contextSize: request.contextSize,
+    context: await runtime.model.createEmbeddingContext({ contextSize: request.contextSize }),
+  };
+  if (runtime.embedding.contextSize !== request.contextSize) {
+    throw new Error("worker_context_size_change_unsupported");
+  }
+  const embedding = await runtime.embedding.context.getEmbeddingFor(request.input);
+  const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
     protocolVersion: 1,
     requestId: request.requestId,
     status: "ok",
     operation: "embed",
     vector: Array.from(embedding.vector),
-    memory: { cpuRamBytes: memory.cpuRam, gpuVramBytes: memory.gpuVram, budgetBytes: budget },
+    memory: {
+      cpuRamBytes: memory.cpuRam,
+      gpuVramBytes: memory.gpuVram,
+      budgetBytes: runtime.budget,
+    },
+  };
+}
+
+interface LoadedRuntime {
+  budget: number;
+  llama: Llama;
+  model: LlamaModel;
+  generation?: { contextSize: number; session: LlamaChatSession };
+  embedding?: { contextSize: number; context: LlamaEmbeddingContext };
+}
+
+let loadedRuntime: Promise<LoadedRuntime> | undefined;
+
+async function runtime(): Promise<LoadedRuntime> {
+  loadedRuntime ??= (async () => {
+    const modelPath = argument("--model");
+    const budget = Number(argument("--memory-budget"));
+    if (modelPath === undefined || !Number.isSafeInteger(budget) || budget <= 0) {
+      throw new Error("Invalid worker launch arguments.");
+    }
+    const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
+    const llama = await getLlama({ logLevel: LlamaLogLevel.error });
+    const vram = await llama.getVramState();
+    if (vram.unifiedSize > 0) await llama.setVramCap(budget);
+    else await llama.setRamCap(budget);
+    return { budget, llama, model: await llama.loadModel({ modelPath }) };
+  })();
+  return loadedRuntime;
+}
+
+async function generationSession(request: StructuredGenerationRequest, runtime: LoadedRuntime) {
+  if (runtime.generation === undefined) {
+    const { Gemma4ChatWrapper, LlamaChatSession } = await import("node-llama-cpp");
+    const context = await runtime.model.createContext({ contextSize: request.contextSize });
+    runtime.generation = {
+      contextSize: request.contextSize,
+      session: new LlamaChatSession({
+        contextSequence: context.getSequence(),
+        ...(request.modelId.startsWith("gemma-4")
+          ? { chatWrapper: new Gemma4ChatWrapper({ reasoning: true }) }
+          : {}),
+      }),
+    };
+  }
+  if (runtime.generation.contextSize !== request.contextSize) {
+    throw new Error("worker_context_size_change_unsupported");
+  }
+  runtime.generation.session.resetChatHistory();
+  return runtime.generation.session;
+}
+
+function performanceReport(input: {
+  initial: { usedInputTokens: number; usedOutputTokens: number };
+  final: { usedInputTokens: number; usedOutputTokens: number };
+  startedAt: number;
+  firstTokenAt: number | undefined;
+  completedAt: number;
+}) {
+  const generationStartedAt = input.firstTokenAt ?? input.completedAt;
+  return {
+    promptTokens: input.final.usedInputTokens - input.initial.usedInputTokens,
+    outputTokens: input.final.usedOutputTokens - input.initial.usedOutputTokens,
+    promptDurationMs: Math.max(0, Math.round(generationStartedAt - input.startedAt)),
+    generationDurationMs: Math.max(0, Math.round(input.completedAt - generationStartedAt)),
+    totalDurationMs: Math.max(0, Math.round(input.completedAt - input.startedAt)),
   };
 }
 
 async function generate(
   request: StructuredGenerationRequest,
-  llama: Llama,
-  model: LlamaModel,
-  budget: number,
+  runtime: LoadedRuntime,
+  emit: (message: InferenceWorkerMessage) => void,
 ): Promise<InferenceWorkerResponse> {
-  const { LlamaChatSession } = await import("node-llama-cpp");
-  const context = await model.createContext({ contextSize: request.contextSize });
-  const grammar = await llama.createGrammarForJsonSchema(request.jsonSchema as never);
-  const session = new LlamaChatSession({ contextSequence: context.getSequence() });
+  const session = await generationSession(request, runtime);
+  const grammar = await runtime.llama.createGrammarForJsonSchema(request.jsonSchema as never);
+  const initialMeter = session.sequence.tokenMeter.getState();
+  const startedAt = performance.now();
+  let firstTokenAt: number | undefined;
   const output = await session.prompt(request.prompt, {
     grammar,
     maxTokens: request.maxTokens,
     temperature: 0,
+    ...(request.modelId.startsWith("gemma-4")
+      ? { budgets: { thoughtTokens: Math.min(384, Math.floor(request.maxTokens / 2)) } }
+      : {}),
+    onResponseChunk(chunk) {
+      if (chunk.tokens.length > 0) firstTokenAt ??= performance.now();
+      if (chunk.type === "segment" && chunk.segmentType === "thought" && chunk.text.length > 0) {
+        emit({
+          protocolVersion: 1,
+          requestId: request.requestId,
+          status: "stream",
+          event: "thinking.delta",
+          text: chunk.text,
+        });
+      }
+    },
   });
-  const memory = await llama.getLlamaMemoryUsage();
+  const completedAt = performance.now();
+  const finalMeter = session.sequence.tokenMeter.getState();
+  const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
     protocolVersion: 1,
     requestId: request.requestId,
     status: "ok",
     operation: "generate",
     value: grammar.parse(output),
-    memory: { cpuRamBytes: memory.cpuRam, gpuVramBytes: memory.gpuVram, budgetBytes: budget },
+    memory: {
+      cpuRamBytes: memory.cpuRam,
+      gpuVramBytes: memory.gpuVram,
+      budgetBytes: runtime.budget,
+    },
+    performance: performanceReport({
+      initial: initialMeter,
+      final: finalMeter,
+      startedAt,
+      firstTokenAt,
+      completedAt,
+    }),
   };
 }
 
-async function infer(request: InferenceWorkerRequest): Promise<InferenceWorkerResponse> {
+async function infer(
+  request: InferenceWorkerRequest,
+  emit: (message: InferenceWorkerMessage) => void,
+): Promise<InferenceWorkerResponse> {
   if (request.operation === "probe") return probe(request);
-  const modelPath = argument("--model");
-  const budget = Number(argument("--memory-budget"));
-  if (modelPath === undefined || !Number.isSafeInteger(budget) || budget <= 0) {
-    throw new Error("Invalid worker launch arguments.");
-  }
-  const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
-  const llama = await getLlama({ logLevel: LlamaLogLevel.error });
-  const vram = await llama.getVramState();
-  if (vram.unifiedSize > 0) await llama.setVramCap(budget);
-  else await llama.setRamCap(budget);
-  const model = await llama.loadModel({ modelPath });
-  // This worker serves exactly one request. Native resources remain process-scoped and are
-  // reclaimed by its normal exit after stdout flushes, avoiding unsafe partial native teardown.
+  const loaded = await runtime();
+  // Native resources remain process-scoped. Manual unload terminates this worker so the OS
+  // reclaims the model and contexts together instead of relying on unsafe partial teardown.
   return request.operation === "embed"
-    ? await embed(request, llama, model, budget)
-    : await generate(request, llama, model, budget);
+    ? await embed(request, loaded)
+    : await generate(request, loaded, emit);
 }
 
 let requestId: RequestId = "00000000-0000-4000-8000-000000000000";
+const decoder = new InferenceRequestDecoder();
+const emit = (message: InferenceWorkerMessage) =>
+  process.stdout.write(encodeInferenceMessage(message));
 try {
-  const request = await readInferenceRequest();
-  requestId = request.requestId;
-  process.stdout.write(encodeInferenceResponse(await infer(request)));
+  for await (const chunk of process.stdin) {
+    for (const request of decoder.push(Buffer.from(chunk))) {
+      requestId = request.requestId;
+      try {
+        process.stdout.write(encodeInferenceResponse(await infer(request, emit)));
+      } catch (error) {
+        process.stdout.write(encodeInferenceResponse(failure(requestId, error)));
+      }
+    }
+  }
+  decoder.finish();
 } catch (error) {
   process.stdout.write(encodeInferenceResponse(failure(requestId, error)));
 }

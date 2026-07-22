@@ -209,6 +209,10 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return getAgentRun(core, request);
     case "agent.cancel":
       return cancelAgent(core, request);
+    case "model.status":
+      return success(request, await core.modelStatus());
+    case "model.unload":
+      return success(request, { unloaded: await core.unloadModel() });
     case "jobs.cancel":
       return cancelJob(core, request);
     default:

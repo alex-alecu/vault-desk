@@ -43,6 +43,12 @@ describe("desktop navigation state", () => {
             page: SessionPageSchema.parse({ items: [firstSession], nextCursor: "next" }),
           },
         ],
+        model: {
+          modelId: "gemma-4-12b-it-qat-q4_0",
+          name: "Gemma 4 12B",
+          state: "unloaded",
+          thinkingSupported: true,
+        },
       },
     });
     expect(state.loaded).toBe(true);

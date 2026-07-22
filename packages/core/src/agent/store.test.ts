@@ -97,7 +97,7 @@ describe("M3 interrupted run recovery", () => {
     const job = jobs.create("agent", "recovery-test");
     const run = store.createRun(session.id, job.id);
     jobs.transition(job.id, "running");
-    store.transitionRun(run.id, "running");
+    store.transitionRun(run.id, { state: "running" });
 
     expect(store.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
     expect(store.recoverInterrupted()).toBe(1);

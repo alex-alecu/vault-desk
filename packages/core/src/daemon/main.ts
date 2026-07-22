@@ -2,6 +2,7 @@
 import { rename, unlink, writeFile } from "node:fs/promises";
 import { createVaultCore } from "../compose.js";
 import { initializeEmptyModelStore } from "../runtime/models.js";
+import { monitorParent, openWithWorkspaceRetry } from "./lifecycle.js";
 import { startDaemon } from "./server.js";
 
 function argument(args: string[], name: string, required = true): string | undefined {
@@ -15,50 +16,115 @@ function argument(args: string[], name: string, required = true): string | undef
   return value;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: optional fixed resource flags are validated in one CLI boundary.
-async function main(args: string[]): Promise<void> {
+function parentPidArgument(args: string[]): number | undefined {
+  const value = argument(args, "--parent-pid", false);
+  if (value === undefined) return undefined;
+  const parentPid = Number(value);
+  if (!Number.isSafeInteger(parentPid) || parentPid <= 0) throw new Error("Invalid parent PID.");
+  return parentPid;
+}
+
+interface LaunchOptions {
+  agentHelperPath: string | undefined;
+  agentImageRoot: string | undefined;
+  inferenceRuntimePath: string | undefined;
+  migrationDirectory: string | undefined;
+  modelStoreDir: string;
+  packagedModelStore: boolean;
+  parentPid: number | undefined;
+  profile: "local12" | "local16";
+  readyFile: string | undefined;
+  sessionsOnly: boolean;
+  windowsPipeGuardPath: string | undefined;
+  workerEntryPath: string | undefined;
+  workspaceDir: string;
+}
+
+function launchOptions(args: string[]): LaunchOptions {
   const workspaceDir = argument(args, "--workspace");
   const modelStoreDir = argument(args, "--model-store");
   const profile = argument(args, "--profile");
   if (workspaceDir === undefined || modelStoreDir === undefined) throw new Error("Missing paths.");
   if (profile !== "local12" && profile !== "local16") throw new Error("Invalid profile.");
-  if (!args.includes("--packaged-model-store")) await initializeEmptyModelStore(modelStoreDir);
-  const migrationDirectory = argument(args, "--migration-directory", false);
-  const workerEntryPath = argument(args, "--worker-entry", false);
-  const inferenceRuntimePath = argument(args, "--inference-runtime", false);
-  const agentHelperPath = argument(args, "--agent-helper", false);
-  const agentImageRoot = argument(args, "--agent-image-root", false);
-  const readyFile = argument(args, "--ready-file", false);
-  const windowsPipeGuardPath = argument(args, "--windows-pipe-guard", false);
-  const core = await createVaultCore({
-    workspaceDir,
+  return {
+    agentHelperPath: argument(args, "--agent-helper", false),
+    agentImageRoot: argument(args, "--agent-image-root", false),
+    inferenceRuntimePath: argument(args, "--inference-runtime", false),
+    migrationDirectory: argument(args, "--migration-directory", false),
     modelStoreDir,
+    packagedModelStore: args.includes("--packaged-model-store"),
+    parentPid: parentPidArgument(args),
     profile,
-    ...(migrationDirectory === undefined ? {} : { migrationDirectory }),
+    readyFile: argument(args, "--ready-file", false),
     sessionsOnly: args.includes("--sessions-only"),
-    ...(workerEntryPath === undefined ? {} : { workerEntryPath }),
-    ...(inferenceRuntimePath === undefined ? {} : { inferenceRuntimePath }),
-    ...(agentHelperPath === undefined ? {} : { agentHelperPath }),
-    ...(agentImageRoot === undefined ? {} : { agentImageRoot }),
+    windowsPipeGuardPath: argument(args, "--windows-pipe-guard", false),
+    workerEntryPath: argument(args, "--worker-entry", false),
+    workspaceDir,
+  };
+}
+
+function openCore(options: LaunchOptions) {
+  return openWithWorkspaceRetry(
+    () =>
+      createVaultCore({
+        workspaceDir: options.workspaceDir,
+        modelStoreDir: options.modelStoreDir,
+        profile: options.profile,
+        ...(options.migrationDirectory === undefined
+          ? {}
+          : { migrationDirectory: options.migrationDirectory }),
+        sessionsOnly: options.sessionsOnly,
+        ...(options.workerEntryPath === undefined
+          ? {}
+          : { workerEntryPath: options.workerEntryPath }),
+        ...(options.inferenceRuntimePath === undefined
+          ? {}
+          : { inferenceRuntimePath: options.inferenceRuntimePath }),
+        ...(options.agentHelperPath === undefined
+          ? {}
+          : { agentHelperPath: options.agentHelperPath }),
+        ...(options.agentImageRoot === undefined ? {} : { agentImageRoot: options.agentImageRoot }),
+      }),
+    options.parentPid === undefined ? 0 : 2_000,
+  );
+}
+
+async function main(args: string[]): Promise<void> {
+  const options = launchOptions(args);
+  if (!options.packagedModelStore) await initializeEmptyModelStore(options.modelStoreDir);
+  const core = await openCore(options);
+  const daemon = await startDaemon(core, options.workspaceDir, {
+    ...(options.windowsPipeGuardPath === undefined
+      ? {}
+      : { windowsPipeGuardPath: options.windowsPipeGuardPath }),
   });
-  const daemon = await startDaemon(core, workspaceDir, {
-    ...(windowsPipeGuardPath === undefined ? {} : { windowsPipeGuardPath }),
-  });
-  if (readyFile !== undefined) {
-    const temporary = `${readyFile}.${process.pid}.tmp`;
+  let stopParentMonitor: () => void = () => undefined;
+  let shutdownPromise: Promise<void> | undefined;
+  function shutdown(): Promise<void> {
+    shutdownPromise ??= (async () => {
+      stopParentMonitor();
+      await daemon.close();
+      await core.close();
+      if (options.readyFile !== undefined) await unlink(options.readyFile).catch(() => undefined);
+    })();
+    return shutdownPromise;
+  }
+  if (options.parentPid !== undefined) {
+    stopParentMonitor = monitorParent({
+      parentPid: options.parentPid,
+      onExit: () => shutdown().finally(() => process.exit(0)),
+    });
+  }
+  if (options.readyFile !== undefined) {
+    const temporary = `${options.readyFile}.${process.pid}.tmp`;
     await writeFile(temporary, `${daemon.endpoint}\n`, {
       encoding: "utf8",
       flag: "wx",
       mode: 0o600,
     });
-    await rename(temporary, readyFile);
+    await rename(temporary, options.readyFile);
   }
   console.error(`Vault Core listening at ${daemon.endpoint}`);
-  async function shutdown(): Promise<void> {
-    await daemon.close();
-    await core.close();
-    if (readyFile !== undefined) await unlink(readyFile).catch(() => undefined);
-  }
   process.once("SIGINT", () => void shutdown().then(() => process.exit(0)));
   process.once("SIGTERM", () => void shutdown().then(() => process.exit(0)));
 }

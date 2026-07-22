@@ -86,7 +86,6 @@ export function Composer({
         >
           <Icon name="add" />
         </button>
-        <span className="model-label">Gemma 4 12B</span>
         {running ? (
           <button
             aria-label="Cancel task"

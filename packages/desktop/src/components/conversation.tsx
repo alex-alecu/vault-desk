@@ -1,4 +1,4 @@
-import type { AgentArtifactSummary } from "@vault/shared";
+import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
 import type { TimelineItem } from "../state.js";
 
 interface ConversationProps {
@@ -6,6 +6,9 @@ interface ConversationProps {
   ready: boolean;
   timeline: TimelineItem[];
   onSuggestion(text: string): void;
+  performance: AgentRunPerformance | null;
+  runId: string | undefined;
+  thinking: string | null;
 }
 
 function EmptyConversation({
@@ -57,18 +60,63 @@ function EmptyConversation({
   );
 }
 
-export function Conversation({ ready, timeline, onSuggestion }: ConversationProps) {
+function formatDuration(milliseconds: number): string {
+  if (milliseconds < 1_000) return `${milliseconds}ms`;
+  if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(1)}s`;
+  const minutes = Math.floor(milliseconds / 60_000);
+  return `${minutes}m ${Math.round((milliseconds % 60_000) / 1_000)}s`;
+}
+
+function ResponseMetrics({ performance }: { performance: AgentRunPerformance }) {
+  return (
+    <footer className="response-metrics">
+      <span>
+        <strong>{performance.tokensPerSecond.toFixed(1)}</strong> tok/s
+      </span>
+      <span>
+        <strong>{performance.promptTokensPerSecond.toFixed(1)}</strong> prompt tok/s
+      </span>
+      <span>
+        <strong>{formatDuration(performance.totalDurationMs)}</strong> total
+      </span>
+    </footer>
+  );
+}
+
+export function Conversation({
+  ready,
+  timeline,
+  onSuggestion,
+  performance,
+  runId,
+  thinking,
+}: ConversationProps) {
   const messages = timeline.filter((item) => item.kind !== "activity");
   if (messages.length === 0) {
     return <EmptyConversation onSuggestion={onSuggestion} ready={ready} />;
   }
+  const lastAssistantId = messages.findLast((item) => item.kind === "assistant")?.id;
   return (
     <section aria-label="Conversation" aria-live="polite" className="timeline">
-      {messages.map((item) => (
-        <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-          <p>{item.text}</p>
+      {messages.map((item) => {
+        const showMetrics =
+          item.id === lastAssistantId && item.runId === runId && performance !== null;
+        return (
+          <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
+            <p>{item.text}</p>
+            {showMetrics ? <ResponseMetrics performance={performance} /> : null}
+          </article>
+        );
+      })}
+      {thinking === null || thinking.length === 0 ? null : (
+        <article className="thinking-stream">
+          <header>
+            <span aria-hidden="true" className="thinking-pulse" />
+            Thinking locally
+          </header>
+          <p>{thinking}</p>
         </article>
-      ))}
+      )}
       <div
         aria-hidden="true"
         key={messages.length}
