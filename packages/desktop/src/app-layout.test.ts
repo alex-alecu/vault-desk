@@ -22,8 +22,9 @@ describe("desktop window layout", () => {
   it("keeps model identity and memory controls in the chat header", () => {
     const markup = renderToStaticMarkup(createElement(App));
 
-    expect(markup).toContain("Gemma 4 12B");
-    expect(markup).toContain("Thinking on");
+    expect(markup).toContain("Gemma 4 12B QAT");
+    expect(markup).not.toContain("Thinking on");
+    expect(markup).not.toContain(">G4<");
     expect(markup).toMatch(/<button[^>]*class="header-action unload-action"[^>]*>.*Unload/s);
   });
 });

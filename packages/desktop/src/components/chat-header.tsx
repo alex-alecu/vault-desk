@@ -19,13 +19,9 @@ export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: Ch
   return (
     <header className="chat-header" data-tauri-drag-region="">
       <div className="model-identity">
-        <div aria-hidden="true" className="model-monogram">
-          G4
-        </div>
         <div className="model-copy">
           <div className="model-title-row">
             <strong>{model.name}</strong>
-            {model.thinkingSupported ? <span className="thinking-badge">Thinking on</span> : null}
           </div>
           <span className={`model-state model-state-${model.state}`}>
             <i aria-hidden="true" />

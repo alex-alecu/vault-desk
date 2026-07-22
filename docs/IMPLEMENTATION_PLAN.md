@@ -33,7 +33,7 @@ The compact resizable left sidebar has a Chats section whose first option is the
 
 A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
 
-The main pane is conversation-first. Its header shows the approved model name, on-device residency state, supported-thinking state, and an idle-only manual unload action. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
+The main pane is conversation-first. Its header shows the approved model name, on-device residency state, and an idle-only manual unload action. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
 
 ## Agent Execution Contract
 

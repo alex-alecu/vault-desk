@@ -5,7 +5,7 @@ export const DEFAULT_MODEL_ID = "gemma-4-12b-it-qat-q4_0";
 export function modelRuntimeStatus(busy: boolean, resident: boolean): ModelRuntimeStatus {
   return {
     modelId: DEFAULT_MODEL_ID,
-    name: "Gemma 4 12B",
+    name: "Gemma 4 12B QAT",
     state: busy ? "busy" : resident ? "ready" : "unloaded",
     thinkingSupported: true,
   };

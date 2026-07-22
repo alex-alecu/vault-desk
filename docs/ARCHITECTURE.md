@@ -32,7 +32,7 @@ The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns on
 
 The webview receives no generic shell, process launcher, environment reader, network client, local-endpoint selector, or unrestricted filesystem API. It works with opaque folder, session, attachment, job, and artifact identifiers through narrow typed commands.
 
-The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with New folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, supported-thinking state, and manual unload control. The composer remains anchored at the bottom.
+The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with New folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, and manual unload control. The composer remains anchored at the bottom.
 
 ## Vault Core
 

@@ -68,7 +68,7 @@ export async function bootstrapDesktop(): Promise<DesktopBootstrap> {
       folderSessions: [],
       model: {
         modelId: "gemma-4-12b-it-qat-q4_0",
-        name: "Gemma 4 12B",
+        name: "Gemma 4 12B QAT",
         state: "unloaded",
         thinkingSupported: true,
       },
@@ -81,7 +81,7 @@ export async function getModelStatus(): Promise<ModelRuntimeStatus> {
   if (!hasTauriHost()) {
     return {
       modelId: "gemma-4-12b-it-qat-q4_0",
-      name: "Gemma 4 12B",
+      name: "Gemma 4 12B QAT",
       state: "unloaded",
       thinkingSupported: true,
     };

@@ -45,7 +45,7 @@ describe("desktop navigation state", () => {
         ],
         model: {
           modelId: "gemma-4-12b-it-qat-q4_0",
-          name: "Gemma 4 12B",
+          name: "Gemma 4 12B QAT",
           state: "unloaded",
           thinkingSupported: true,
         },
