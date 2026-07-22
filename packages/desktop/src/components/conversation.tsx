@@ -20,8 +20,7 @@ function EmptyConversation({
 }: Pick<ConversationProps, "folderName" | "onSuggestion" | "ready">) {
   return (
     <div className="welcome">
-      {folderName === undefined ? null : <div className="welcome-context">{folderName}</div>}
-      <h1>What should we work on?</h1>
+      <h1>What should we work on{folderName === undefined ? "" : ` in ${folderName}`}?</h1>
       <p>
         {ready
           ? "Select a folder, attach files in New chat, or start with a question."
@@ -37,10 +36,10 @@ function EmptyConversation({
         </button>
         <button
           disabled={!ready}
-          onClick={() => onSuggestion("Build a useful artifact from these files.")}
+          onClick={() => onSuggestion("Review these files and suggest practical improvements.")}
           type="button"
         >
-          Build a small artifact
+          Review and suggest improvements
         </button>
         <button
           disabled={!ready}

@@ -75,7 +75,7 @@ The conversation timeline supports:
 
 When the approved model and runtime expose a typed thought segment, the current segment may stream into a clearly labeled transient card while generation is active. It is held only in memory and disappears at the terminal result. Hidden or unsegmented internal reasoning is never inferred, exposed, or persisted. Activity describes observable actions and results only.
 
-The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring a folder, building a small artifact, reviewing files, or diagnosing a failure. Folder conversations show the folder name above the prompt; global chats omit that context label.
+The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring files, reviewing and suggesting improvements, comparing documents or data, or diagnosing a failure. Folder conversations include the folder name directly in the prompt; global chats use the prompt without folder context.
 
 ## Composer
 

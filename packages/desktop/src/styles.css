@@ -355,18 +355,6 @@ textarea:focus-visible {
   text-align: center;
 }
 
-.welcome-context {
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto 20px;
-  color: #8a837d;
-  font-size: 15px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .welcome h1 {
   margin: 0;
   font-size: clamp(30px, 3vw, 42px);

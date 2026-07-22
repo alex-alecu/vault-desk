@@ -3,6 +3,28 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Conversation } from "./components/conversation.js";
 
+describe("empty conversation presentation", () => {
+  it("includes folder context in the prompt and offers a review task", () => {
+    const markup = renderToStaticMarkup(
+      createElement(Conversation, {
+        artifacts: [],
+        folderName: "Client files",
+        ready: true,
+        timeline: [],
+        onSuggestion: () => undefined,
+        performance: null,
+        runId: undefined,
+        thinking: null,
+      }),
+    );
+
+    expect(markup).toContain("What should we work on in Client files?");
+    expect(markup).not.toContain("welcome-context");
+    expect(markup).toContain("Review and suggest improvements");
+    expect(markup).not.toContain("Build a small artifact");
+  });
+});
+
 describe("conversation performance presentation", () => {
   it("shows live thinking and metrics only beneath the latest assistant response", () => {
     const markup = renderToStaticMarkup(
