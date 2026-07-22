@@ -160,7 +160,11 @@ textarea:focus-visible {
 }
 
 .sidebar-item-row-with-start {
-  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+}
+
+.sidebar-item-row-with-start .sidebar-item-select {
+  padding-left: 0;
 }
 
 .sidebar-item-row:hover {
@@ -196,6 +200,10 @@ textarea:focus-visible {
   color: #7a746f;
   background: transparent;
   cursor: pointer;
+}
+
+.sidebar-item-row-with-start .sidebar-item-start {
+  justify-self: center;
 }
 
 .sidebar-item-delete {
