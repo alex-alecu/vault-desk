@@ -4,6 +4,7 @@ import type { TimelineItem } from "../state.js";
 
 interface ConversationProps {
   artifacts: AgentArtifactSummary[];
+  folderName?: string | undefined;
   ready: boolean;
   timeline: TimelineItem[];
   onSuggestion(text: string): void;
@@ -13,14 +14,13 @@ interface ConversationProps {
 }
 
 function EmptyConversation({
+  folderName,
   onSuggestion,
   ready,
-}: Pick<ConversationProps, "onSuggestion" | "ready">) {
+}: Pick<ConversationProps, "folderName" | "onSuggestion" | "ready">) {
   return (
     <div className="welcome">
-      <div aria-hidden="true" className="welcome-mark">
-        V
-      </div>
+      {folderName === undefined ? null : <div className="welcome-context">{folderName}</div>}
       <h1>What should we work on?</h1>
       <p>
         {ready
@@ -95,6 +95,7 @@ function AssistantResponse({ children }: { children: string }) {
 }
 
 export function Conversation({
+  folderName,
   ready,
   timeline,
   onSuggestion,
@@ -104,7 +105,7 @@ export function Conversation({
 }: ConversationProps) {
   const messages = timeline.filter((item) => item.kind !== "activity");
   if (messages.length === 0) {
-    return <EmptyConversation onSuggestion={onSuggestion} ready={ready} />;
+    return <EmptyConversation folderName={folderName} onSuggestion={onSuggestion} ready={ready} />;
   }
   const lastAssistantId = messages.findLast((item) => item.kind === "assistant")?.id;
   return (

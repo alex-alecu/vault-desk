@@ -13,7 +13,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 │ ＋ New chat          │               Conversation or welcome               │
 │ Recent task          │                                                     │
 │ Folders              │        messages, code activity, artifacts,          │
-│ ＋ New folder        │                                                     │
+│ ＋ Add folder        │                                                     │
 │ ▾ Client A           │             warnings, and progress                  │
 │   Recent task        │                                                     │
 │   Earlier task       │                                                     │
@@ -31,7 +31,7 @@ The two stable regions are a compact, horizontally resizable white sidebar and a
 
 ## Sidebar
 
-The sidebar has separate **Chats** and **Folders** sections. **New chat** is the first option under Chats, followed by global sessions. **New folder** is the first option under Folders, followed by folder groups.
+The sidebar has separate **Chats** and **Folders** sections. **New chat** is the first option under Chats, followed by global sessions. **Add folder** is the first option under Folders, followed by folder groups.
 
 Each folder group:
 
@@ -75,7 +75,7 @@ The conversation timeline supports:
 
 When the approved model and runtime expose a typed thought segment, the current segment may stream into a clearly labeled transient card while generation is active. It is held only in memory and disappears at the terminal result. Hidden or unsegmented internal reasoning is never inferred, exposed, or persisted. Activity describes observable actions and results only.
 
-The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring a folder, building a small artifact, reviewing files, or diagnosing a failure.
+The empty state uses one short prompt and a few task suggestions relevant to the current context, such as exploring a folder, building a small artifact, reviewing files, or diagnosing a failure. Folder conversations show the folder name above the prompt; global chats omit that context label.
 
 ## Composer
 

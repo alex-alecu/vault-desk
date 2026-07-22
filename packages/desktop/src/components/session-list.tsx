@@ -1,6 +1,7 @@
 import type { SessionSummary } from "@vault/shared";
 import type { FolderGroup } from "../state.js";
 import { Icon } from "./icons.js";
+import { SidebarItemRow } from "./sidebar-item-row.js";
 
 interface SessionListProps {
   activeSessionId: string | undefined;
@@ -12,39 +13,6 @@ interface SessionListProps {
   onShowMore(folderId: string): void;
 }
 
-interface SessionRowProps {
-  activeSessionId: string | undefined;
-  disabled: boolean;
-  session: SessionSummary;
-  onDeleteSession(session: SessionSummary): void;
-  onSelectSession(sessionId: string): void;
-}
-
-export function SessionRow(props: SessionRowProps) {
-  return (
-    <div className="session-row-shell">
-      <button
-        aria-current={props.session.id === props.activeSessionId ? "page" : undefined}
-        className="session-row"
-        disabled={props.disabled}
-        onClick={() => props.onSelectSession(props.session.id)}
-        type="button"
-      >
-        <span title={props.session.title}>{props.session.title}</span>
-      </button>
-      <button
-        aria-label={`Delete ${props.session.title}`}
-        className="session-delete"
-        disabled={props.disabled}
-        onClick={() => props.onDeleteSession(props.session)}
-        type="button"
-      >
-        <Icon name="trash" />
-      </button>
-    </div>
-  );
-}
-
 export function SessionList(props: SessionListProps) {
   return (
     <div className="session-list">
@@ -54,16 +22,18 @@ export function SessionList(props: SessionListProps) {
         onClick={() => props.onNewSession(props.folder.id)}
         type="button"
       >
+        <Icon name="message" />
         New conversation
       </button>
       {props.folder.sessions.map((session) => (
-        <SessionRow
-          activeSessionId={props.activeSessionId}
+        <SidebarItemRow
+          active={session.id === props.activeSessionId}
+          deleteLabel={`Delete ${session.title}`}
           disabled={props.disabled}
           key={session.id}
-          onDeleteSession={props.onDeleteSession}
-          onSelectSession={props.onSelectSession}
-          session={session}
+          label={session.title}
+          onDelete={() => props.onDeleteSession(session)}
+          onSelect={() => props.onSelectSession(session.id)}
         />
       ))}
       {props.folder.nextCursor === null ? null : (
