@@ -58,7 +58,6 @@ async function createInference(options: VaultCoreOptions, workspaceRoot: string,
     available: true,
   } as const;
 }
-
 function unavailableInference(message?: string) {
   const unsupported = async (): Promise<never> => {
     throw Object.assign(new Error("inference_not_packaged"), { code: "unsupported" });
@@ -234,7 +233,8 @@ function assembleVaultCore(services: CoreServices): VaultCore {
       return cancelled;
     },
     verifyAudit: async () => audit.verify(),
-    generate: (input, signal) => inference.generate(input, signal),
+    generate: (input, signal, onThinkingDelta) =>
+      inference.generate(input, signal, onThinkingDelta),
     embed: (input, signal) => inference.embed(input, signal),
     modelStatus: () => inference.modelStatus(),
     unloadModel: () => inference.unloadModel(),
