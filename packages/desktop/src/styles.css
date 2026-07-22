@@ -159,6 +159,10 @@ textarea:focus-visible {
   border-radius: 9px;
 }
 
+.sidebar-item-row-with-start {
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+}
+
 .sidebar-item-row:hover {
   background: #f2efed;
 }
@@ -181,6 +185,7 @@ textarea:focus-visible {
   min-width: 0;
 }
 
+.sidebar-item-start,
 .sidebar-item-delete {
   display: grid;
   width: 28px;
@@ -191,6 +196,9 @@ textarea:focus-visible {
   color: #7a746f;
   background: transparent;
   cursor: pointer;
+}
+
+.sidebar-item-delete {
   opacity: 0;
 }
 
@@ -201,6 +209,11 @@ textarea:focus-visible {
 
 .sidebar-item-delete:hover {
   color: #8b3429;
+  background: #ddd8d5;
+}
+
+.sidebar-item-start:hover {
+  color: #4f45b7;
   background: #ddd8d5;
 }
 

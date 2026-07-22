@@ -15,6 +15,7 @@ import {
   remove,
   selectSession,
   send,
+  showFolder,
   showMore,
 } from "./desktop-actions.js";
 import { desktopReducer, initialDesktopState } from "./state.js";
@@ -74,6 +75,7 @@ export function App() {
         globalSessions={state.globalSessions}
         onAddFolder={() => void addFolder(dispatch, setDesktopError)}
         onNewSession={(folderId) => dispatch({ type: "session.new", folderId })}
+        onOpenFolder={(folderId) => void showFolder(folderId, setDesktopError)}
         onDeleteSession={(session) =>
           setConfirmation({
             title: `Delete “${session.title}”?`,

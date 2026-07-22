@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { lstat, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -259,7 +259,6 @@ describe("M1 daemon recovery", () => {
     await core.close();
   });
 });
-
 describe("M3 conversation daemon methods", () => {
   it("returns safe summaries, deletes sessions, and types invalid-folder failures", async () => {
     const root = await temporaryRoot("vault-m3-daemon-");
@@ -277,6 +276,9 @@ describe("M3 conversation daemon methods", () => {
     });
     const folder = FolderSummarySchema.parse(rpcResult(added));
     expect(folder).not.toHaveProperty("rootPath");
+    const params = { folderId: folder.id };
+    const resolved = await rpcMethod(daemon.endpoint, { method: "folders.resolvePath", params });
+    expect(rpcResult(resolved)).toBe(await realpath(selected));
     const created = await rpcMethod(daemon.endpoint, {
       method: "sessions.create",
       params: { folderId: folder.id },

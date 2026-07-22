@@ -40,8 +40,8 @@ Each folder group:
 - Shows its five most recently active sessions, newest first.
 - Shows **Show more** only when older sessions exist; activation appends the next bounded page.
 - Highlights the active session and may show concise running, failed, or unread status.
+- Opens the granted folder in Finder on macOS or Explorer on Windows when its folder icon is activated, without a confirmation step.
 - Reveals a delete control on session hover or keyboard focus; deletion always requires explicit confirmation and is unavailable while that conversation is running.
-- Provides a narrow menu for starting a session, removing the grant, or revealing non-sensitive folder metadata.
 
 Every remove action requires confirmation. Removing a folder removes its active grant but never deletes or changes host files. Existing session records remain visible with a clear unavailable-context state unless the user explicitly deletes them.
 
@@ -97,6 +97,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 
 - The webview has no generic shell, process, environment, network, local-endpoint, or unrestricted filesystem capability.
 - Tauri commands are narrow, typed, capability-scoped, and delegated to Vault Core where product policy applies.
+- Opening a granted folder passes only its opaque identifier; Vault Core resolves and revalidates the active grant before the Rust host asks the operating system to open it.
 - Native dialogs return selections to the Rust host, which passes them through the typed grant or attachment command; arbitrary path strings from the webview are rejected.
 - The model and guest never receive a writable host folder.
 - Agent code executes only in the disposable no-NIC microVM with fixed interpreters and libraries.

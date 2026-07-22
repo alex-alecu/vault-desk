@@ -61,6 +61,12 @@ async function revokeFolder(core: VaultCore, request: RpcRequest): Promise<RpcRe
   return success(request, { revoked: await core.revokeFolder(folderId.data) });
 }
 
+async function resolveFolderPath(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const folderId = FolderIdSchema.safeParse(request.params.folderId);
+  if (!folderId.success) return failure(request, "invalid_request", "Invalid folder id.");
+  return success(request, await core.resolveFolderPath(folderId.data));
+}
+
 async function createSession(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   const folderId = nullableFolderId(request.params.folderId);
   if (folderId === undefined) return failure(request, "invalid_request", "Invalid folder id.");
@@ -179,6 +185,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return addFolder(core, request);
     case "folders.list":
       return success(request, await core.listFolders());
+    case "folders.resolvePath":
+      return resolveFolderPath(core, request);
     case "folders.revoke":
       return revokeFolder(core, request);
     case "sessions.create":

@@ -28,11 +28,11 @@ Vault Desk V1 is a local desktop application with three isolated layers: a thin 
 
 ## Desktop Plane
 
-The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns only window lifecycle, native dialogs, exact Vault Core sidecar startup, and connection bootstrap.
+The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns only window lifecycle, native dialogs and granted-folder opening, exact Vault Core sidecar startup, and connection bootstrap.
 
 The webview receives no generic shell, process launcher, environment reader, network client, local-endpoint selector, or unrestricted filesystem API. It works with opaque folder, session, attachment, job, and artifact identifiers through narrow typed commands.
 
-The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with Add folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, and manual unload control. The composer remains anchored at the bottom.
+The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with Add folder and then folder groups. Each folder group exposes its newest five sessions, cursor-based expansion, and a folder icon that asks the native shell to open the active Core-resolved grant in Finder or Explorer. The main pane restores conversation and observable agent activity. Its header exposes the approved model's human-readable identity, residency state, and manual unload control. The composer remains anchored at the bottom.
 
 ## Vault Core
 

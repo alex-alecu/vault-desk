@@ -105,6 +105,10 @@ export async function revokeFolder(folderId: string): Promise<boolean> {
   return value.revoked === true;
 }
 
+export async function openFolder(folderId: string): Promise<void> {
+  await invoke("open_folder", { folderId });
+}
+
 export async function createSession(folderId: string | null): Promise<SessionSummary> {
   return SessionSummarySchema.parse(await invoke("create_session", { folderId }));
 }

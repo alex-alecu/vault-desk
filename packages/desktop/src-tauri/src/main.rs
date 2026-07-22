@@ -225,6 +225,7 @@ fn main() {
             commands::list_sessions,
             commands::load_draft,
             commands::model_status,
+            commands::open_folder,
             commands::remove_attachment,
             commands::revoke_folder,
             commands::save_draft,

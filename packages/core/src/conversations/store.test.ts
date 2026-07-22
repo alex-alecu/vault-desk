@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,11 +28,25 @@ describe("ConversationStore folder grants", () => {
     const folder = store.addFolder(selectedRoot);
     expect(folder.name).toBe("client-work");
     expect(folder).not.toHaveProperty("rootPath");
+    expect(store.resolveFolderPath(folder.id)).toBe(realpathSync.native(selectedRoot));
     catalog.close();
 
     const reopened = openWorkspaceCatalog(stateRoot);
     expect(new ConversationStore(reopened.database).listFolders()).toEqual([folder]);
     reopened.close();
+  });
+
+  it("resolves only active folder grants", () => {
+    const stateRoot = temporaryRoot("resolve-state");
+    const selectedRoot = temporaryRoot("resolve-selected");
+    const catalog = openWorkspaceCatalog(stateRoot);
+    const store = new ConversationStore(catalog.database);
+    const folder = store.addFolder(selectedRoot);
+
+    expect(store.resolveFolderPath(folder.id)).toBe(realpathSync.native(selectedRoot));
+    expect(store.revokeFolder(folder.id)).toBe(true);
+    expect(() => store.resolveFolderPath(folder.id)).toThrow("folder_not_found");
+    catalog.close();
   });
 
   it("rejects a symlink as a folder grant", () => {

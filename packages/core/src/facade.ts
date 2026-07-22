@@ -16,6 +16,7 @@ export interface VaultCorePorts extends InferenceService {
   status(): Promise<WorkspaceStatus>;
   addFolder(rootPath: string): Promise<FolderSummary>;
   listFolders(): Promise<FolderSummary[]>;
+  resolveFolderPath(folderId: string): Promise<string>;
   revokeFolder(folderId: string): Promise<boolean>;
   createSession(folderId: string | null): Promise<SessionSummary>;
   deleteSession(sessionId: string): Promise<boolean>;
@@ -47,6 +48,7 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     status: () => ports.status(),
     addFolder: (rootPath) => ports.addFolder(rootPath),
     listFolders: () => ports.listFolders(),
+    resolveFolderPath: (folderId) => ports.resolveFolderPath(folderId),
     revokeFolder: (folderId) => ports.revokeFolder(folderId),
     createSession: (folderId) => ports.createSession(folderId),
     deleteSession: (sessionId) => ports.deleteSession(sessionId),

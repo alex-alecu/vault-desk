@@ -20,6 +20,10 @@ interface FolderRow {
   revoked_at: string | null;
 }
 
+interface FolderPathRow {
+  root_path: string;
+}
+
 interface SessionRow {
   id: string;
   folder_id: string | null;
@@ -132,6 +136,14 @@ export class ConversationStore {
       )
       .all() as FolderRow[];
     return rows.map(folderSummary);
+  }
+
+  resolveFolderPath(folderId: string): string {
+    const row = this.database
+      .prepare("SELECT root_path FROM folder_grants WHERE id = ? AND revoked_at IS NULL")
+      .get(folderId) as FolderPathRow | undefined;
+    if (row === undefined) throw new Error("folder_not_found");
+    return inspectFolderGrant(row.root_path).canonicalPath;
   }
 
   createSession(folderId: string | null): SessionSummary {

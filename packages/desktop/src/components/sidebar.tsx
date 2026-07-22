@@ -13,6 +13,7 @@ interface SidebarProps {
   globalSessions: SessionSummary[];
   onAddFolder(): void;
   onNewSession(folderId: string | null): void;
+  onOpenFolder(folderId: string): void;
   onDeleteSession(session: SessionSummary): void;
   onRevokeFolder(folderId: string): void;
   onSelectSession(sessionId: string): void;
@@ -32,6 +33,8 @@ function FolderSection(props: SidebarProps) {
         label={folder.name}
         onDelete={() => props.onRevokeFolder(folder.id)}
         onSelect={() => props.dispatch({ type: "folder.toggle", folderId: folder.id })}
+        onStartAction={() => props.onOpenFolder(folder.id)}
+        startActionLabel={`Open ${folder.name} folder`}
         startIcon="folder"
       />
       {folder.expanded ? (

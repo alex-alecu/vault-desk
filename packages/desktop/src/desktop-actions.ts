@@ -9,6 +9,7 @@ import {
   listMessages,
   listSessions,
   loadDraft,
+  openFolder,
   removeAttachment,
   saveDraft,
   startAgent,
@@ -26,6 +27,15 @@ export async function addFolder(dispatch: Dispatch, setError: SetError) {
     if (folder !== undefined) dispatch({ type: "folder.add", folder });
   } catch {
     setError("The selected folder could not be added.");
+  }
+}
+
+export async function showFolder(folderId: string, setError: SetError) {
+  setError(undefined);
+  try {
+    await openFolder(folderId);
+  } catch {
+    setError("The folder could not be opened.");
   }
 }
 

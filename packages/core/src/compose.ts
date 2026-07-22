@@ -103,6 +103,7 @@ function createConversationPorts(
   VaultCorePorts,
   | "addFolder"
   | "listFolders"
+  | "resolveFolderPath"
   | "revokeFolder"
   | "createSession"
   | "deleteSession"
@@ -122,9 +123,8 @@ function createConversationPorts(
         return folder;
       })();
     },
-    async listFolders() {
-      return conversations.listFolders();
-    },
+    listFolders: async () => conversations.listFolders(),
+    resolveFolderPath: async (folderId) => conversations.resolveFolderPath(folderId),
     async revokeFolder(folderId) {
       const revoked = conversations.revokeFolder(folderId);
       audit.append({

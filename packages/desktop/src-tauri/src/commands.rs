@@ -2,6 +2,7 @@ use crate::{CoreBridge, path_text};
 use serde_json::{Value, json};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_shell::ShellExt;
 
 #[tauri::command]
 pub(crate) async fn desktop_bootstrap(core: State<'_, CoreBridge>) -> Result<Value, String> {
@@ -83,6 +84,22 @@ pub(crate) async fn choose_files(
         )?);
     }
     Ok(Value::Array(attachments))
+}
+
+#[allow(deprecated)]
+#[tauri::command]
+pub(crate) async fn open_folder(
+    app: AppHandle,
+    core: State<'_, CoreBridge>,
+    folder_id: String,
+) -> Result<(), String> {
+    let path = core.call("folders.resolvePath", json!({ "folderId": folder_id }))?;
+    let path = path
+        .as_str()
+        .ok_or_else(|| "Vault Core returned an invalid folder path.".to_owned())?;
+    app.shell()
+        .open(path, None)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
