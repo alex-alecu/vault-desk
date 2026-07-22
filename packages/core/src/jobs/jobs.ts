@@ -65,12 +65,17 @@ export class JobStore {
     return row === undefined ? undefined : record(row);
   }
 
-  transition(id: string, state: "running" | "succeeded" | "failed" | "cancelled"): void {
+  transition(id: string, state: "running" | "succeeded" | "failed"): void {
     const updatedAt = new Date().toISOString();
+    const expectedState = state === "running" ? "queued" : "running";
     const update = this.database
-      .prepare("UPDATE jobs SET state = ?, updated_at = ? WHERE id = ?")
-      .run(state, updatedAt, id);
-    if (update.changes !== 1) throw new Error("job_not_found");
+      .prepare(
+        "UPDATE jobs SET state = ?, updated_at = ? WHERE id = ? AND state = ? AND cancellation_requested = 0",
+      )
+      .run(state, updatedAt, id, expectedState);
+    if (update.changes === 1) return;
+    const exists = this.database.prepare("SELECT 1 FROM jobs WHERE id = ?").get(id);
+    throw new Error(exists === undefined ? "job_not_found" : "job_transition_rejected");
   }
 
   isCancellationRequested(id: string): boolean {

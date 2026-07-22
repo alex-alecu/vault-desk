@@ -170,4 +170,71 @@ describe("M3 persisted agent lifecycle", () => {
     await service.close();
     catalog.close();
   });
+
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: setup and assertions keep the cancellation race at the persisted boundary.
+  it("preserves a cancellation accepted before success commits", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-agent-late-cancel-"));
+    roots.push(root);
+    const scope = await WorkspaceScope.create(root);
+    const catalog = openWorkspaceCatalog(scope.root);
+    const artifacts = await ArtifactStore.create(scope);
+    const conversations = new ConversationStore(catalog.database);
+    const store = new AgentStore(catalog.database, artifacts);
+    let service: AgentService;
+    let jobId = "";
+    const inference: Pick<InferenceService, "generate"> = {
+      async generate() {
+        expect(service.cancel(jobId)).toBe(true);
+        return {
+          protocolVersion: 1,
+          requestId: "agent-late-cancel-test",
+          status: "ok",
+          operation: "generate",
+          value: { action: "respond", response: "This must not commit." },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: 1,
+            detectedGpuVramBytes: 1,
+          },
+          performance: {
+            promptTokens: 1,
+            outputTokens: 1,
+            promptDurationMs: 1,
+            generationDurationMs: 1,
+            totalDurationMs: 2,
+          },
+        };
+      },
+    };
+    const launcher: CodeAgentLauncher = {
+      async executeAgent() {
+        throw new Error("execution_should_not_start");
+      },
+    };
+    service = new AgentService(
+      catalog.database,
+      store,
+      conversations,
+      new JobStore(catalog.database),
+      artifacts,
+      inference,
+      launcher,
+      new AuditLog(catalog.database),
+    );
+    const session = conversations.createSession(null);
+    const run = service.start(session.id, "Cancel at completion");
+    jobId = run.jobId;
+    const snapshot = await waitForTerminal(service, run.id);
+    const job = catalog.database
+      .prepare("SELECT state, cancellation_requested FROM jobs WHERE id = ?")
+      .get(run.jobId);
+
+    expect(snapshot.run).toMatchObject({ state: "cancelled", response: null });
+    expect(snapshot.events.at(-1)?.type).toBe("run.cancelled");
+    expect(conversations.listMessages(session.id).map((item) => item.role)).toEqual(["user"]);
+    expect(job).toEqual({ state: "cancelled", cancellation_requested: 1 });
+    await service.close();
+    catalog.close();
+  });
 });
