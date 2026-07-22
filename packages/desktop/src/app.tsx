@@ -82,6 +82,7 @@ export function App() {
         }
       />
       <main aria-busy={!state.loaded} className="workspace">
+        <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <Activity
           artifacts={state.artifacts}
           onClose={() => setActivityOpen(false)}

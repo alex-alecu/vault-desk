@@ -1,6 +1,6 @@
 # Architecture
 
-Updated: 2026-07-20
+Updated: 2026-07-22
 
 Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and disposable no-NIC agent microVMs plus a narrow host-native inference worker.
 
@@ -32,7 +32,7 @@ The first desktop uses Tauri v2 with React and TypeScript. The Rust host owns on
 
 The webview receives no generic shell, process launcher, environment reader, network client, local-endpoint selector, or unrestricted filesystem API. It works with opaque folder, session, attachment, job, and artifact identifiers through narrow typed commands.
 
-The sidebar begins with New chat and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. The composer remains anchored at the bottom.
+The sidebar's Chats section begins with New chat and then recent global sessions. Its Folders section begins with New folder and then folder groups. Each folder group exposes its newest five sessions and cursor-based expansion. The main pane restores conversation and observable agent activity. The composer remains anchored at the bottom.
 
 ## Vault Core
 
@@ -128,3 +128,4 @@ The same control-plane boundaries may later support supported personal computers
 | 2026-07-12 | Adopted the certified no-NIC hostile-work boundary. |
 | 2026-07-13 | Selected Tauri v2 and a separate Vault Core daemon. |
 | 2026-07-20 | Made the generic offline dev-agent desktop the V1 architecture and moved document intelligence after launch. |
+| 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |

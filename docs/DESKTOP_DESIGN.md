@@ -1,6 +1,6 @@
 # Desktop Design
 
-Updated: 2026-07-20
+Updated: 2026-07-22
 
 Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the structural clarity of the Codex app without copying its branding or visual assets. The interface exposes work and context, not model infrastructure.
 
@@ -9,10 +9,11 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 ```text
 ┌──────────────────────┬─────────────────────────────────────────────────────┐
 │ Vault Desk           │                                                     │
-│                      │                                                     │
+│ Chats                │                                                     │
 │ ＋ New chat          │               Conversation or welcome               │
-│                      │                                                     │
+│ Recent task          │                                                     │
 │ Folders              │        messages, code activity, artifacts,          │
+│ ＋ New folder        │                                                     │
 │ ▾ Client A           │             warnings, and progress                  │
 │   Recent task        │                                                     │
 │   Earlier task       │                                                     │
@@ -26,11 +27,11 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a compact, horizontally resizable translucent sidebar and a white conversation workspace. On macOS the sidebar background extends beneath the native traffic-light controls and the native title text is hidden. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which align with the sidebar content inset, and the native title text is hidden. The otherwise empty header area remains draggable across the full width of both regions. The composer stays anchored to the bottom of the workspace. A lightweight conversation header may show the editable session name and static active-model label without displacing folder navigation.
 
 ## Sidebar
 
-The sidebar begins with **New chat**. It then lists folder groups rather than separate global chat and folder sections.
+The sidebar has separate **Chats** and **Folders** sections. **New chat** is the first option under Chats, followed by global sessions. **New folder** is the first option under Folders, followed by folder groups.
 
 Each folder group:
 
@@ -114,3 +115,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 |---|---|
 | 2026-07-13 | Defined the initial Tauri desktop layout and security boundary. |
 | 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |
+| 2026-07-22 | Grouped creation actions under Chats and Folders and standardized the white, low-contrast bordered shell. |

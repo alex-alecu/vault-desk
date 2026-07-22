@@ -64,8 +64,10 @@ function FolderSection(props: SidebarProps) {
 export function Sidebar(props: SidebarProps) {
   return (
     <aside className="sidebar">
+      <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
       <div className="brand">Vault Desk</div>
-      <nav aria-label="Workspace navigation">
+      <div className="sidebar-content">
+        <h2 className="sidebar-label">Chats</h2>
         <button
           className="nav-action"
           disabled={props.disabled}
@@ -75,18 +77,6 @@ export function Sidebar(props: SidebarProps) {
           <Icon name="message" />
           New chat
         </button>
-        <button
-          className="nav-action"
-          disabled={props.disabled}
-          onClick={props.onAddFolder}
-          type="button"
-        >
-          <Icon name="add" />
-          Add folder
-        </button>
-      </nav>
-      <div className="sidebar-content">
-        <h2 className="sidebar-label">Chats</h2>
         <div className="session-list global-session-list">
           {props.globalSessions.map((session) => (
             <SessionRow
@@ -100,6 +90,15 @@ export function Sidebar(props: SidebarProps) {
           ))}
         </div>
         <h2 className="sidebar-label">Folders</h2>
+        <button
+          className="nav-action"
+          disabled={props.disabled}
+          onClick={props.onAddFolder}
+          type="button"
+        >
+          <Icon name="add" />
+          New folder
+        </button>
         <div className="folder-scroll">
           <FolderSection {...props} />
         </div>
