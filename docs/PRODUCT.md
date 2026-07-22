@@ -129,7 +129,7 @@ For V1, the local model may author Python or Node.js for the requested task, but
 
 ### Desktop Interaction
 
-The first desktop application uses Tauri v2 and React. Its persistent sidebar starts each section with its creation action: New chat under Chats and Add folder under Folders. Folder sessions remain grouped beneath their selected folders, showing the newest five with Show more for older sessions. The conversation workspace and bottom composer remain stable while users switch context. See [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
+The first desktop application uses Tauri v2 and React. Its persistent sidebar starts each section with its creation action: New chat under Chats and New folder under Folders. Folder sessions remain grouped beneath their selected folders, showing the newest five with Show more for older sessions. The conversation workspace and bottom composer remain stable while users switch context. See [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
 
 ### Safe Actions
 
@@ -179,4 +179,4 @@ Medical administration is a later target. Initial medical scope should avoid aut
 | 2026-07-13 | Added the Tauri desktop interaction contract, curated model presentation, deterministic document operations, and isolated generated-code fallback. |
 | 2026-07-17 | Prohibited all application telemetry and distinguished explicit user exports from local customer-owned audit records. |
 | 2026-07-20 | Made the generic offline dev agent the first desktop product and moved deterministic document specialization after V1. |
-| 2026-07-22 | Grouped creation actions under their matching sidebar sections. |
+| 2026-07-22 | Grouped New chat and New folder under their matching sidebar sections. |

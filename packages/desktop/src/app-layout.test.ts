@@ -16,7 +16,7 @@ describe("desktop window layout", () => {
     const markup = renderToStaticMarkup(createElement(App));
 
     expect(markup).toMatch(/>Chats<\/h2>.*>New chat<\/button>.*global-session-list/s);
-    expect(markup).toMatch(/>Folders<\/h2>.*>Add folder<\/button>.*folder-scroll/s);
+    expect(markup).toMatch(/>Folders<\/h2>.*>New folder<\/button>.*folder-scroll/s);
   });
 
   it("keeps model identity and memory controls in the chat header", () => {

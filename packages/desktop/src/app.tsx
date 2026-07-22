@@ -59,11 +59,6 @@ export function App() {
     const timer = window.setInterval(refresh, 700);
     return () => window.clearInterval(timer);
   }, [state.activeRun?.state, state.loaded]);
-  const folderName = state.folders.find(
-    (folder) =>
-      folder.id === state.newSessionFolderId ||
-      folder.sessions.some((session) => session.id === state.activeSessionId),
-  )?.name;
   return (
     <div className="app-shell">
       <Sidebar
@@ -145,7 +140,6 @@ export function App() {
         )}
         <Conversation
           artifacts={state.artifacts}
-          folderName={folderName}
           ready={state.loaded}
           onSuggestion={(draft) =>
             changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
