@@ -121,7 +121,7 @@ def prepare_workspace(request):
 def limit_process(request):
     limits = request["limits"]
     memory = min(limits["memoryBytes"], 8 * 1024 * 1024 * 1024)
-    output = min(limits["outputBytes"], MAX_ARTIFACT_TOTAL_BYTES)
+    output = output_file_limit(request)
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_FSIZE, (output, output))
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
@@ -130,6 +130,10 @@ def limit_process(request):
     os.setgroups([])
     os.setgid(NOBODY)
     os.setuid(NOBODY)
+
+
+def output_file_limit(request):
+    return min(request["limits"]["outputBytes"], MAX_ARTIFACT_TOTAL_BYTES)
 
 
 def collect_artifacts(root):
@@ -192,9 +196,9 @@ def execute(request):
     output_limit = min(request["limits"]["outputBytes"], MAX_LOG_BYTES)
     stdout = stdout_path.read_bytes()[:output_limit]
     stderr = stderr_path.read_bytes()[:output_limit]
+    file_limit = output_file_limit(request)
     if termination == "completed" and (
-        stdout_path.stat().st_size >= request["limits"]["outputBytes"]
-        or stderr_path.stat().st_size >= request["limits"]["outputBytes"]
+        stdout_path.stat().st_size >= file_limit or stderr_path.stat().st_size >= file_limit
     ):
         termination = "resource_limit"
     return {

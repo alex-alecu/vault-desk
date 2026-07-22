@@ -221,9 +221,9 @@ async function main(): Promise<void> {
     const outputLimit = await launcher.executeAgent({
       jobId: "00000000-0000-4000-8000-000000000034",
       language: "python",
-      code: "print('x' * 10000)",
+      code: "print('x' * (12 * 1024 * 1024))",
       readonlyInputs: [],
-      limits: { ...limits, outputBytes: 4096 },
+      limits,
     });
     if (outputLimit.termination !== "resource_limit") {
       throw new Error("Guest output-limit proof failed.");
