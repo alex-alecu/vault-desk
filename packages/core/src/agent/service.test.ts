@@ -54,7 +54,12 @@ describe("M3 persisted agent lifecycle", () => {
           status: "ok",
           operation: "generate",
           value,
-          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: 1,
+            detectedGpuVramBytes: 1,
+          },
           performance: {
             promptTokens: 10,
             outputTokens: 5,

@@ -8,7 +8,7 @@ Status: Proposed
 
 Vault Desk must work on folders with tens of large PDFs, spreadsheets, CSVs, Word documents, scanned files, and mixed professional records.
 
-Model-only reading is not reliable or efficient enough for this workload, especially on Local 12 and Local 16 systems.
+Model-only reading is not reliable or efficient enough for this workload, especially on constrained automatic memory tiers.
 
 ## Decision
 
@@ -51,3 +51,4 @@ Negative:
 | 2026-07-10 | Initial ADR created. |
 | 2026-07-10 | Updated constrained-hardware language for Local 12 and Local 16. |
 | 2026-07-11 | Updated candidate tool list to the revalidated stack: native Node parsers, Granite-Docling GGUF, PaddleOCR-VL, single Python sidecar, embedded hybrid index, and TurboQuant naming. |
+| 2026-07-22 | Replaced fixed Local 12 and Local 16 runtime wording with automatic hardware-tier terminology. |

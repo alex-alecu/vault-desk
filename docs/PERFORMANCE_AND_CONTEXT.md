@@ -8,14 +8,17 @@ Research claims in this document are research-derived until validated on target 
 
 ## Decision
 
-The first certified product profiles are:
+The implemented product policy is:
 
-| Profile | VRAM target | Main model | Required behavior |
+| Hardware | Model-plus-context budget | Main model | Required behavior |
 |---|---:|---|---|
-| Local 12 | 12 GB discrete VRAM or equivalent tested unified-memory envelope | Gemma 4 12B QAT | Same workflows, retrieval, verification, and safety policy as Local 16 with a smaller certified active context |
-| Local 16 | 16 GB discrete VRAM or equivalent tested unified-memory envelope | Gemma 4 12B QAT | Same workflows, retrieval, verification, and safety policy as Local 12 with a larger certified active context |
+| 8 GB Mac | None | None | Do not start inference and explain the hardware requirement |
+| More than 8 GB through 16 GB Mac | 10 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
+| More than 16 GB through 24 GB Mac | 12 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
+| More than 24 GB Mac | 16 GiB | Gemma 4 12B QAT | Automatically fit the largest context inside the budget |
+| Windows | Detected GPU VRAM | Gemma 4 12B QAT | Use the complete GPU VRAM capacity reported by the pinned runtime |
 
-The only product capability difference between Local 12 and Local 16 should be active context size. Do not make Local 12 a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
+Hardware tiers differ only in the memory available to model weights, runtime overhead, and active context. Do not create a lower-quality product by changing the model, weakening verification, skipping citations, disabling compaction, or reducing supported workflows.
 
 ## Why This Changes The Previous Plan
 
@@ -23,7 +26,7 @@ The earlier architecture treated 16 GB and 64 GB as the main validation pair. Th
 
 The revised strategy is narrower:
 
-- Prove Gemma 4 12B QAT on 12 GB and 16 GB first.
+- Prove Gemma 4 12B QAT under every automatic macOS budget and representative Windows GPU VRAM sizes.
 - Keep model behavior identical across those profiles.
 - Use retrieval, summaries, citation verification, and compaction to handle large folders.
 - Treat 64 GB, 26B A4B, and 31B dense as later appliance research, not MVP architecture.
@@ -51,18 +54,17 @@ Post-V1 document intelligence adds parsing, retrieval, evidence-pack, citation, 
 
 The advertised Gemma 4 12B context window is a ceiling to validate, not the certified default.
 
-Initial certification targets:
+The runtime now fits context automatically after applying the hardware budget:
 
-| Profile | First certification target | Stretch target | Rule |
-|---|---:|---:|---|
-| Local 12 | 32K active tokens | 64K active tokens | Raise only if peak VRAM, latency, verifier accuracy, and multi-compaction soak tests pass |
-| Local 16 | 64K active tokens | 128K active tokens | Raise only if the same workflow suite passes with the same safety and verification policy |
+| Minimum | Maximum | Rule |
+|---:|---:|---|
+| 8K active tokens | 256K active tokens | Select the largest allocation that fits model weights, runtime overhead, and context inside the tier budget |
 
-Do not certify 256K active context for Local 12 or Local 16 until the full product, including KV cache, runtime overhead, UI, embeddings, document workers, OCR, indexes, and compaction, has passed workload tests. Long context without evidence selection is not a document strategy.
+On macOS, the worker searches the pinned runtime's CPU and GPU context estimates for the largest aligned context whose combined model-plus-context allocation fits the tier budget, then checks the measured allocation after creation. An over-budget allocation is rejected. On Windows, the runtime fits context against a generation cap equal to separately reported detected GPU VRAM. The terminal inference response records the actual allocation. Automatic selection is implemented behavior, not by itself a public stability claim; each hardware tier still needs the full workload suite. Long context without evidence selection is not a document strategy.
 
 ## Memory Budget Rules
 
-Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Vault Desk must reserve the remaining VRAM for:
+Official Gemma 4 documentation lists the 12B Q4_0 load estimate at 6.7 GB before context and runtime overhead. Vault Desk applies the macOS 10/12/16 GiB total budgets or the complete detected Windows GPU VRAM capacity, then lets the pinned runtime use the remainder for:
 
 - KV cache for prompt and generated tokens.
 - Runtime allocator overhead and graph buffers.
@@ -91,11 +93,11 @@ Required validation areas:
 - GGUF QAT path for llama.cpp-compatible serving.
 - MLX conversion path for Apple Silicon if Gemma 4 QAT support is stable.
 - Ollama-compatible path only when model format and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
-- vLLM-class serving only for later appliance or server profiles, not as a Local 12 or Local 16 assumption.
+- vLLM-class serving only for later appliance or server profiles, not as a desktop assumption.
 
 Optimization candidates:
 
-- Quantized weights: required for Local 12 and Local 16. Ship official pre-converted QAT Q4_0 GGUFs only; self-conversion destroys the QAT quality benefit.
+- Quantized weights: required for every supported desktop tier. Ship official pre-converted QAT Q4_0 GGUFs only; self-conversion destroys the QAT quality benefit.
 - KV-cache quantization: preferred if accuracy and citation precision are unchanged.
 - Prompt or prefix caching: preferred for repeated folder questions and stable system/workflow prompts.
 - Chunked prefill: preferred if it improves long evidence-pack latency without changing outputs.
@@ -122,7 +124,7 @@ Baseline evidence-pack shape:
 - Known parser warnings and contradictions.
 - Verification instructions.
 
-Local 16 may include more evidence tokens per pack than Local 12, but candidate retrieval, ranking criteria, verification strictness, and workflow behavior must remain the same.
+Larger memory budgets may include more evidence tokens per pack, but candidate retrieval, ranking criteria, verification strictness, and workflow behavior must remain the same.
 
 ## Context Is Not Memory
 
@@ -174,7 +176,7 @@ Manual user compact should be supported as a normal command. Manual compact must
 
 ## Long-Running Session Acceptance Test
 
-Before implementation can claim reliable compaction, the product must pass this scenario on both Local 12 and Local 16:
+Before implementation can claim reliable compaction, the product must pass this scenario on every supported memory tier:
 
 1. Ingest a mixed folder containing PDFs, DOCX files, XLSX workbooks, CSVs, emails, images, duplicates, and low-confidence scans.
 2. Run document QA, extraction, comparison, and export tasks for at least 30 minutes.
@@ -226,7 +228,7 @@ Each certified profile must publish an internal benchmark record before being ca
 
 Tokens per second is a runtime metric. It is not a product acceptance criterion by itself.
 
-V1 certification sequencing is strict: real multi-step agent tasks, bounded model mediation, microVM resource enforcement, session recovery, cancellation, and the packaged zero-download desktop build must pass on physical Local 12 and Local 16 targets before either profile is called certified. Post-V1 OCR, retrieval, or citation measurements extend certification only when those capabilities are implemented.
+V1 certification sequencing is strict: real multi-step agent tasks, bounded model mediation, microVM resource enforcement, session recovery, cancellation, and the packaged zero-download desktop build must pass on the physical macOS tiers and representative Windows GPUs before those configurations are called certified. Post-V1 OCR, retrieval, or citation measurements extend certification only when those capabilities are implemented.
 
 ## Red Lines
 
@@ -234,7 +236,7 @@ Do not:
 
 - Use raw context stuffing as the document engine.
 - Treat a 256K context claim as a substitute for retrieval and verification.
-- Make Local 12 use a smaller or lower-quality reasoning model than Local 16.
+- Make lower-memory systems use a smaller or lower-quality reasoning model.
 - Disable claim verification or citations to fit memory.
 - Let parser workers compete with generation for VRAM by default.
 - Add speculative runtimes, rerankers, or vector systems before the baseline pipeline is measured.
@@ -259,3 +261,4 @@ Do not:
 | 2026-07-10 | Added 12 GB and 16 GB Gemma 4 12B QAT performance, context, compaction, and benchmark specification. |
 | 2026-07-11 | Added official-GGUF packaging rule, verified MTP drafter memory cost, and joint QAT/KV-quant/MTP certification warning. |
 | 2026-07-11 | Made product workflow, compaction, recovery, and packaged offline operation explicit prerequisites for Local 12 and Local 16 certification. |
+| 2026-07-22 | Replaced the fixed 8K product context with hardware-derived macOS budgets, complete detected Windows GPU VRAM use, and automatic context fitting up to 256K. |

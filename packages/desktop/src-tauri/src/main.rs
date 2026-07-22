@@ -77,7 +77,7 @@ impl CoreBridge {
             "--model-store".to_owned(),
             path_text(&core_resources.join("models"))?,
             "--profile".to_owned(),
-            "local12".to_owned(),
+            "auto".to_owned(),
             "--migration-directory".to_owned(),
             path_text(&core_resources.join("migrations"))?,
             "--ready-file".to_owned(),

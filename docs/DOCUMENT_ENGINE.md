@@ -14,7 +14,7 @@ Do not ask the model to read the folder.
 
 The system should build a durable document corpus first, then ask Gemma-family models to reason over selected, cited evidence.
 
-This is especially important for Local 12 and Local 16. Gemma 4 12B QAT should receive evidence packs, not raw folders.
+This is especially important on constrained automatic memory tiers. Gemma 4 12B QAT should receive evidence packs, not raw folders.
 
 ## Folder Job Lifecycle
 
@@ -113,7 +113,7 @@ PDF processing should classify pages:
 - Form page.
 - Low-confidence extraction page.
 
-Use native extraction first, layout-aware parsing second, OCR fallback third, and Gemma 4 multimodal inspection only for unresolved page regions. For scanned pages, the OCR path is a specialized document VLM (PaddleOCR-VL class), which as of 2026 outperforms classical OCR pipelines on business documents while fitting the Local 12 memory budget.
+Use native extraction first, layout-aware parsing second, OCR fallback third, and Gemma 4 multimodal inspection only for unresolved page regions. For scanned pages, the OCR path is a specialized document VLM (PaddleOCR-VL class), which as of 2026 outperforms classical OCR pipelines on business documents while fitting the constrained supported memory tier.
 
 ### DOCX And Office Documents
 
@@ -233,3 +233,4 @@ Every folder job should record enough timing and memory data to support profile 
 | 2026-07-11 | Moved native parsers into supervised document workers and linked hostile-document isolation requirements. |
 | 2026-07-12 | Moved hostile document parsing to the certified no-NIC microVM boundary and documented the narrow GPU accelerator exception. |
 | 2026-07-13 | Made typed deterministic document operations the default and added the audited no-NIC code-interpreter fallback for novel transformations. |
+| 2026-07-22 | Replaced fixed profile terminology with the automatic supported hardware tiers. |

@@ -51,7 +51,12 @@ process.stdin.on("data", (chunk) => {
       status: "ok",
       operation: "generate",
       value: {result: "ok"},
-      memory: {cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1024},
+      memory: {
+        cpuRamBytes: 1,
+        gpuVramBytes: 1,
+        budgetBytes: 1024,
+        detectedGpuVramBytes: 1024,
+      },
       performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
     });
   }

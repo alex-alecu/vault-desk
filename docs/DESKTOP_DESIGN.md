@@ -89,7 +89,7 @@ The composer is multiline and anchored to the bottom of the conversation pane.
 
 ## Model Presentation
 
-A build with one runnable generation model shows its human-readable name and current state in the conversation header. The model loads on first use, remains resident and ready between turns, and can be unloaded manually only while idle. After unload, the next message loads the same approved model again. There is no picker or arbitrary configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
+A build with one runnable generation model shows its human-readable name and current state in the conversation header. The model loads on first use, remains resident and ready between turns, and can be unloaded manually only while idle. After unload, the next message loads the same approved model again. Hardware detection chooses the model-plus-context budget without a settings surface. On an 8 GB Mac the header and alert explain that local inference is unsupported, and the composer cannot submit agent work. There is no picker or arbitrary configuration affordance. A future multi-model build may show only installed, signed, hardware-compatible choices.
 
 Runtime, quantization, context-window, endpoint, and model-file vocabulary stays out of the ordinary interface.
 
@@ -120,4 +120,5 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-20 | Reframed V1 around folder-grouped sessions, New chat attachments, and the generic offline dev agent. |
 | 2026-07-22 | Grouped creation actions under Chats and Folders and standardized the white, low-contrast bordered shell. |
 | 2026-07-22 | Added resident-model controls, transient supported thinking, and response performance presentation. |
+| 2026-07-22 | Added hardware-derived inference budgets and the user-visible unsupported state for 8 GB Macs. |
 | 2026-07-22 | Added safe CommonMark presentation for assistant responses. |

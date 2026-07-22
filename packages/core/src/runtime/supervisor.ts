@@ -37,6 +37,7 @@ interface ActiveExecution {
 
 export class InferenceSupervisor implements InferenceService {
   private readonly active = new Map<AbortController, Promise<void>>();
+  private measurements: Parameters<typeof modelRuntimeStatus>[2] = {};
   private resident:
     | {
         modelId: string;
@@ -98,6 +99,16 @@ export class InferenceSupervisor implements InferenceService {
         "Inference response operation mismatch.",
       );
     }
+    if (response.operation === "generate") {
+      this.measurements = {
+        memoryBudgetBytes: response.memory.budgetBytes,
+        cpuRamBytes: response.memory.cpuRamBytes,
+        gpuVramBytes: response.memory.gpuVramBytes,
+        ...(response.memory.contextSizeTokens === undefined
+          ? {}
+          : { contextSizeTokens: response.memory.contextSizeTokens }),
+      };
+    }
     this.record({
       operation: request.operation,
       requestId: request.requestId,
@@ -131,6 +142,7 @@ export class InferenceSupervisor implements InferenceService {
   private async releaseResident(): Promise<boolean> {
     const resident = this.resident;
     this.resident = undefined;
+    this.measurements = {};
     const unloaded = await this.port.unload();
     if (resident === undefined) return unloaded;
     try {
@@ -210,7 +222,7 @@ export class InferenceSupervisor implements InferenceService {
   }
 
   async modelStatus() {
-    return modelRuntimeStatus(this.active.size > 0, this.resident !== undefined);
+    return modelRuntimeStatus(this.active.size > 0, this.resident !== undefined, this.measurements);
   }
 
   async unloadModel(): Promise<boolean> {

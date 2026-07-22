@@ -142,7 +142,7 @@ When deciding whether to add a test, ask:
 - Can this failure make a verified answer unsupported?
 - Can this failure corrupt an export?
 - Can this failure make a long folder job non-resumable?
-- Can this failure make Local 12 and Local 16 behave differently beyond context size?
+- Can this failure make hardware tiers behave differently beyond their memory and context allocation?
 - Can this failure make authoritative workspace state unrecoverable or derived state impossible to rebuild?
 - Can untrusted document content or a worker escape its data-only role?
 - Can a certified microVM acquire a network device or turn typed host/guest IPC into a general proxy?
@@ -179,3 +179,4 @@ No package manifest or source tree should be created until that plan exists and 
 | 2026-07-16 | Activated the quality bar for M0 while retaining milestone-scoped authorization. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry trace shape with a minimal Vault Desk-owned local audit schema and no exporter. |
 | 2026-07-20 | Replaced the pre-V1 document-specific quality surface with the generic offline dev-agent desktop gate. |
+| 2026-07-22 | Replaced fixed profile checks with automatic memory-tier and Windows GPU-budget validation. |

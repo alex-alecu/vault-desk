@@ -18,7 +18,7 @@ ADR 0007 standardized the first product on one primary model family (Gemma) for 
 
 ### 1. Model-agnostic contracts, per-model certification
 
-Product contracts (runtime adapter, retrieval, evidence, verification, workflow eligibility, manifests) are model-agnostic. No product subsystem may require a specific model family. Certification remains per model, runtime build, and hardware profile: a workflow is eligible on a model only after that combination passes the same gates. Gemma 4 12B QAT stays the default and first certified generation model for Local 12 and Local 16; nothing else about its selection in ADR 0009 and ADR 0013 changes.
+Product contracts (runtime adapter, retrieval, evidence, verification, workflow eligibility, manifests) are model-agnostic. No product subsystem may require a specific model family. Certification remains per model, runtime build, and hardware profile: a workflow is eligible on a model only after that combination passes the same gates. Gemma 4 12B QAT stays the default and first certified generation model across the hardware-derived tiers in amended ADR 0009; nothing else about its selection in ADR 0013 changes.
 
 ### 2. Default dense encoder: Qwen3-Embedding-0.6B
 

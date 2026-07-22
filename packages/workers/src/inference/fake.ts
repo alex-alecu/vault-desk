@@ -1,5 +1,15 @@
 import type { InferenceWorkerRequest, InferenceWorkerResponse } from "@vault/shared";
 
+function memoryReport(request: { contextSize: number | "auto" }, budgetBytes: number) {
+  return {
+    cpuRamBytes: 1024,
+    gpuVramBytes: 2048,
+    budgetBytes,
+    detectedGpuVramBytes: budgetBytes,
+    contextSizeTokens: request.contextSize === "auto" ? 262_144 : request.contextSize,
+  };
+}
+
 export class FakeInferenceWorker {
   async unload(): Promise<boolean> {
     return true;
@@ -26,7 +36,7 @@ export class FakeInferenceWorker {
         nodeReexecDenied: true,
       };
     }
-    const memory = { cpuRamBytes: 1024, gpuVramBytes: 2048, budgetBytes: memoryBudgetBytes };
+    const memory = memoryReport(request, memoryBudgetBytes);
     if (request.operation === "embed") {
       return {
         protocolVersion: 1,

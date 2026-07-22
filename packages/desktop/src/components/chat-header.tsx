@@ -9,6 +9,7 @@ interface ChatHeaderProps {
 }
 
 const statusText: Record<ModelRuntimeStatus["state"], string> = {
+  unsupported: "Not supported on this Mac",
   unloaded: "Loads with your next message",
   loading: "Loading on device",
   busy: "Working on device",
@@ -16,6 +17,7 @@ const statusText: Record<ModelRuntimeStatus["state"], string> = {
 };
 
 export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: ChatHeaderProps) {
+  const modelStatus = model.message ?? statusText[model.state];
   return (
     <header className="chat-header" data-tauri-drag-region="">
       <div className="model-identity">
@@ -25,7 +27,7 @@ export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: Ch
           </div>
           <span className={`model-state model-state-${model.state}`}>
             <i aria-hidden="true" />
-            {statusText[model.state]}
+            {modelStatus}
           </span>
         </div>
       </div>
@@ -34,7 +36,7 @@ export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: Ch
           className="header-action unload-action"
           disabled={model.state !== "ready"}
           onClick={onUnload}
-          title={model.state === "ready" ? "Unload model from memory" : statusText[model.state]}
+          title={model.state === "ready" ? "Unload model from memory" : modelStatus}
           type="button"
         >
           <Icon name="power" />

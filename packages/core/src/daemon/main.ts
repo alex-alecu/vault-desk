@@ -10,7 +10,7 @@ function argument(args: string[], name: string, required = true): string | undef
   const value = index === -1 ? undefined : args[index + 1];
   if (required && value === undefined) {
     throw new Error(
-      "Usage: vault-cored --workspace <directory> --model-store <directory> --profile <local12|local16>",
+      "Usage: vault-cored --workspace <directory> --model-store <directory> --profile <auto|local12|local16>",
     );
   }
   return value;
@@ -32,7 +32,7 @@ interface LaunchOptions {
   modelStoreDir: string;
   packagedModelStore: boolean;
   parentPid: number | undefined;
-  profile: "local12" | "local16";
+  profile: "auto" | "local12" | "local16";
   readyFile: string | undefined;
   sessionsOnly: boolean;
   windowsPipeGuardPath: string | undefined;
@@ -45,7 +45,9 @@ function launchOptions(args: string[]): LaunchOptions {
   const modelStoreDir = argument(args, "--model-store");
   const profile = argument(args, "--profile");
   if (workspaceDir === undefined || modelStoreDir === undefined) throw new Error("Missing paths.");
-  if (profile !== "local12" && profile !== "local16") throw new Error("Invalid profile.");
+  if (profile !== "auto" && profile !== "local12" && profile !== "local16") {
+    throw new Error("Invalid profile.");
+  }
   return {
     agentHelperPath: argument(args, "--agent-helper", false),
     agentImageRoot: argument(args, "--agent-image-root", false),

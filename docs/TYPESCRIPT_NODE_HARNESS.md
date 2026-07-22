@@ -139,7 +139,7 @@ ONNX Runtime GenAI has no official Node.js bindings as of July 2026 and is not a
 
 The first Windows and macOS certification uses node-llama-cpp and the pinned official QAT GGUF. MLX-family serving remains a later adapter-backed optimization rather than a parallel first implementation. See [adr/0013-first-desktop-runtime.md](adr/0013-first-desktop-runtime.md).
 
-The first certified adapters should be evaluated against the Local 12 and Local 16 Gemma 4 12B QAT profiles documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md) and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
+The first certified adapters should be evaluated against the hardware-derived Gemma 4 12B QAT budgets documented in [MODEL_STRATEGY.md](MODEL_STRATEGY.md) and [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
 ## Structured Output Principle
 
@@ -281,3 +281,4 @@ M2 was activated by the repository owner on 2026-07-19 and completed across macO
 | 2026-07-16 | Replaced the no-code constraint with an M0-only implementation constraint after the explicit owner phase-change request. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
 | 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |
+| 2026-07-22 | Aligned the inference adapter boundary with automatic hardware memory and context fitting. |

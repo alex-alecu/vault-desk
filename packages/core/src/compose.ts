@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
+import { type InferenceProfile, InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
 import {
   InferenceWorkerClient,
   MacOsMicroVmLauncher,
@@ -14,6 +14,7 @@ import { AuditLog } from "./audit/log.js";
 import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
+import { resolveInferenceHardwarePolicy } from "./runtime/hardware.js";
 import { ModelResolver } from "./runtime/models.js";
 import { ResourceScheduler } from "./runtime/scheduler.js";
 import { InferenceSupervisor } from "./runtime/supervisor.js";
@@ -25,7 +26,7 @@ import { getOrCreateWorkspace } from "./workspace/workspaces.js";
 export interface VaultCoreOptions {
   workspaceDir: string;
   modelStoreDir: string;
-  profile: "local12" | "local16";
+  profile: InferenceProfile;
   migrationDirectory?: string;
   sessionsOnly?: boolean;
   workerEntryPath?: string;
@@ -33,9 +34,10 @@ export interface VaultCoreOptions {
   agentHelperPath?: string;
   agentImageRoot?: string;
 }
-
 async function createInference(options: VaultCoreOptions, workspaceRoot: string, audit: AuditLog) {
-  const profile = InferenceProfileSchema.parse(options.profile);
+  const policy = resolveInferenceHardwarePolicy(InferenceProfileSchema.parse(options.profile));
+  if (!policy.supported)
+    return { service: unavailableInference(policy.message), available: false } as const;
   const modelResolver = await ModelResolver.open(options.modelStoreDir);
   const launcher =
     process.platform === "win32"
@@ -46,17 +48,18 @@ async function createInference(options: VaultCoreOptions, workspaceRoot: string,
     (process.platform === "win32"
       ? windowsNativeWorkerEntryPath()
       : fileURLToPath(new URL("../../workers/dist/inference/worker.js", import.meta.url)));
-  return new InferenceSupervisor(
-    new InferenceWorkerClient(launcher, workerEntryPath),
-    modelResolver,
-    new ResourceScheduler(profile),
-    (event) => {
-      audit.append(event);
-    },
-  );
+  return {
+    service: new InferenceSupervisor(
+      new InferenceWorkerClient(launcher, workerEntryPath),
+      modelResolver,
+      new ResourceScheduler(policy.memoryBudgetBytes),
+      (event) => audit.append(event),
+    ),
+    available: true,
+  } as const;
 }
 
-function unavailableInference() {
+function unavailableInference(message?: string) {
   const unsupported = async (): Promise<never> => {
     throw Object.assign(new Error("inference_not_packaged"), { code: "unsupported" });
   };
@@ -67,8 +70,9 @@ function unavailableInference() {
       return {
         modelId: "gemma-4-12b-it-qat-q4_0",
         name: "Gemma 4 12B QAT",
-        state: "unloaded" as const,
+        state: message === undefined ? ("unloaded" as const) : ("unsupported" as const),
         thinkingSupported: true,
+        ...(message === undefined ? {} : { message }),
       };
     },
     async unloadModel() {
@@ -174,7 +178,7 @@ interface CoreServices {
   audit: AuditLog;
   jobs: JobStore;
   conversations: ConversationStore;
-  inference: Awaited<ReturnType<typeof createInference>> | ReturnType<typeof unavailableInference>;
+  inference: InferenceSupervisor | ReturnType<typeof unavailableInference>;
   agent?: AgentService;
 }
 
@@ -257,20 +261,21 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   const jobs = new JobStore(catalog.database);
   const conversations = new ConversationStore(catalog.database);
   const artifacts = await ArtifactStore.create(scope);
-  let inference:
-    | Awaited<ReturnType<typeof createInference>>
-    | ReturnType<typeof unavailableInference>;
+  let inference: InferenceSupervisor | ReturnType<typeof unavailableInference>;
+  let inferenceAvailable = false;
   try {
-    inference =
+    const configured =
       options.sessionsOnly === true
-        ? unavailableInference()
+        ? { service: unavailableInference(), available: false as const }
         : await createInference(options, workspaceRoot, audit);
+    inference = configured.service;
+    inferenceAvailable = configured.available;
   } catch (error) {
     catalog.close();
     throw error;
   }
   const agent =
-    options.sessionsOnly === true || options.agentHelperPath === undefined
+    options.sessionsOnly === true || !inferenceAvailable || options.agentHelperPath === undefined
       ? undefined
       : new AgentService(
           catalog.database,

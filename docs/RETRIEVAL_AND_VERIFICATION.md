@@ -128,7 +128,7 @@ The model must answer using citation IDs. Unsupported statements are verifier fa
 
 Evidence packs should be reproducible. A later compacted session must be able to reconstruct the same pack or explain why source files, parser outputs, retrieval settings, or indexes changed.
 
-Local 12 and Local 16 should use the same retrieval candidate generation and verification policy. Local 16 may include more evidence tokens in the live prompt because it has a larger certified active context, but it should not use different quality rules.
+Every hardware tier should use the same retrieval candidate generation and verification policy. A larger automatically fitted context may include more evidence tokens in the live prompt, but it must not use different quality rules.
 
 ## Verification Pipeline
 
@@ -230,3 +230,4 @@ Compaction should not replace source evidence with prose memory. After compactin
 | 2026-07-11 | Verified TurboQuant as the Google Research algorithm underlying turbovec, documented the Python-only binding constraint, and named LanceDB as the primary embedded index candidate with sqlite-vec fallback and turbovec as a benchmark-gated acceleration option. |
 | 2026-07-12 | Added separate Knowledge Bundle evidence scope, applicability and authority filters, supersession checks, and bundle-digest replay requirements. |
 | 2026-07-15 | Applied ADR 0016: replaced EmbeddingGemma with Qwen3-Embedding-0.6B as the product-managed encoder and made verification wording model-agnostic. |
+| 2026-07-22 | Aligned context and evidence-pack guidance with automatic hardware fitting. |

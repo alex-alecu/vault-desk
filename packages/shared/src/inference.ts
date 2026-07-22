@@ -2,7 +2,7 @@ import { z } from "zod";
 import { VaultErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
-export const InferenceProfileSchema = z.enum(["local12", "local16"]);
+export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "embed", "probe"]);
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());
@@ -17,7 +17,7 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   prompt: z.string().min(1).max(256_000),
   jsonSchema: JsonSchemaSchema,
-  contextSize: z.number().int().min(512).max(131_072),
+  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(262_144)]),
   maxTokens: z.number().int().positive().max(4_096),
 });
 
@@ -45,6 +45,8 @@ export const InferenceMemoryReportSchema = z.object({
   cpuRamBytes: z.number().int().nonnegative(),
   gpuVramBytes: z.number().int().nonnegative(),
   budgetBytes: z.number().int().positive(),
+  detectedGpuVramBytes: z.number().int().nonnegative(),
+  contextSizeTokens: z.number().int().positive().optional(),
 });
 
 export const InferencePerformanceSchema = z.object({

@@ -113,7 +113,7 @@ function generationInput(
     modelId: input.modelId,
     prompt: prompt(input.task, input.inputNames ?? [], executions),
     jsonSchema: DECISION_SCHEMA,
-    contextSize: 8192,
+    contextSize: "auto",
     maxTokens: 1024,
   };
 }

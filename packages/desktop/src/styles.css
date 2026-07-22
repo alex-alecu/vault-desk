@@ -329,6 +329,10 @@ textarea:focus-visible {
   animation: status-pulse 1.5s ease-in-out infinite;
 }
 
+.model-state-unsupported i {
+  background: #a54a3d;
+}
+
 .header-actions {
   gap: 7px;
 }

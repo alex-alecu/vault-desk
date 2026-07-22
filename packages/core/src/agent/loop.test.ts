@@ -22,7 +22,12 @@ function inference(decisions: AgentDecision[]): Pick<InferenceService, "generate
         status: "ok",
         operation: "generate",
         value,
-        memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+        memory: {
+          cpuRamBytes: 1,
+          gpuVramBytes: 1,
+          budgetBytes: 1,
+          detectedGpuVramBytes: 1,
+        },
         performance,
       };
     },
@@ -66,16 +71,23 @@ const completed: AgentExecutionResult = {
 describe("AgentLoop schema", () => {
   it("uses object alternatives supported by the inference grammar", async () => {
     let schema: Record<string, unknown> | undefined;
+    let contextSize: number | "auto" | undefined;
     const model: Pick<InferenceService, "generate"> = {
       async generate(input) {
         schema = input.jsonSchema;
+        contextSize = input.contextSize;
         return {
           protocolVersion: 1,
           requestId: "test",
           status: "ok",
           operation: "generate",
           value: { action: "respond", response: "Done." },
-          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: 1,
+            detectedGpuVramBytes: 1,
+          },
           performance,
         };
       },
@@ -95,6 +107,7 @@ describe("AgentLoop schema", () => {
         }),
       ]),
     );
+    expect(contextSize).toBe("auto");
   });
 });
 
@@ -111,7 +124,12 @@ describe("AgentLoop thinking", () => {
           status: "ok",
           operation: "generate",
           value: { action: "respond", response: "Done." },
-          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: 1,
+            detectedGpuVramBytes: 1,
+          },
           performance,
         };
       },
@@ -144,7 +162,12 @@ describe("AgentLoop source", () => {
             code: ["value = 2 + 2", "print(value)"],
             summary: "Calculate",
           },
-          memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: 1,
+            detectedGpuVramBytes: 1,
+          },
           performance,
         };
       },

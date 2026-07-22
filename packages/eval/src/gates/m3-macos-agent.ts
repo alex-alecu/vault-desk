@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { createVaultCore } from "@vault/core";
+import { createVaultCore, resolveInferenceHardwarePolicy } from "@vault/core";
 import type { AgentExecutionResult, AgentRunSnapshot, WorkerLimits } from "@vault/shared";
 import { MacOsMicroVmLauncher } from "@vault/workers";
 import { readCanonicalModelManifest, verifyModelFile } from "../models.js";
@@ -67,6 +67,21 @@ async function awaitRun(
   throw new Error(`Real agent run timed out: ${JSON.stringify(snapshot)}`);
 }
 
+async function automaticModelEvidence(core: Awaited<ReturnType<typeof createVaultCore>>) {
+  const model = await core.modelStatus();
+  const policy = resolveInferenceHardwarePolicy("auto");
+  if (
+    !policy.supported ||
+    model.state !== "ready" ||
+    model.memoryBudgetBytes !== policy.memoryBudgetBytes ||
+    (model.cpuRamBytes ?? 0) + (model.gpuVramBytes ?? 0) > policy.memoryBudgetBytes ||
+    (model.contextSizeTokens ?? 0) <= 8_192
+  ) {
+    throw new Error(`Automatic model memory or context proof failed: ${JSON.stringify(model)}`);
+  }
+  return model;
+}
+
 async function runRealAgent(root: string, language: "python" | "node") {
   const workspace = join(root, `${language}-workspace`);
   await mkdir(workspace);
@@ -74,7 +89,7 @@ async function runRealAgent(root: string, language: "python" | "node") {
   const core = await createVaultCore({
     workspaceDir: workspace,
     modelStoreDir: modelRoot,
-    profile: "local16",
+    profile: "auto",
     agentHelperPath: helper,
     agentImageRoot: images,
   });
@@ -99,10 +114,15 @@ async function runRealAgent(root: string, language: "python" | "node") {
         `Real ${language} multi-step agent proof failed: ${JSON.stringify(snapshot)}`,
       );
     }
+    const model = await automaticModelEvidence(core);
     return {
       executions: executions.length,
       attempts: attempts.length,
       artifacts: snapshot.artifacts.length,
+      memoryBudgetBytes: model.memoryBudgetBytes,
+      cpuRamBytes: model.cpuRamBytes,
+      gpuVramBytes: model.gpuVramBytes,
+      contextSizeTokens: model.contextSizeTokens,
     };
   } finally {
     await core.close();

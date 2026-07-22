@@ -109,8 +109,13 @@ export const InstalledModelStoreSchema = z
 export const ModelRuntimeStatusSchema = z.object({
   modelId: ModelIdSchema,
   name: z.string().min(1),
-  state: z.enum(["unloaded", "loading", "ready", "busy"]),
+  state: z.enum(["unsupported", "unloaded", "loading", "ready", "busy"]),
   thinkingSupported: z.boolean(),
+  message: z.string().min(1).optional(),
+  memoryBudgetBytes: z.number().int().positive().optional(),
+  cpuRamBytes: z.number().int().nonnegative().optional(),
+  gpuVramBytes: z.number().int().nonnegative().optional(),
+  contextSizeTokens: z.number().int().positive().optional(),
 });
 
 export type ModelRedistributionStatus = z.infer<typeof ModelRedistributionStatusSchema>;

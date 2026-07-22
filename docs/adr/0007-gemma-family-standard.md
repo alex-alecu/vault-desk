@@ -8,18 +8,17 @@ Status: Accepted, amended by [ADR 0009](0009-12-16gb-gemma-context-standard.md);
 
 The original architecture allowed broad model abstraction. That remains useful internally, but Vault Desk needs a simpler and more supportable product identity.
 
-The current research focus is Gemma 4 12B QAT for Local 12 and Local 16 systems, with EmbeddingGemma for retrieval and Gemma-family tool and safety capabilities where validated.
+The current product focus is Gemma 4 12B QAT across the automatic hardware-derived memory tiers, with Qwen3-Embedding-0.6B for retrieval and Gemma-family tool and safety capabilities where validated.
 
 ## Decision
 
 Vault Desk will standardize its first certified architecture around the Gemma family.
 
-The first product profiles are:
+The first product profile is:
 
-- Gemma 4 12B QAT on 12 GB systems.
-- Gemma 4 12B QAT on 16 GB systems.
-- Context size as the only product capability difference between Local 12 and Local 16.
-- EmbeddingGemma as the default dense encoder.
+- Gemma 4 12B QAT on supported macOS and Windows hardware.
+- Hardware-derived model-plus-context budgets and automatically fitted active context as the only capability difference.
+- Qwen3-Embedding-0.6B as the default dense encoder, per ADR 0016.
 
 Gemma 4 31B dense, Gemma 4 26B A4B, and larger-context appliance profiles are deferred research paths.
 
@@ -39,7 +38,7 @@ Negative:
 
 - Less flexibility for users who prefer other model families.
 - Gemma runtime support becomes a gating risk.
-- The product must validate whether Gemma 4 12B QAT fits Local 12 and Local 16 with enough active context, latency, and compaction stability.
+- The product must validate every automatic memory tier for active context, latency, and compaction stability.
 
 ## Revision History
 
@@ -47,3 +46,4 @@ Negative:
 |---|---|
 | 2026-07-10 | Initial ADR created. |
 | 2026-07-10 | Accepted Gemma-family standard and amended first certified profiles through ADR 0009. |
+| 2026-07-22 | Aligned the generation model with the hardware-derived budgets in amended ADR 0009 and the Qwen encoder selected by ADR 0016. |

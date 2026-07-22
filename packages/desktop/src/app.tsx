@@ -44,6 +44,9 @@ export function App() {
     void bootstrapDesktop()
       .then((snapshot) => {
         setModel(snapshot.model);
+        if (snapshot.model.state === "unsupported" && snapshot.model.message !== undefined) {
+          setDesktopError(snapshot.model.message);
+        }
         dispatch({ type: "desktop.hydrate", snapshot });
       })
       .catch(() => setDesktopError("Vault Core could not be started."));
@@ -160,7 +163,7 @@ export function App() {
         <Composer
           attachments={state.attachments}
           draft={state.draft}
-          disabled={!state.loaded}
+          disabled={!state.loaded || model.state === "unsupported"}
           onAttach={() =>
             void attach(state.activeSessionId, state.newSessionFolderId, dispatch, setDesktopError)
           }

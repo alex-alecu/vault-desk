@@ -1,19 +1,11 @@
-import type { InferenceOperation, InferenceProfile } from "@vault/shared";
+import type { InferenceOperation } from "@vault/shared";
 
 const GiB = 1024 * 1024 * 1024;
-const PROFILE_BUDGETS: Record<InferenceProfile, number> = {
-  local12: 12 * GiB,
-  local16: 16 * GiB,
-};
 
 export class ResourceScheduler {
   private reservedBytes = 0;
 
-  constructor(readonly profile: InferenceProfile) {}
-
-  get budgetBytes(): number {
-    return PROFILE_BUDGETS[this.profile];
-  }
+  constructor(readonly budgetBytes: number) {}
 
   reserve(operation: InferenceOperation): { memoryBudgetBytes: number; release(): void } {
     const requested = operation === "embed" ? 2 * GiB : this.budgetBytes;

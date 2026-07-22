@@ -12,6 +12,12 @@ import {
   encodeInferenceResponse,
   InferenceRequestDecoder,
 } from "./frames.js";
+import {
+  combinedAllocationBytes,
+  fitCombinedGenerationContext,
+  resolveGenerationContextSize,
+  resolveRuntimeMemoryBudget,
+} from "./memory.js";
 import { probe } from "./probe.js";
 
 function argument(name: string): string | undefined {
@@ -23,7 +29,12 @@ function argument(name: string): string | undefined {
 
 function failure(requestId: RequestId, error: unknown): InferenceWorkerResponse {
   const text = error instanceof Error ? error.message : String(error);
-  const code = /memory|allocation|out of memory/iu.test(text) ? "out_of_memory" : "internal";
+  const code =
+    text === "supported_gpu_required"
+      ? "unsupported"
+      : /memory|allocation|out of memory/iu.test(text)
+        ? "out_of_memory"
+        : "internal";
   return {
     protocolVersion: 1,
     requestId,
@@ -44,54 +55,116 @@ async function embed(
     throw new Error("worker_context_size_change_unsupported");
   }
   const embedding = await runtime.embedding.context.getEmbeddingFor(request.input);
-  const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
     protocolVersion: 1,
     requestId: request.requestId,
     status: "ok",
     operation: "embed",
     vector: Array.from(embedding.vector),
-    memory: {
-      cpuRamBytes: memory.cpuRam,
-      gpuVramBytes: memory.gpuVram,
-      budgetBytes: runtime.budget,
-    },
+    memory: await memoryReport(runtime, request.contextSize),
   };
 }
 
 interface LoadedRuntime {
   budget: number;
+  detectedGpuVramBytes: number;
   llama: Llama;
   model: LlamaModel;
-  generation?: { contextSize: number; session: LlamaChatSession };
+  generation?: {
+    requestedContextSize: StructuredGenerationRequest["contextSize"];
+    contextSize: number;
+    session: LlamaChatSession;
+  };
   embedding?: { contextSize: number; context: LlamaEmbeddingContext };
 }
 
 let loadedRuntime: Promise<LoadedRuntime> | undefined;
 
-async function runtime(): Promise<LoadedRuntime> {
+async function memoryReport(runtime: LoadedRuntime, contextSizeTokens: number) {
+  const memory = await runtime.llama.getLlamaMemoryUsage();
+  return {
+    cpuRamBytes: memory.cpuRam,
+    gpuVramBytes: memory.gpuVram,
+    budgetBytes: runtime.budget,
+    detectedGpuVramBytes: runtime.detectedGpuVramBytes,
+    contextSizeTokens,
+  };
+}
+
+async function runtime(operation: "generate" | "embed"): Promise<LoadedRuntime> {
   loadedRuntime ??= (async () => {
     const modelPath = argument("--model");
-    const budget = Number(argument("--memory-budget"));
-    if (modelPath === undefined || !Number.isSafeInteger(budget) || budget <= 0) {
+    const requestedBudget = Number(argument("--memory-budget"));
+    if (modelPath === undefined || !Number.isSafeInteger(requestedBudget) || requestedBudget <= 0) {
       throw new Error("Invalid worker launch arguments.");
     }
     const { getLlama, LlamaLogLevel } = await import("node-llama-cpp");
     const llama = await getLlama({ logLevel: LlamaLogLevel.error });
     const vram = await llama.getVramState();
-    if (vram.unifiedSize > 0) await llama.setVramCap(budget);
-    else await llama.setRamCap(budget);
-    return { budget, llama, model: await llama.loadModel({ modelPath }) };
+    const budget = resolveRuntimeMemoryBudget(
+      requestedBudget,
+      vram.total,
+      process.platform,
+      operation,
+    );
+    await llama.setVramCap(budget);
+    return {
+      budget,
+      detectedGpuVramBytes: vram.total,
+      llama,
+      model: await llama.loadModel({ modelPath }),
+    };
   })();
   return loadedRuntime;
+}
+
+async function automaticMacContextSize(runtime: LoadedRuntime): Promise<number> {
+  const modelMemory = await runtime.llama.getLlamaMemoryUsage();
+  return fitCombinedGenerationContext(
+    runtime.budget,
+    { cpuRamBytes: modelMemory.cpuRam, gpuVramBytes: modelMemory.gpuVram },
+    async (contextSize) => {
+      const estimate = await runtime.model.fileInsights.estimateContextResourceRequirementsV2({
+        contextSize,
+        modelGpuLayers: runtime.model.gpuLayers,
+        flashAttention: runtime.model.defaultContextFlashAttention,
+        swaFullCache: runtime.model.defaultContextSwaFullCache,
+        useMmap: runtime.model.useMmap,
+      });
+      return { cpuRamBytes: estimate.cpuRam, gpuVramBytes: estimate.gpuVram };
+    },
+  );
+}
+
+async function createGenerationContext(
+  request: StructuredGenerationRequest,
+  runtime: LoadedRuntime,
+) {
+  const contextSize =
+    request.contextSize === "auto" && process.platform === "darwin"
+      ? await automaticMacContextSize(runtime)
+      : resolveGenerationContextSize(request.contextSize);
+  const context = await runtime.model.createContext({ contextSize });
+  if (process.platform === "darwin") {
+    const memory = await runtime.llama.getLlamaMemoryUsage();
+    if (
+      combinedAllocationBytes({ cpuRamBytes: memory.cpuRam, gpuVramBytes: memory.gpuVram }) >
+      runtime.budget
+    ) {
+      await context.dispose();
+      throw new Error("combined_memory_budget_exceeded");
+    }
+  }
+  return context;
 }
 
 async function generationSession(request: StructuredGenerationRequest, runtime: LoadedRuntime) {
   if (runtime.generation === undefined) {
     const { Gemma4ChatWrapper, LlamaChatSession } = await import("node-llama-cpp");
-    const context = await runtime.model.createContext({ contextSize: request.contextSize });
+    const context = await createGenerationContext(request, runtime);
     runtime.generation = {
-      contextSize: request.contextSize,
+      requestedContextSize: request.contextSize,
+      contextSize: context.contextSize,
       session: new LlamaChatSession({
         contextSequence: context.getSequence(),
         ...(request.modelId.startsWith("gemma-4")
@@ -100,7 +173,7 @@ async function generationSession(request: StructuredGenerationRequest, runtime: 
       }),
     };
   }
-  if (runtime.generation.contextSize !== request.contextSize) {
+  if (runtime.generation.requestedContextSize !== request.contextSize) {
     throw new Error("worker_context_size_change_unsupported");
   }
   runtime.generation.session.resetChatHistory();
@@ -156,18 +229,13 @@ async function generate(
   });
   const completedAt = performance.now();
   const finalMeter = session.sequence.tokenMeter.getState();
-  const memory = await runtime.llama.getLlamaMemoryUsage();
   return {
     protocolVersion: 1,
     requestId: request.requestId,
     status: "ok",
     operation: "generate",
     value: grammar.parse(output),
-    memory: {
-      cpuRamBytes: memory.cpuRam,
-      gpuVramBytes: memory.gpuVram,
-      budgetBytes: runtime.budget,
-    },
+    memory: await memoryReport(runtime, session.sequence.contextSize),
     performance: performanceReport({
       initial: initialMeter,
       final: finalMeter,
@@ -183,7 +251,7 @@ async function infer(
   emit: (message: InferenceWorkerMessage) => void,
 ): Promise<InferenceWorkerResponse> {
   if (request.operation === "probe") return probe(request);
-  const loaded = await runtime();
+  const loaded = await runtime(request.operation);
   // Native resources remain process-scoped. Manual unload terminates this worker so the OS
   // reclaims the model and contexts together instead of relying on unsafe partial teardown.
   return request.operation === "embed"

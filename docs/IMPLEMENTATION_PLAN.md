@@ -78,7 +78,7 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 
 ## Model And Asset Distribution
 
-The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest. The inference worker keeps the approved model resident after first use. Manual unload or Core shutdown terminates the complete worker process so all native model and context resources are reclaimed together; the next request launches and verifies it again.
+The first V1 package is self-contained and performs zero downloads on first launch. It includes only approved runtime assets, one generation model, the guest image, and required native helpers whose hashes appear in the package manifest. The desktop selects the inference envelope automatically: 10 GiB on Macs through 16 GB, 12 GiB through 24 GB, 16 GiB above 24 GB, and the complete runtime-reported GPU VRAM capacity on Windows. An 8 GB Mac does not start inference and exposes a clear unsupported status. The worker fits the largest generation context from 8K through 256K inside the selected budget and reports the actual allocation. It keeps the approved model resident after first use. Manual unload or Core shutdown terminates the complete worker process so all native model and context resources are reclaimed together; the next request launches and verifies it again.
 
 Downloaded development models, generated guest images, signed helpers, build output, coverage, reports, installers, and dependency directories remain ignored artifacts. Distribution requires notices, SBOMs, hashes, signatures, and platform package verification. A model-download build remains post-V1 work.
 
@@ -194,3 +194,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-20 | Replaced the long pre-product sequence with M3 Offline Dev-Agent Desktop V1, moved document intelligence after V1, and made the generic no-NIC coding agent the first product. |
 | 2026-07-21 | Completed the M3 macOS implementation and physical acceptance while keeping the cross-platform launch gate open for Windows. |
 | 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
+| 2026-07-22 | Added hardware-derived macOS inference budgets, complete Windows GPU VRAM use, automatic context fitting up to 256K, and the unsupported 8 GB Mac behavior. |
