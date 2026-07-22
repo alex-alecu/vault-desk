@@ -295,9 +295,25 @@ textarea:focus-visible {
 
 .model-title-row strong {
   overflow: hidden;
+  flex: 0 1 auto;
   font-size: 14px;
   font-weight: 680;
   letter-spacing: -0.012em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-usage {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  color: #9b9591;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0.005em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
