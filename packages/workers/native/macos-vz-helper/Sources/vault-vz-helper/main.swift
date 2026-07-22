@@ -14,7 +14,7 @@ struct Arguments {
     let initramfs: URL
     let cpuCount: Int
     let memoryBytes: UInt64
-    let scratch: URL
+    let scratch: URL?
     let inputs: [URL]
     let request: URL?
 }
@@ -36,8 +36,7 @@ func parseArguments() throws -> Arguments {
     }
     guard let kernel = values["--kernel"], let initramfs = values["--initramfs"],
           let cpuText = values["--cpus"], let cpuCount = Int(cpuText),
-          let memoryText = values["--memory"], let memoryBytes = UInt64(memoryText),
-          let scratch = values["--scratch"] else {
+          let memoryText = values["--memory"], let memoryBytes = UInt64(memoryText) else {
         throw HelperError.invalidArguments
     }
     return Arguments(
@@ -45,7 +44,7 @@ func parseArguments() throws -> Arguments {
         initramfs: URL(fileURLWithPath: initramfs),
         cpuCount: cpuCount,
         memoryBytes: memoryBytes,
-        scratch: URL(fileURLWithPath: scratch),
+        scratch: values["--scratch"].map { URL(fileURLWithPath: $0) },
         inputs: inputs,
         request: values["--request"].map { URL(fileURLWithPath: $0) }
     )
@@ -129,9 +128,10 @@ func storageDevices(_ arguments: Arguments) throws -> [VZStorageDeviceConfigurat
         let attachment = try VZDiskImageStorageDeviceAttachment(url: input, readOnly: true)
         devices.append(VZVirtioBlockDeviceConfiguration(attachment: attachment))
     }
-    if (try arguments.scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
+    if let scratch = arguments.scratch,
+       (try scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
         let attachment = try VZDiskImageStorageDeviceAttachment(
-            url: arguments.scratch,
+            url: scratch,
             readOnly: false
         )
         devices.append(VZVirtioBlockDeviceConfiguration(attachment: attachment))
@@ -193,7 +193,10 @@ struct VaultVirtualizationHelper {
         if virtualMachine.canStop {
             try await virtualMachine.stop()
         }
-        let scratchSize = try arguments.scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        var scratchSize = 0
+        if let scratch = arguments.scratch {
+            scratchSize = try scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        }
         let result: [String: Any] = [
             "classification": "certified",
             "guest": guest ?? [:],

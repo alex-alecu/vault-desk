@@ -103,7 +103,7 @@ function helperArguments(input: {
   artifacts: { kernel: string; initramfs: string };
   inputs: string[];
   request: LaunchBounds;
-  scratch: string;
+  scratch?: string;
   requestPath?: string;
 }): string[] {
   const args = [
@@ -115,9 +115,8 @@ function helperArguments(input: {
     String(input.request.limits.cpuCount),
     "--memory",
     String(input.request.limits.memoryBytes),
-    "--scratch",
-    input.scratch,
   ];
+  if (input.scratch !== undefined) args.push("--scratch", input.scratch);
   for (const path of input.inputs) args.push("--input", path);
   if (input.requestPath !== undefined) args.push("--request", input.requestPath);
   return args;
@@ -212,10 +211,6 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
         request.limits,
         signal,
       );
-      const scratch = join(temporaryRoot, "scratch.img");
-      const scratchHandle = await open(scratch, "wx", 0o600);
-      await scratchHandle.close();
-      await truncate(scratch, request.limits.scratchBytes);
       const frame = AgentGuestRequestSchema.parse({
         protocolVersion: 1,
         requestId: request.jobId,
@@ -238,7 +233,6 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
         artifacts,
         inputs: inputs.devices,
         request,
-        scratch,
         requestPath,
       });
       const report = MicroVmAgentReportSchema.parse(
@@ -248,7 +242,8 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
         report.networkDeviceCount === 0 &&
         report.socketDeviceCount === 1 &&
         report.readOnlyInputCount === inputs.devices.length &&
-        report.scratchBytes === request.limits.scratchBytes &&
+        report.scratchBytes === 0 &&
+        report.guest.scratchBytes === request.limits.scratchBytes &&
         report.guest.nonLoopbackNetworkDeviceCount === 0;
       if (!certified || report.classification !== "certified") {
         throw new Error("agent_guest_not_certified");

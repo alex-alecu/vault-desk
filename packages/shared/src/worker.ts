@@ -109,6 +109,7 @@ export const AgentGuestResultSchema = z.object({
   requestId: RequestIdSchema,
   status: z.literal("ok"),
   nonLoopbackNetworkDeviceCount: z.number().int().nonnegative(),
+  scratchBytes: z.number().int().nonnegative(),
   transport: z.literal("vsock"),
   execution: AgentExecutionResultSchema,
 });

@@ -94,7 +94,7 @@ def prepare_workspace(request):
     devices = block_devices()
     inputs = request["inputs"]
     input_device_count = max((item["deviceIndex"] for item in inputs), default=-1) + 1
-    if len(devices) != input_device_count + 1:
+    if len(devices) != input_device_count:
         raise RuntimeError("device_count_mismatch")
     for item in inputs:
         byte_length = item["byteLength"]
@@ -115,7 +115,8 @@ def prepare_workspace(request):
         destination.chmod(0o444)
     os.chown("/work", NOBODY, NOBODY)
     os.chown(artifacts_dir, NOBODY, NOBODY)
-    return inputs_dir, artifacts_dir
+    workspace = os.statvfs("/work")
+    return inputs_dir, artifacts_dir, workspace.f_blocks * workspace.f_frsize
 
 
 def limit_process(request):
@@ -158,7 +159,7 @@ def collect_artifacts(root):
 
 
 def execute(request):
-    inputs_dir, artifacts_dir = prepare_workspace(request)
+    inputs_dir, artifacts_dir, scratch_bytes = prepare_workspace(request)
     language = request["language"]
     suffix = ".py" if language == "python" else ".mjs"
     script = pathlib.Path("/work") / f"task{suffix}"
@@ -201,16 +202,19 @@ def execute(request):
         stdout_path.stat().st_size >= file_limit or stderr_path.stat().st_size >= file_limit
     ):
         termination = "resource_limit"
-    return {
-        "language": language,
-        "code": request["code"],
-        "exitCode": max(0, min(255, process.returncode if process.returncode >= 0 else 255)),
-        "stdout": stdout[:output_limit].decode("utf-8", "replace"),
-        "stderr": stderr[:output_limit].decode("utf-8", "replace"),
-        "durationMs": int((time.monotonic() - started) * 1000),
-        "termination": termination if process.returncode == 0 or termination != "completed" else "crash",
-        "artifacts": collect_artifacts(artifacts_dir),
-    }
+    return (
+        {
+            "language": language,
+            "code": request["code"],
+            "exitCode": max(0, min(255, process.returncode if process.returncode >= 0 else 255)),
+            "stdout": stdout[:output_limit].decode("utf-8", "replace"),
+            "stderr": stderr[:output_limit].decode("utf-8", "replace"),
+            "durationMs": int((time.monotonic() - started) * 1000),
+            "termination": termination if process.returncode == 0 or termination != "completed" else "crash",
+            "artifacts": collect_artifacts(artifacts_dir),
+        },
+        scratch_bytes,
+    )
 
 
 def interface_count():
@@ -227,13 +231,15 @@ def main():
         if request.get("protocolVersion") != 1 or request.get("operation") != "execute":
             raise RuntimeError("unsupported_operation")
         restrict_executables()
+        execution, scratch_bytes = execute(request)
         result = {
             "protocolVersion": 1,
             "requestId": request["requestId"],
             "status": "ok",
             "nonLoopbackNetworkDeviceCount": interface_count(),
+            "scratchBytes": scratch_bytes,
             "transport": "vsock",
-            "execution": execute(request),
+            "execution": execution,
         }
         write_frame(connection, result)
     listener.close()

@@ -43,7 +43,7 @@ Each agent turn:
 
 1. Resolves the session and its authorized folder snapshot or explicit attachments.
 2. Starts a fresh verified microVM image with zero virtual NICs.
-3. Attaches authorized inputs read-only and a bounded scratch disk writable only inside the guest.
+3. Attaches authorized inputs read-only and configures bounded tmpfs scratch within the guest's fixed memory allocation.
 4. Sends a typed task request over the fixed host/guest socket.
 5. Mediates bounded model completions through typed IPC to the host-native inference worker.
 6. Runs only the fixed Python or Node executables and libraries already present in the immutable guest image.

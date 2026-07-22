@@ -1,6 +1,6 @@
 # Milestone M3 Status
 
-Updated: 2026-07-22
+Updated: 2026-07-23
 
 The M3 macOS implementation is complete and passes physical Apple-silicon acceptance. The cross-platform M3 and Community Desktop V1 launch gate remain open until the Windows implementation and physical evidence pass.
 
@@ -23,14 +23,14 @@ The M3 macOS implementation is complete and passes physical Apple-silicon accept
 - The packaged desktop selects inference memory from hardware. Macs through 16 GB receive a 10 GiB model-plus-context budget, Macs through 24 GB receive 12 GiB, and larger Macs receive 16 GiB. An 8 GB Mac exposes an unsupported status and cannot submit agent work. Windows generation is configured to use the complete GPU VRAM capacity reported by the pinned runtime.
 - Agent generation requests an automatically fitted context from 8K through Gemma's 256K maximum. On macOS the worker selects against combined model and context CPU-plus-GPU allocation, then rejects any created context whose measured total exceeds the tier budget. Terminal worker evidence records the actual context, applied budget, and detected GPU VRAM.
 - Gemma 4 supported thought segments stream into transient active-run memory and are never persisted. Completed responses retain only numeric prompt/output token counts, generation and prompt-processing speeds, and total run time.
-- The reproducible Buildroot guest contains Python 3.14.5, Node.js 24.18.0, Pillow 12.0.0, pypdf 6.14.2, openpyxl 3.1.5, python-docx 1.2.0, and lxml. It contains no pip, npm, shell, credentials, or network device.
+- The reproducible Buildroot guest contains Python 3.14.5, Node.js 24.18.0, Pillow 12.0.0, pypdf 6.14.2, openpyxl 3.1.5, python-docx 1.2.0, and lxml. Its bounded tmpfs scratch counts against fixed guest memory; it contains no pip, npm, shell, credentials, or network device.
 - The macOS package contains the exact Core SEA sidecar, inference runtime, model, Swift Virtualization helper, guest image, migrations, notices, SPDX SBOM, hashes, and resource manifest. It performs no first-launch download.
 
 ## Physical Mac Evidence
 
 - Two independent agent-guest builds produced identical outputs:
   - kernel SHA-256: `211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd`.
-  - initramfs SHA-256: `bae6d164a807a88a5648ba3dd2f68607023b12ec0e66a07f5c16f219adff9b50`.
+  - initramfs SHA-256: `fcb580df90dc4a540829e25f4f0092ea38854255682a6062e66b6d7bda4c4f81`.
 - `pnpm test:m3:macos` returned `certified` on physical Apple silicon. Runtime probes passed read-only input, host-write, DNS, IPv4, IPv6, package-manager, shell, credential, host-path, timeout, and output-limit controls. The real Gemma model completed multi-step Python and Node.js tasks, each with two successful guest executions and an artifact.
 - After activating automatic hardware sizing, `pnpm test:m3:macos` returned `certified` again on the physical 48 GB Apple-silicon Mac. Both real multi-step agent runs used the 16 GiB model-plus-context budget, reported 13,509,287,136 bytes of combined CPU and GPU allocation, and allocated the full 262,144-token Gemma context; neither fell back to the former 8,192-token setting.
 - The hardened app bundle passes strict deep `codesign` verification with an ad-hoc development identity. Core runs its Node SEA with `--jitless`, has no entitlement exceptions, and packages no native SQLite addon.
