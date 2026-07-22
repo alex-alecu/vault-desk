@@ -13,6 +13,37 @@ interface ConversationProps {
   thinking: string | null;
 }
 
+type OrderedEntry =
+  | { createdAt: string; item: AgentArtifactSummary; kind: "artifact"; order: number }
+  | { createdAt: string; item: TimelineItem; kind: "timeline"; order: number };
+
+function showsInConversation(item: TimelineItem): boolean {
+  return (
+    item.kind !== "activity" ||
+    (item.eventType !== "run.started" && item.eventType !== "assistant.completed")
+  );
+}
+
+function conversationEntries(
+  timeline: TimelineItem[],
+  artifacts: AgentArtifactSummary[],
+): OrderedEntry[] {
+  const entries: OrderedEntry[] = timeline
+    .filter(showsInConversation)
+    .map((item, order) => ({ createdAt: item.createdAt, item, kind: "timeline", order }));
+  entries.push(
+    ...artifacts.map((item, index) => ({
+      createdAt: item.createdAt,
+      item,
+      kind: "artifact" as const,
+      order: timeline.length + index,
+    })),
+  );
+  return entries.sort(
+    (left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order,
+  );
+}
+
 function EmptyConversation({
   folderName,
   onSuggestion,
@@ -94,6 +125,7 @@ function AssistantResponse({ children }: { children: string }) {
 }
 
 export function Conversation({
+  artifacts,
   folderName,
   ready,
   timeline,
@@ -102,14 +134,23 @@ export function Conversation({
   runId,
   thinking,
 }: ConversationProps) {
-  const messages = timeline.filter((item) => item.kind !== "activity");
-  if (messages.length === 0) {
+  const entries = conversationEntries(timeline, artifacts);
+  if (entries.length === 0) {
     return <EmptyConversation folderName={folderName} onSuggestion={onSuggestion} ready={ready} />;
   }
-  const lastAssistantId = messages.findLast((item) => item.kind === "assistant")?.id;
+  const lastAssistantId = timeline.findLast((item) => item.kind === "assistant")?.id;
   return (
     <section aria-label="Conversation" aria-live="polite" className="timeline">
-      {messages.map((item) => {
+      {entries.map((entry) => {
+        if (entry.kind === "artifact") {
+          return (
+            <article className="timeline-item timeline-artifact" key={entry.item.id}>
+              <span className="activity-label">Generated file</span>
+              <p>{entry.item.name}</p>
+            </article>
+          );
+        }
+        const item = entry.item;
         const showMetrics =
           item.id === lastAssistantId && item.runId === runId && performance !== null;
         return (
@@ -134,7 +175,7 @@ export function Conversation({
       )}
       <div
         aria-hidden="true"
-        key={messages.length}
+        key={entries.length}
         ref={(node) => node?.scrollIntoView({ block: "end" })}
       />
     </section>

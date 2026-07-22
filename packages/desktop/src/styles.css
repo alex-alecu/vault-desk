@@ -360,7 +360,7 @@ textarea:focus-visible {
   font-weight: 620;
 }
 
-.activity-action {
+.technical-details-action {
   width: 36px;
 }
 
@@ -592,6 +592,13 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
+.timeline-artifact {
+  border: 1px solid rgb(101 88 217 / 16%);
+  color: #625b70;
+  background: #faf9ff;
+  font-size: 13px;
+}
+
 .activity-label {
   display: block;
   margin-bottom: 5px;
@@ -672,33 +679,6 @@ textarea:focus-visible {
   white-space: pre-wrap;
 }
 
-.timeline-activity details {
-  margin-top: 10px;
-}
-
-.timeline-activity summary {
-  width: max-content;
-  color: #6159d9;
-  cursor: pointer;
-}
-
-.timeline-activity pre {
-  max-height: 320px;
-  margin: 10px 0 0;
-  padding: 12px;
-  overflow: auto;
-  border-radius: 9px;
-  background: #eeeae7;
-  font:
-    12px / 1.5 ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .icon-button,
 .send-button,
 .stop-button {
@@ -757,11 +737,11 @@ textarea:focus-visible {
   height: 15px;
 }
 
-.activity-header button:hover {
+.technical-details-header button:hover {
   background: #f2efed;
 }
 
-.activity-drawer {
+.technical-details-drawer {
   position: absolute;
   z-index: 4;
   top: 0;
@@ -775,7 +755,7 @@ textarea:focus-visible {
   box-shadow: -8px 0 24px rgb(56 46 39 / 5%);
 }
 
-.activity-header {
+.technical-details-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -783,23 +763,23 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border-color);
 }
 
-.activity-header h2,
-.activity-header p {
+.technical-details-header h2,
+.technical-details-header p {
   margin: 0;
 }
 
-.activity-header h2 {
+.technical-details-header h2 {
   font-size: 16px;
 }
 
-.activity-header p,
-.activity-empty {
+.technical-details-header p,
+.technical-details-empty {
   margin-top: 4px;
   color: #8a847f;
   font-size: 12px;
 }
 
-.activity-header button {
+.technical-details-header button {
   display: grid;
   width: 32px;
   height: 32px;
@@ -809,13 +789,13 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
-.activity-scroll {
+.technical-details-scroll {
   min-height: 0;
   padding: 14px;
   overflow-y: auto;
 }
 
-.activity-item {
+.technical-details-item {
   margin-bottom: 10px;
   padding: 12px;
   border: 1px solid var(--border-color);
@@ -825,23 +805,23 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
-.activity-item p {
+.technical-details-item p {
   margin: 0;
   line-height: 1.5;
   white-space: pre-wrap;
 }
 
-.activity-item details {
+.technical-details-item details {
   margin-top: 10px;
 }
 
-.activity-item summary {
+.technical-details-item summary {
   width: max-content;
   color: #6159d9;
   cursor: pointer;
 }
 
-.activity-item pre {
+.technical-details-item pre {
   max-height: 320px;
   margin: 10px 0 0;
   padding: 10px;
@@ -856,6 +836,28 @@ textarea:focus-visible {
     monospace;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.technical-file-metadata {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.technical-file-metadata div {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.technical-file-metadata dt {
+  color: #9a938e;
+}
+
+.technical-file-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .confirmation-backdrop {

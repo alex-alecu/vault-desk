@@ -113,7 +113,7 @@ src/components/chat-header.tsx
 src/components/sidebar.tsx
 src/components/session-list.tsx
 src/components/conversation.tsx
-src/components/activity.tsx
+src/components/technical-details.tsx
 src/components/composer.tsx
 src/components/confirmation.tsx
 src-tauri/Cargo.toml

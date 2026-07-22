@@ -1,7 +1,82 @@
+import { AgentArtifactSummarySchema } from "@vault/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Conversation } from "./components/conversation.js";
+import type { TimelineItem } from "./state.js";
+
+const timestamp = "2026-07-20T12:00:00.000Z";
+const runId = "77ff5b22-555d-4ef2-9170-fdd7118738f1";
+const generatedReport = AgentArtifactSummarySchema.parse({
+  id: "6ad824dc-bd7a-431a-9b2a-e79cdb8a98fe",
+  runId,
+  name: "report.csv",
+  mediaType: "text/csv",
+  byteLength: 42,
+  contentHash: `sha256:${"a".repeat(64)}`,
+  createdAt: "2026-07-20T12:00:05.000Z",
+});
+const restoredActivity = [
+  { createdAt: timestamp, id: "user", kind: "user", text: "Build a report" },
+  {
+    createdAt: "2026-07-20T12:00:06.000Z",
+    id: "assistant",
+    kind: "assistant",
+    text: "The report is ready.",
+    runId,
+  },
+  {
+    createdAt: "2026-07-20T12:00:01.000Z",
+    eventType: "run.started",
+    id: "limits",
+    kind: "activity",
+    text: "Offline limits: 4 CPUs, 4 GiB memory.",
+  },
+  {
+    createdAt: "2026-07-20T12:00:02.000Z",
+    eventType: "inference.started",
+    id: "planning",
+    kind: "activity",
+    text: "Loading the local model and planning the task.",
+  },
+  {
+    createdAt: "2026-07-20T12:00:03.000Z",
+    detail: "Code:\nprint('secret')",
+    eventType: "execution.started",
+    id: "execute",
+    kind: "activity",
+    text: "Inspecting the selected data.",
+  },
+  {
+    createdAt: "2026-07-20T12:00:04.000Z",
+    detail: "Output:\nsecret output\n\nTermination: completed",
+    eventType: "execution.completed",
+    id: "completed",
+    kind: "activity",
+    text: "Python finished with exit code 0.",
+  },
+  {
+    createdAt: "2026-07-20T12:00:05.500Z",
+    eventType: "assistant.completed",
+    id: "response-completed",
+    kind: "activity",
+    text: "Response completed.",
+  },
+] satisfies TimelineItem[];
+
+function renderRestoredActivity(): string {
+  return renderToStaticMarkup(
+    createElement(Conversation, {
+      artifacts: [generatedReport],
+      ready: true,
+      timeline: restoredActivity,
+      onSuggestion: () => undefined,
+      performance: null,
+      runId,
+      thinking: null,
+    }),
+  );
+}
 
 describe("empty conversation presentation", () => {
   it("includes folder context in the prompt and offers a review task", () => {
@@ -32,8 +107,14 @@ describe("conversation performance presentation", () => {
         artifacts: [],
         ready: true,
         timeline: [
-          { id: "user", kind: "user", text: "Hello" },
-          { id: "assistant", kind: "assistant", text: "Hi", runId: "run" },
+          { createdAt: timestamp, id: "user", kind: "user", text: "Hello" },
+          {
+            createdAt: "2026-07-20T12:00:01.000Z",
+            id: "assistant",
+            kind: "assistant",
+            text: "Hi",
+            runId: "run",
+          },
         ],
         onSuggestion: () => undefined,
         performance: {
@@ -63,8 +144,9 @@ describe("conversation Markdown presentation", () => {
         artifacts: [],
         ready: true,
         timeline: [
-          { id: "user", kind: "user", text: "## Keep this literal" },
+          { createdAt: timestamp, id: "user", kind: "user", text: "## Keep this literal" },
           {
+            createdAt: "2026-07-20T12:00:01.000Z",
             id: "assistant",
             kind: "assistant",
             text: "## Result\n\n- **Safe** output\n\n[Reference](https://example.test/page)\n\n![remote](https://example.test/image.png)\n\n<script>alert('no')</script>",
@@ -87,5 +169,27 @@ describe("conversation Markdown presentation", () => {
     expect(markup).not.toContain("example.test");
     expect(markup).not.toContain("<script>");
     expect(markup).not.toContain("alert");
+  });
+});
+
+describe("conversation activity presentation", () => {
+  it("orders restored progress and generated files inline without technical details", () => {
+    const markup = renderRestoredActivity();
+
+    const orderedText = [
+      "Build a report",
+      "Loading the local model",
+      "Inspecting the selected data",
+      "Python finished",
+      "report.csv",
+      "The report is ready",
+    ];
+    expect(orderedText.map((text) => markup.indexOf(text))).toEqual(
+      [...orderedText.map((text) => markup.indexOf(text))].sort((left, right) => left - right),
+    );
+    expect(markup).not.toContain("Offline limits");
+    expect(markup).not.toContain("Response completed");
+    expect(markup).not.toContain("secret output");
+    expect(markup).not.toContain("print(&#x27;secret&#x27;)");
   });
 });

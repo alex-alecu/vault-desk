@@ -15,7 +15,7 @@ The M3 macOS implementation is complete and passes physical Apple-silicon accept
 
 ## Implemented Mac Product
 
-- The Tauri and React desktop provides native folder and file selection, granted-folder opening, global and folder sessions, newest-five pagination, Show more, drafts, attachments, conversation restoration, safe CommonMark assistant responses, activity details, generated artifacts, cancellation, keyboard focus, reduced motion, and responsive scaling.
+- The Tauri and React desktop provides native folder and file selection, granted-folder opening, global and folder sessions, newest-five pagination, Show more, drafts, attachments, conversation restoration, safe CommonMark assistant responses, concise inline task activity and generated files, a Technical details drawer for code, logs, limits, termination evidence, and file metadata, cancellation, keyboard focus, reduced motion, and responsive scaling.
 - Typed Tauri commands are the webview's only product bridge. The capability file grants `core:default` only; it grants no shell, process, filesystem, URL, or network plugin command.
 - Vault Core persists schema-versioned state with the Node 24 built-in `node:sqlite`, immutable content-addressed attachments and artifacts, atomic run transitions, durable events, cancellation, and interrupted-run recovery.
 - The bounded Core-owned agent loop mediates the real Gemma model, records code and concise observations without hidden reasoning, and executes only fixed Python or Node.js programs through typed worker requests.

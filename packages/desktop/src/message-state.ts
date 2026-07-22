@@ -5,6 +5,7 @@ export function appendMessage(state: DesktopState, message: ConversationMessage)
   const timeline = [
     ...state.timeline,
     {
+      createdAt: message.createdAt,
       id: message.id,
       kind: message.role,
       text: message.content,

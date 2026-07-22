@@ -1,5 +1,6 @@
 import type {
   AgentArtifactSummary,
+  AgentEventType,
   AgentRunSnapshot,
   AgentRunSummary,
   AttachmentSummary,
@@ -22,6 +23,8 @@ export interface FolderGroup extends FolderSummary {
 }
 
 export interface TimelineItem {
+  createdAt: string;
+  eventType?: AgentEventType;
   id: string;
   kind: "user" | "assistant" | "activity";
   text: string;
@@ -204,6 +207,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
       ...state,
       timeline: [
         ...action.messages.map((message) => ({
+          createdAt: message.createdAt,
           id: message.id,
           kind: message.role,
           text: message.content,

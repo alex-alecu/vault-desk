@@ -33,7 +33,7 @@ The compact resizable left sidebar has a Chats section whose first option is the
 
 A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
 
-The main pane is conversation-first. Its header shows the approved model name, on-device residency state, and an idle-only manual unload action. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
+The main pane is conversation-first. Its header shows the approved model name, on-device residency state, an idle-only manual unload action, and a Technical details control. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics in chronological order. Executed code, bounded logs, resource limits, termination evidence, and generated-file metadata remain available in the right-side Technical details drawer. The composer remains anchored at the bottom. Infrastructure vocabulary and arbitrary model/runtime configuration stay out of the ordinary interface.
 
 ## Agent Execution Contract
 
@@ -128,7 +128,7 @@ Gate:
 - VM configuration and runtime probes prove zero virtual network adapters and denial of DNS, IPv4, IPv6, LAN, multicast, host reachability, package installation, credentials, host paths, arbitrary host services, and generic model endpoints without command or destination matching.
 - Traversal, symlink/junction escape, time-of-check/time-of-use replacement, malformed IPC, oversized input/output, process storms, timeout, cancellation, guest crash, daemon crash, and low-disk cases are contained and produce typed durable outcomes.
 - The webview cannot invoke arbitrary shell commands, processes, paths, URLs, local endpoints, environments, model files, or filesystem operations.
-- The agent activity view exposes executed code, concise logs, generated artifacts, resource limits, and termination reason without persisting hidden reasoning.
+- The conversation exposes concise activity and generated artifacts, while the Technical details drawer exposes executed code, bounded logs, resource limits, generated-file metadata, and termination reason without persisting hidden reasoning.
 - The approved model remains loaded between successful turns, reports its state in the desktop header, and unloads only through the typed idle-only Core command or Core shutdown.
 - Supported Gemma thought segments stream through typed IPC into transient active-run state and are absent from persisted events, messages, audit, and terminal snapshots.
 - The newest assistant response shows measured generation speed, prompt-processing speed, and total run time.
@@ -195,3 +195,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-21 | Completed the M3 macOS implementation and physical acceptance while keeping the cross-platform launch gate open for Windows. |
 | 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
 | 2026-07-22 | Added hardware-derived macOS inference budgets, complete Windows GPU VRAM use, automatic context fitting up to 256K, and the unsupported 8 GB Mac behavior. |
+| 2026-07-22 | Restored concise task activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |

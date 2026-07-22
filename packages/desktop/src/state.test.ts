@@ -200,6 +200,9 @@ describe("agent activity presentation", () => {
     });
     const state = desktopReducer(selected, { type: "agent.snapshot", snapshot });
     expect(state.timeline[0]?.text).toBe("Python completed.");
+    expect(state.timeline[0]?.eventType).toBe("execution.completed");
+    expect(state.timeline[0]?.createdAt).toBe(timestamp);
+    expect(state.timeline[0]?.detail).not.toContain("Code:");
     expect(state.timeline[0]?.detail).toContain("… output truncated");
     expect(state.timeline[0]?.detail?.length).toBeLessThan(21_000);
   });

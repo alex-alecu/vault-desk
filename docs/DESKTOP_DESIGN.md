@@ -27,7 +27,7 @@ Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the str
 └──────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, on-device state, manual unload action, and activity control without displacing folder navigation.
+The two stable regions are a compact, horizontally resizable white sidebar and a white conversation workspace, separated with the shared low-contrast border color. On macOS the sidebar background extends beneath the native traffic-light controls, which use equal top and left insets and align vertically with the model title, and the native title text is hidden. The header remains draggable around its controls. The composer stays anchored to the bottom of the workspace. A lightweight conversation header shows the approved model name, on-device state, manual unload action, and Technical details control without displacing folder navigation.
 
 ## Sidebar
 
@@ -66,9 +66,9 @@ The conversation timeline supports:
 - User and assistant messages.
 - CommonMark rendering for assistant responses, while user messages remain literal text. Raw HTML and images are not rendered, and links remain non-navigating text.
 - Streaming assistant text.
-- A top-right activity control that opens scripts, commands, observations, resource limits, generated files, and other technical details in a right-side drawer rather than the main conversation.
-- Expandable Python or Node.js source and bounded stdout/stderr.
-- Generated scratch artifacts with type, size, and preview/download eligibility.
+- Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
+- Generated scratch artifacts inline with the surrounding task activity and response.
+- A top-right **Technical details** control that opens resource limits, executed Python or Node.js source, bounded stdout/stderr, termination evidence, and generated-file metadata in a right-side drawer.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
 - Security or unsupported-operation warnings.
 - A compact performance row beneath the newest assistant response with generation tokens per second, prompt-processing tokens per second, and total run time.
@@ -106,7 +106,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 ## Accessibility And Platform Behavior
 
 - Full keyboard navigation and visible focus.
-- Screen-reader labels for folders, sessions, status, attachments, activity, and composer actions.
+- Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions.
 - Focus restoration after dialogs, session switches, cancellation, and reconnect.
 - Reduced-motion support.
 - Usable at 200 percent scaling and narrow supported window widths.
@@ -122,3 +122,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-22 | Added resident-model controls, transient supported thinking, and response performance presentation. |
 | 2026-07-22 | Added hardware-derived inference budgets and the user-visible unsupported state for 8 GB Macs. |
 | 2026-07-22 | Added safe CommonMark presentation for assistant responses. |
+| 2026-07-22 | Restored concise activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |

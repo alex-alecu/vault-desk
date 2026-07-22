@@ -2,9 +2,9 @@ import type { ModelRuntimeStatus } from "@vault/shared";
 import { Icon } from "./icons.js";
 
 interface ChatHeaderProps {
-  activityOpen: boolean;
+  technicalDetailsOpen: boolean;
   model: ModelRuntimeStatus;
-  onActivityOpen(): void;
+  onTechnicalDetailsOpen(): void;
   onUnload(): void;
 }
 
@@ -16,7 +16,12 @@ const statusText: Record<ModelRuntimeStatus["state"], string> = {
   ready: "Loaded and ready",
 };
 
-export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: ChatHeaderProps) {
+export function ChatHeader({
+  technicalDetailsOpen,
+  model,
+  onTechnicalDetailsOpen,
+  onUnload,
+}: ChatHeaderProps) {
   const modelStatus = model.message ?? statusText[model.state];
   return (
     <header className="chat-header" data-tauri-drag-region="">
@@ -43,11 +48,11 @@ export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: Ch
           <span>Unload</span>
         </button>
         <button
-          aria-label="Open activity and technical details"
-          className="header-action activity-action"
-          disabled={activityOpen}
-          onClick={onActivityOpen}
-          title="Activity and technical details"
+          aria-label="Open technical details"
+          className="header-action technical-details-action"
+          disabled={technicalDetailsOpen}
+          onClick={onTechnicalDetailsOpen}
+          title="Technical details"
           type="button"
         >
           <Icon name="activity" />

@@ -1,12 +1,12 @@
 import type { ModelRuntimeStatus } from "@vault/shared";
 import { useEffect, useReducer, useState } from "react";
 import { bootstrapDesktop, cancelAgent, getModelStatus, revokeFolder, unloadModel } from "./api.js";
-import { Activity } from "./components/activity.js";
 import { ChatHeader } from "./components/chat-header.js";
 import { Composer } from "./components/composer.js";
 import { Confirmation } from "./components/confirmation.js";
 import { Conversation } from "./components/conversation.js";
 import { Sidebar } from "./components/sidebar.js";
+import { TechnicalDetails } from "./components/technical-details.js";
 import {
   addFolder,
   attach,
@@ -32,7 +32,7 @@ export function App() {
   const [state, dispatch] = useReducer(desktopReducer, initialDesktopState);
   const [desktopError, setDesktopError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
-  const [activityOpen, setActivityOpen] = useState(false);
+  const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest>();
   const [model, setModel] = useState<ModelRuntimeStatus>({
     modelId: "gemma-4-12b-it-qat-q4_0",
@@ -117,9 +117,9 @@ export function App() {
       <main aria-busy={!state.loaded} className="workspace">
         <div aria-hidden="true" className="window-drag-region" data-tauri-drag-region="" />
         <ChatHeader
-          activityOpen={activityOpen}
+          technicalDetailsOpen={technicalDetailsOpen}
           model={model}
-          onActivityOpen={() => setActivityOpen(true)}
+          onTechnicalDetailsOpen={() => setTechnicalDetailsOpen(true)}
           onUnload={() => {
             void unloadModel()
               .then(async (unloaded) => {
@@ -130,10 +130,10 @@ export function App() {
               .catch(() => setDesktopError("The model could not be unloaded."));
           }}
         />
-        <Activity
+        <TechnicalDetails
           artifacts={state.artifacts}
-          onClose={() => setActivityOpen(false)}
-          open={activityOpen}
+          onClose={() => setTechnicalDetailsOpen(false)}
+          open={technicalDetailsOpen}
           timeline={state.timeline}
         />
         {desktopError === undefined ? null : (
