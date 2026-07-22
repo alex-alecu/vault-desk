@@ -297,6 +297,7 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border-color);
   background: rgb(255 255 255 / 88%);
   backdrop-filter: blur(18px) saturate(1.15);
+  user-select: none;
 }
 
 .model-identity,
@@ -311,6 +312,7 @@ textarea:focus-visible {
 .model-identity {
   min-width: 0;
   gap: 11px;
+  pointer-events: none;
 }
 
 .model-monogram {

@@ -17,7 +17,7 @@ const statusText: Record<ModelRuntimeStatus["state"], string> = {
 
 export function ChatHeader({ activityOpen, model, onActivityOpen, onUnload }: ChatHeaderProps) {
   return (
-    <header className="chat-header">
+    <header className="chat-header" data-tauri-drag-region="">
       <div className="model-identity">
         <div aria-hidden="true" className="model-monogram">
           G4

@@ -4,11 +4,12 @@ import { describe, expect, it } from "vitest";
 import { App } from "./app.js";
 
 describe("desktop window layout", () => {
-  it("keeps both header spans draggable", () => {
+  it("keeps the title-bar spans and visible chat header draggable", () => {
     const markup = renderToStaticMarkup(createElement(App));
 
     expect(markup).toMatch(/<aside[^>]*class="sidebar"[^>]*>\s*<div[^>]*data-tauri-drag-region/);
     expect(markup).toMatch(/<main[^>]*class="workspace"[^>]*>\s*<div[^>]*data-tauri-drag-region/);
+    expect(markup).toMatch(/<header[^>]*class="chat-header"[^>]*data-tauri-drag-region/);
   });
 
   it("places creation actions first in their sidebar sections", () => {
