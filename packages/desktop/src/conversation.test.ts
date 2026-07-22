@@ -2,7 +2,7 @@ import { AgentArtifactSummarySchema } from "@vault/shared";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Conversation } from "./components/conversation.js";
+import { Conversation, isNearConversationBottom } from "./components/conversation.js";
 import type { TimelineItem } from "./state.js";
 
 const timestamp = "2026-07-20T12:00:00.000Z";
@@ -97,6 +97,21 @@ describe("empty conversation presentation", () => {
     expect(markup).not.toContain("welcome-context");
     expect(markup).toContain("Review and suggest improvements");
     expect(markup).not.toContain("Build a small artifact");
+  });
+});
+
+describe("conversation scrolling", () => {
+  it("follows updates only while the reader remains near the latest message", () => {
+    expect(isNearConversationBottom(952, 1_000, 2_000)).toBe(true);
+    expect(isNearConversationBottom(400, 1_000, 2_000)).toBe(false);
+  });
+
+  it("makes the full conversation pane the scroll container", () => {
+    const markup = renderRestoredActivity();
+
+    expect(markup).toMatch(
+      /<section[^>]*class="conversation-scroll"[^>]*>\s*<div class="timeline">/,
+    );
   });
 });
 

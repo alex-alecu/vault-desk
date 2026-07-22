@@ -422,13 +422,17 @@ textarea:focus-visible {
   background: #fdfcfc;
 }
 
-.timeline {
+.conversation-scroll {
   height: 100%;
+  min-width: 0;
   min-height: 0;
+  overflow-y: auto;
+}
+
+.timeline {
   width: min(820px, calc(100% - 72px));
   margin: 0 auto;
   padding: 30px 0 36px;
-  overflow-y: auto;
 }
 
 .timeline-item {

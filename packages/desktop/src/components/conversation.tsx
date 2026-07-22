@@ -1,4 +1,5 @@
 import type { AgentArtifactSummary, AgentRunPerformance } from "@vault/shared";
+import { useLayoutEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import type { TimelineItem } from "../state.js";
 
@@ -42,6 +43,14 @@ function conversationEntries(
   return entries.sort(
     (left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order,
   );
+}
+
+export function isNearConversationBottom(
+  scrollTop: number,
+  clientHeight: number,
+  scrollHeight: number,
+): boolean {
+  return scrollHeight - scrollTop - clientHeight <= 48;
 }
 
 function EmptyConversation({
@@ -135,49 +144,65 @@ export function Conversation({
   thinking,
 }: ConversationProps) {
   const entries = conversationEntries(timeline, artifacts);
+  const scrollContainer = useRef<HTMLElement>(null);
+  const followsLatest = useRef(true);
+  useLayoutEffect(() => {
+    const container = scrollContainer.current;
+    if (container !== null && followsLatest.current) container.scrollTop = container.scrollHeight;
+  });
   if (entries.length === 0) {
     return <EmptyConversation folderName={folderName} onSuggestion={onSuggestion} ready={ready} />;
   }
   const lastAssistantId = timeline.findLast((item) => item.kind === "assistant")?.id;
   return (
-    <section aria-label="Conversation" aria-live="polite" className="timeline">
-      {entries.map((entry) => {
-        if (entry.kind === "artifact") {
+    <section
+      aria-label="Conversation"
+      aria-live="polite"
+      className="conversation-scroll"
+      onScroll={(event) => {
+        const container = event.currentTarget;
+        followsLatest.current = isNearConversationBottom(
+          container.scrollTop,
+          container.clientHeight,
+          container.scrollHeight,
+        );
+      }}
+      ref={scrollContainer}
+    >
+      <div className="timeline">
+        {entries.map((entry) => {
+          if (entry.kind === "artifact") {
+            return (
+              <article className="timeline-item timeline-artifact" key={entry.item.id}>
+                <span className="activity-label">Generated file</span>
+                <p>{entry.item.name}</p>
+              </article>
+            );
+          }
+          const item = entry.item;
+          const showMetrics =
+            item.id === lastAssistantId && item.runId === runId && performance !== null;
           return (
-            <article className="timeline-item timeline-artifact" key={entry.item.id}>
-              <span className="activity-label">Generated file</span>
-              <p>{entry.item.name}</p>
+            <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
+              {item.kind === "assistant" ? (
+                <AssistantResponse>{item.text}</AssistantResponse>
+              ) : (
+                <p>{item.text}</p>
+              )}
+              {showMetrics ? <ResponseMetrics performance={performance} /> : null}
             </article>
           );
-        }
-        const item = entry.item;
-        const showMetrics =
-          item.id === lastAssistantId && item.runId === runId && performance !== null;
-        return (
-          <article className={`timeline-item timeline-${item.kind}`} key={item.id}>
-            {item.kind === "assistant" ? (
-              <AssistantResponse>{item.text}</AssistantResponse>
-            ) : (
-              <p>{item.text}</p>
-            )}
-            {showMetrics ? <ResponseMetrics performance={performance} /> : null}
+        })}
+        {thinking === null || thinking.length === 0 ? null : (
+          <article className="thinking-stream">
+            <header>
+              <span aria-hidden="true" className="thinking-pulse" />
+              Thinking locally
+            </header>
+            <p>{thinking}</p>
           </article>
-        );
-      })}
-      {thinking === null || thinking.length === 0 ? null : (
-        <article className="thinking-stream">
-          <header>
-            <span aria-hidden="true" className="thinking-pulse" />
-            Thinking locally
-          </header>
-          <p>{thinking}</p>
-        </article>
-      )}
-      <div
-        aria-hidden="true"
-        key={entries.length}
-        ref={(node) => node?.scrollIntoView({ block: "end" })}
-      />
+        )}
+      </div>
     </section>
   );
 }

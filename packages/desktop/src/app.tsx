@@ -151,6 +151,7 @@ export function App() {
         <Conversation
           artifacts={state.artifacts}
           folderName={folderName}
+          key={state.activeSessionId ?? `new:${state.newSessionFolderId ?? "global"}`}
           ready={state.loaded}
           onSuggestion={(draft) =>
             changeDraft(draft, state.activeSessionId, dispatch, setDesktopError)
