@@ -19,14 +19,14 @@ describe("empty conversation context", () => {
       createElement(Conversation, { ...emptyConversation, folderName: "Project files" }),
     );
 
-    expect(markup).toContain('<div class="welcome-context">Project files</div>');
-    expect(markup).not.toContain("welcome-mark");
+    expect(markup).toContain("What should we work on in Project files?");
+    expect(markup).not.toContain("welcome-context");
   });
 
   it("shows no context label for a global chat", () => {
     const markup = renderToStaticMarkup(createElement(Conversation, emptyConversation));
 
-    expect(markup).not.toContain("welcome-context");
-    expect(markup).not.toContain(">V<");
+    expect(markup).toContain("What should we work on?");
+    expect(markup).not.toContain("What should we work on in");
   });
 });
