@@ -152,19 +152,18 @@ export class AgentLoop {
       const decision = await this.decide(input, progress);
       if (decision.action === "respond") return this.finish(input, progress, decision.response);
       if (
-        progress.executions.some(
-          (execution) =>
-            execution.exitCode === 0 &&
-            execution.termination === "completed" &&
-            (decision.language === "shell"
-              ? execution.command === decision.command
-              : execution.source === decision.source),
+        progress.executions.some((execution) =>
+          decision.language === "shell"
+            ? execution.command === decision.command
+            : execution.source === decision.source,
         )
       ) {
         progress.rejectedDuplicates += 1;
         continue;
       }
       await this.execute(input, decision, progress);
+      const verifiedResponse = executionBackedResponse(input, progress, "");
+      if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
     }
     input.signal?.throwIfAborted();
     const decision = await this.decide(input, progress, true);

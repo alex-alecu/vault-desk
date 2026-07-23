@@ -4,6 +4,7 @@ import type {
   Llama,
   LlamaChatResponseChunk,
   LlamaChatSession,
+  Token,
 } from "node-llama-cpp";
 
 class StructuredResult extends Error {
@@ -69,7 +70,7 @@ function structuredFunctions(schema: Record<string, unknown>): ChatSessionModelF
 async function gemmaStructuredValue(
   request: StructuredGenerationRequest,
   session: LlamaChatSession,
-  onResponseChunk: (chunk: LlamaChatResponseChunk) => void,
+  callbacks: StructuredCallbacks,
 ): Promise<unknown> {
   try {
     await session.prompt(
@@ -79,7 +80,8 @@ async function gemmaStructuredValue(
         maxTokens: request.maxTokens,
         budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },
         temperature: 0,
-        onResponseChunk,
+        onResponseChunk: callbacks.onResponseChunk,
+        onToken: callbacks.onToken,
       },
     );
     throw new Error("structured_tool_call_required");
@@ -89,21 +91,27 @@ async function gemmaStructuredValue(
   }
 }
 
+interface StructuredCallbacks {
+  onResponseChunk: (chunk: LlamaChatResponseChunk) => void;
+  onToken: (tokens: Token[]) => void;
+}
+
 export async function structuredValue(
   request: StructuredGenerationRequest,
   llama: Pick<Llama, "createGrammarForJsonSchema">,
   session: LlamaChatSession,
-  onResponseChunk: (chunk: LlamaChatResponseChunk) => void,
+  callbacks: StructuredCallbacks,
 ): Promise<unknown> {
   if (request.modelId.startsWith("gemma-4")) {
-    return await gemmaStructuredValue(request, session, onResponseChunk);
+    return await gemmaStructuredValue(request, session, callbacks);
   }
   const grammar = await llama.createGrammarForJsonSchema(request.jsonSchema as never);
   const output = await session.prompt(request.prompt, {
     grammar,
     maxTokens: request.maxTokens,
     temperature: 0,
-    onResponseChunk,
+    onResponseChunk: callbacks.onResponseChunk,
+    onToken: callbacks.onToken,
   });
   return grammar.parse(output);
 }

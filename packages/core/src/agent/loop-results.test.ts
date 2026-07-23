@@ -115,7 +115,6 @@ describe("AgentLoop execution-backed results", () => {
             source: resultEvidence.source,
             summary: "Calculate",
           },
-          { action: "respond", response: "Hallucinated total: 5" },
         ],
         [],
         schemas,
@@ -132,7 +131,47 @@ describe("AgentLoop execution-backed results", () => {
     expect(result.response).toBe(resultEvidence.stdout.trim());
     expect(schemas[0]).not.toHaveProperty("oneOf");
     expect(schemas[1]).not.toHaveProperty("oneOf");
-    expect(schemas[2]).toHaveProperty("oneOf");
+    expect(schemas).toHaveLength(2);
+  });
+});
+
+describe("AgentLoop selected-folder XLSX", () => {
+  it("uses the XLSX workflow for a selected-folder task that names Excel", async () => {
+    const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
+    const resultEvidence = {
+      ...completed,
+      source: "print('Match count:', 1)",
+      stdout: "Match count: 1\n",
+    };
+    const prompts: string[] = [];
+    const schemas: Array<Record<string, unknown>> = [];
+    const loop = new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "python", source: inspection.source, summary: "Inspect" },
+          {
+            action: "execute",
+            language: "python",
+            source: resultEvidence.source,
+            summary: "Calculate",
+          },
+        ],
+        prompts,
+        schemas,
+      ),
+      executor([inspection, resultEvidence], []),
+    );
+
+    const result = await loop.run({
+      task: "Check all Excel files deep in this folder",
+      modelId: "test-model",
+    });
+
+    expect(result.response).toBe("Match count: 1");
+    expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
+    expect(prompts[1]).toContain("Current required phase: calculate and verify");
+    expect(schemas[0]).not.toHaveProperty("oneOf");
+    expect(schemas[1]).not.toHaveProperty("oneOf");
   });
 });
 
@@ -199,6 +238,48 @@ describe("AgentLoop duplicate decisions", () => {
 
     expect(calls).toEqual([completed.source ?? "", nextCode]);
     expect(result.executions).toEqual([completed, second]);
-    expect(prompts[2]).toContain("Rejected duplicate successful programs: 1.");
+    expect(prompts[2]).toContain("Rejected exact duplicate programs: 1.");
+  });
+});
+
+describe("AgentLoop failed duplicate decisions", () => {
+  it("does not spend another execution on an unchanged failed program", async () => {
+    const calls: string[] = [];
+    const prompts: string[] = [];
+    const failed = {
+      ...completed,
+      exitCode: 1,
+      stderr: "SyntaxError",
+      termination: "crash" as const,
+    };
+    const repaired = { ...completed, source: "print('repaired')" };
+    const loop = new AgentLoop(
+      capturingInference(
+        [
+          { action: "execute", language: "python", source: failed.source ?? "", summary: "Try" },
+          {
+            action: "execute",
+            language: "python",
+            source: failed.source ?? "",
+            summary: "Repeat",
+          },
+          {
+            action: "execute",
+            language: "python",
+            source: repaired.source ?? "",
+            summary: "Repair",
+          },
+          { action: "respond", response: "Done." },
+        ],
+        prompts,
+      ),
+      executor([failed, repaired], calls),
+    );
+
+    const result = await loop.run({ task: "Inspect input", modelId: "test-model" });
+
+    expect(calls).toEqual([failed.source, repaired.source]);
+    expect(result.executions).toEqual([failed, repaired]);
+    expect(prompts[2]).toContain("Rejected exact duplicate programs: 1.");
   });
 });

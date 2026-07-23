@@ -95,6 +95,13 @@ export interface AgentProgress {
   rejectedDuplicates: number;
 }
 
+function requiresXlsxWorkflow(input: AgentPromptInput): boolean {
+  return (
+    (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) ||
+    /\bexcel\b|\.xlsx?\b/iu.test(input.task)
+  );
+}
+
 interface PromptBounds {
   contextTokens: number;
   requestOverheadTokens: number;
@@ -150,7 +157,7 @@ function prompt(
   const artifacts = executions.flatMap((result) =>
     result.artifacts.map((artifact) => artifact.name),
   );
-  const hasXlsxInput = inputNames.some((name) => name.toLowerCase().endsWith(".xlsx"));
+  const hasXlsxInput = requiresXlsxWorkflow(input);
   const usefulExecutionCount = executions.filter(hasUsefulResult).length;
   const current = [
     ...EXECUTION_INSTRUCTIONS,
@@ -160,7 +167,7 @@ function prompt(
     `Completed execution observations: ${JSON.stringify(observations(executions))}`,
     `Successful execution count: ${executions.filter((item) => item.exitCode === 0 && item.termination === "completed").length}.`,
     `Remaining execution capacity: ${Math.max(0, MAX_EXECUTIONS - executions.length)}.`,
-    `Rejected duplicate successful programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, implement the next missing task step with different code.`,
+    `Rejected exact duplicate programs: ${rejectedDuplicates}. A rejected program was not executed and does not advance the task. After a rejection, repair the failed step or implement the next missing task step with different code.`,
     `Produced artifact names: ${JSON.stringify(artifacts)}.`,
     "These observations are authoritative. Never repeat completed code or a completed task step.",
     "When an execution failed or produced no useful output, repair its recorded source or command at the same path instead of starting over.",
@@ -186,7 +193,7 @@ export function generationInput(
 ): GenerationInput {
   const requiresXlsxExecution =
     !finalResponse &&
-    (input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx")) &&
+    requiresXlsxWorkflow(input) &&
     progress.executions.filter(hasUsefulResult).length < 2;
   const jsonSchema = agentDecisionJsonSchema(input.task, finalResponse, requiresXlsxExecution);
   let requestOverheadTokens = Math.ceil(
@@ -235,7 +242,7 @@ export function executionBackedResponse(
   progress: AgentProgress,
   fallback: string,
 ): string {
-  if (!(input.inputNames ?? []).some((name) => name.toLowerCase().endsWith(".xlsx"))) {
+  if (!requiresXlsxWorkflow(input)) {
     return fallback;
   }
   const usefulExecutions = progress.executions.filter(hasUsefulResult);

@@ -12,6 +12,7 @@ import type {
   LlamaChatSession,
   LlamaEmbeddingContext,
   LlamaModel,
+  Token,
 } from "node-llama-cpp";
 import {
   encodeInferenceMessage,
@@ -214,7 +215,6 @@ async function generate(
   const startedAt = performance.now();
   let firstTokenAt: number | undefined;
   const onResponseChunk = (chunk: LlamaChatResponseChunk) => {
-    if (chunk.tokens.length > 0) firstTokenAt ??= performance.now();
     if (chunk.type === "segment" && chunk.segmentType === "thought" && chunk.text.length > 0) {
       emit({
         protocolVersion: 1,
@@ -225,7 +225,13 @@ async function generate(
       });
     }
   };
-  const value = await structuredValue(request, runtime.llama, session, onResponseChunk);
+  const onToken = (_tokens: Token[]) => {
+    firstTokenAt ??= performance.now();
+  };
+  const value = await structuredValue(request, runtime.llama, session, {
+    onResponseChunk,
+    onToken,
+  });
   const completedAt = performance.now();
   const finalMeter = session.sequence.tokenMeter.getState();
   return {
