@@ -1,12 +1,10 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, open, readFile, rm, stat, truncate, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, truncate } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import {
-  AgentGuestRequestSchema,
   JobIdSchema,
-  MicroVmAgentReportSchema,
   MicroVmProbeReportSchema,
   type WorkerLimits,
   WorkerLimitsSchema,
@@ -14,12 +12,19 @@ import {
 import { stagePackedAgentInputs } from "./agent-staging.js";
 import type {
   CodeAgentLauncher,
+  CodeAgentSession,
   MicroVmAgentRequest,
   MicroVmLauncher,
   MicroVmLaunchRequest,
   MicroVmLaunchResult,
 } from "./launcher.js";
+import {
+  AgentHelperTransport,
+  initializeAgentGuest,
+  MacOsAgentSession,
+} from "./macos-agent-session.js";
 import { copyBoundedInput, launchSignal } from "./staging.js";
+import { AgentWorkspaceStore } from "./workspace-store.js";
 
 interface ImageManifest {
   outputs: {
@@ -35,6 +40,11 @@ interface ImageManifest {
 interface LaunchBounds {
   limits: WorkerLimits;
 }
+
+type AgentLimits = Pick<
+  WorkerLimits,
+  "wallTimeMs" | "memoryBytes" | "scratchBytes" | "outputBytes"
+>;
 
 const VM_BOOT_GRACE_MS = 15_000;
 const MAX_HELPER_OUTPUT_BYTES = 64 * 1024 * 1024;
@@ -104,7 +114,7 @@ function helperArguments(input: {
   inputs: string[];
   request: LaunchBounds;
   scratch?: string;
-  requestPath?: string;
+  source?: string;
 }): string[] {
   const args = [
     "--kernel",
@@ -118,7 +128,7 @@ function helperArguments(input: {
   ];
   if (input.scratch !== undefined) args.push("--scratch", input.scratch);
   for (const path of input.inputs) args.push("--input", path);
-  if (input.requestPath !== undefined) args.push("--request", input.requestPath);
+  if (input.source !== undefined) args.push("--source", input.source);
   return args;
 }
 
@@ -146,11 +156,28 @@ function runHelper(helper: string, args: string[], signal: AbortSignal): Promise
   });
 }
 
+function agentLimits(limits: WorkerLimits): AgentLimits {
+  return {
+    wallTimeMs: limits.wallTimeMs,
+    memoryBytes: limits.memoryBytes,
+    scratchBytes: limits.scratchBytes,
+    outputBytes: limits.outputBytes,
+  };
+}
+
 export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher {
+  private workspaceStore?: Promise<AgentWorkspaceStore>;
+
   constructor(
     private readonly helperPath: string,
     private readonly imageRoot: string = join(process.cwd(), "packages/workers/images"),
+    private readonly workspaceRoot: string = join(process.cwd(), ".vault/agent-workspaces"),
   ) {}
+
+  private store(): Promise<AgentWorkspaceStore> {
+    this.workspaceStore ??= AgentWorkspaceStore.create(this.workspaceRoot);
+    return this.workspaceStore;
+  }
 
   async launchProbe(request: MicroVmLaunchRequest): Promise<MicroVmLaunchResult> {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
@@ -194,63 +221,70 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
     }
   }
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: launch staging and teardown remain visibly paired in one capability boundary.
-  async executeAgent(request: MicroVmAgentRequest) {
+  async openAgentSession(request: MicroVmAgentRequest): Promise<CodeAgentSession> {
     if (process.platform !== "darwin" || process.arch !== "arm64") {
       throw new Error("The certified macOS backend requires Apple silicon.");
     }
-    JobIdSchema.parse(request.jobId);
+    JobIdSchema.parse(request.sessionId);
     WorkerLimitsSchema.parse(request.limits);
-    const signal = launchSignal(request.signal, request.limits.wallTimeMs + VM_BOOT_GRACE_MS);
+    const signal = launchSignal(request.signal, VM_BOOT_GRACE_MS + request.limits.wallTimeMs);
     signal.throwIfAborted();
-    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.jobId}-`));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), `vault-agent-${request.sessionId}-`));
     try {
-      const inputs = await stagePackedAgentInputs(
-        request.readonlyInputs,
-        temporaryRoot,
-        request.limits,
-        signal,
-      );
-      const frame = AgentGuestRequestSchema.parse({
-        protocolVersion: 1,
-        requestId: request.jobId,
-        jobId: request.jobId,
-        operation: "execute",
-        language: request.language,
-        code: request.code,
-        inputs: inputs.entries,
-        limits: {
-          wallTimeMs: request.limits.wallTimeMs,
-          memoryBytes: request.limits.memoryBytes,
-          scratchBytes: request.limits.scratchBytes,
-          outputBytes: request.limits.outputBytes,
-        },
-      });
-      const requestPath = join(temporaryRoot, "request.json");
-      await writeFile(requestPath, JSON.stringify(frame), { encoding: "utf8", mode: 0o600 });
-      const artifacts = await verifiedAgentArtifacts(this.imageRoot);
-      const args = helperArguments({
-        artifacts,
-        inputs: inputs.devices,
-        request,
-        requestPath,
-      });
-      const report = MicroVmAgentReportSchema.parse(
-        JSON.parse(await runHelper(this.helperPath, args, signal)),
-      );
-      const certified =
-        report.networkDeviceCount === 0 &&
-        report.socketDeviceCount === 1 &&
-        report.readOnlyInputCount === inputs.devices.length &&
-        report.scratchBytes === 0 &&
-        report.guest.scratchBytes === request.limits.scratchBytes &&
-        report.guest.nonLoopbackNetworkDeviceCount === 0;
-      if (!certified || report.classification !== "certified") {
-        throw new Error("agent_guest_not_certified");
-      }
-      return report.guest.execution;
-    } finally {
+      return await this.startAgentSession(request, temporaryRoot, signal);
+    } catch (error) {
       await rm(temporaryRoot, { recursive: true, force: true });
+      throw error;
     }
+  }
+
+  private async startAgentSession(
+    request: MicroVmAgentRequest,
+    temporaryRoot: string,
+    signal: AbortSignal,
+  ): Promise<CodeAgentSession> {
+    const inputs = await stagePackedAgentInputs(
+      request.readonlyInputs,
+      temporaryRoot,
+      request.limits,
+      signal,
+    );
+    const artifacts = await verifiedAgentArtifacts(this.imageRoot);
+    const args = helperArguments({
+      artifacts,
+      inputs: inputs.devices,
+      request,
+      source: request.sourceFolder,
+    });
+    const transport = new AgentHelperTransport(
+      spawn(this.helperPath, args, { stdio: ["pipe", "pipe", "pipe"] }),
+    );
+    try {
+      await transport.ready(signal);
+      const limits = agentLimits(request.limits);
+      const store = await this.store();
+      await initializeAgentGuest({
+        sessionId: request.sessionId,
+        inputs: inputs.entries,
+        limits,
+        transport,
+        store,
+        signal,
+      });
+      return new MacOsAgentSession({
+        sessionId: request.sessionId,
+        limits,
+        transport,
+        store,
+        temporaryRoot,
+      });
+    } catch (error) {
+      await transport.close().catch(() => undefined);
+      throw error;
+    }
+  }
+
+  async deleteWorkspace(sessionId: string): Promise<void> {
+    await (await this.store()).delete(sessionId);
   }
 }

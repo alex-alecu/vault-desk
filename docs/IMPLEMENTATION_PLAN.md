@@ -4,16 +4,16 @@ Updated: 2026-07-22
 
 This is the authoritative implementation sequence for the first Vault Desk release. M0, cross-platform M1, and cross-platform M2 are complete. The repository owner activated M3 on 2026-07-20 as the first full product milestone. The macOS M3 stage is implemented and physically certified; Windows product integration and physical certification remain required before M3 or Community Desktop V1 can close.
 
-The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python and Node.js programs inside a disposable no-NIC microVM. It receives only user-selected read-only inputs and bounded ephemeral scratch. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
+The shortest path to V1 is a generic offline desktop agent, not a format-specific document pipeline. The agent may write and run Python or Node.js programs and installed guest commands inside a session-scoped no-NIC microVM. It sees the selected folder live and read-only at `/source` and works in a persistent bounded `/workspace`. It cannot write to the selected host folder, install packages, reach a network, inherit credentials, or call an unrestricted host service.
 
 ## Change Brief
 
 - Goal: ship a functional macOS and Windows desktop application with a generic local coding agent inspired by the interaction model of OpenCode and the desktop structure of the Codex app.
 - Active milestone: M3 — Offline Dev-Agent Desktop V1.
-- Allowed scope: Tauri/React desktop, native folder and file selection, grouped persistent sessions, local daemon APIs, host-native model mediation, a disposable code-agent microVM, fixed offline Python/Node libraries, typed execution results, audit, cancellation, packaging, and platform evidence.
-- Product boundaries: the webview has no direct filesystem, process, shell, environment, or network authority. Vault Core owns grants, sessions, policy, audit, inference mediation, worker limits, and lifecycle. The guest owns only code execution over staged read-only inputs and scratch.
+- Allowed scope: Tauri/React desktop, native folder and file selection, grouped persistent sessions, local daemon APIs, host-native model mediation, a session-scoped code-agent microVM, fixed offline runtimes and tools, typed execution results, audit, cancellation, packaging, and platform evidence.
+- Product boundaries: the webview has no direct filesystem, process, shell, environment, or network authority. Vault Core owns grants, sessions, policy, audit, inference mediation, workspace manifests, worker limits, and lifecycle. The guest receives only the live read-only folder, immutable attachments, and its bounded writable workspace.
 - Risks: guest-image size and reproducibility, Windows/macOS packaging differences, multi-step agent-loop correctness, local-model latency, recovery, and accidental host authority.
-- Acceptance evidence: a packaged app on physical macOS and Windows; folder and attachment flows; grouped session restoration; real multi-step Python and Node tasks; structural network denial; host-write and package-install denial; cancellation/restart recovery; and signed sidecar and guest-image verification.
+- Acceptance evidence: a packaged app on physical macOS and Windows; folder and attachment flows; grouped session and workspace restoration; real multi-step Python, Node.js, and shell tasks; structural network denial; host-write and package-install denial; cancellation/restart recovery; and signed sidecar and guest-image verification.
 - Dependencies affected: reviewed and pinned React/Tauri frontend packages plus a reviewed guest-library manifest. OpenCode is a design reference, not a required dependency.
 - Explicitly not doing before V1: canonical document ingestion, OCR/layout routing, hybrid retrieval, citation verification, domain workflows, Knowledge Bundle import, external integrations, or model downloads.
 
@@ -23,7 +23,7 @@ Three layers remain mandatory:
 
 1. **Tauri desktop** — React and TypeScript in the operating-system webview plus the minimum Rust needed for window lifecycle, native dialogs, exact Vault Core sidecar supervision, and connection bootstrap.
 2. **Vault Core** — the separate Node.js/TypeScript authority for folder and attachment grants, sessions, jobs, policy, audit, model scheduling, inference mediation, worker supervision, and typed daemon methods.
-3. **Workers** — a narrowly sandboxed host-native inference process and a disposable no-NIC microVM for agent-authored code.
+3. **Workers** — a narrowly sandboxed host-native inference process and a reusable session-scoped no-NIC microVM for agent-authored code and installed guest commands.
 
 The desktop communicates only through narrow typed Tauri commands and the current-user-only local daemon protocol. TCP is not enabled. Every M3 backend capability is exercised through both the programmatic facade and daemon protocol before the desktop consumes it.
 
@@ -31,7 +31,7 @@ The desktop communicates only through narrow typed Tauri commands and the curren
 
 The compact resizable left sidebar has a Chats section whose first option is the global **New chat** action, followed by recent global chats. Its Folders section begins with **Add folder**, followed by folder groups. Each folder group shows its five most recent sessions and a **Show more** control when older sessions exist. Session rows expose deletion on hover or keyboard focus. All conversation, folder-grant, and attachment removals require explicit confirmation.
 
-A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Users may attach explicit files, which are copied into a session-owned read-only input set before agent execution. A folder conversation follows the same lazy-creation rule and grants read-only access to the selected folder snapshot for that job. Switching sessions restores the conversation, selected context, tool activity, and draft text.
+A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Explicit files remain immutable session-owned attachments. A folder conversation grants a live read-only mount of the selected folder without enumerating or copying it. Switching sessions restores the conversation, selected context, tool activity, draft text, and durable guest workspace; selecting the session begins VM boot and hydration in the background.
 
 The main pane is conversation-first. Its header shows the approved model name, subtle live VRAM with context beneath it when available, on-device residency state, an idle-only manual unload action, and a Technical details control. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics in chronological order. Executed code, bounded logs, resource limits, termination evidence, and generated-file metadata remain available in the right-side Technical details drawer. The composer remains anchored at the bottom. Arbitrary model/runtime configuration stays out of the ordinary interface.
 
@@ -39,18 +39,19 @@ The main pane is conversation-first. Its header shows the approved model name, s
 
 Vault Core owns the agent loop. The model may propose a script or request the next bounded observation, but it never receives execution authority.
 
-Each agent turn:
+Each agent session:
 
-1. Resolves the session and its authorized folder snapshot or explicit attachments.
-2. Starts a fresh verified microVM image with zero virtual NICs.
-3. Attaches authorized inputs read-only and configures bounded tmpfs scratch within the guest's fixed memory allocation.
-4. Sends a typed task request over the fixed host/guest socket.
-5. Mediates bounded model completions through typed IPC to the host-native inference worker.
-6. Runs only the fixed Python or Node executables and libraries already present in the immutable guest image.
-7. Returns bounded stdout, stderr, a structured result, generated scratch artifacts, code, resource use, and termination reason.
-8. Validates and records the result, then destroys the microVM.
+1. Validates and canonicalizes the native-picker folder grant in Core; the webview retains only opaque identifiers.
+2. Starts or reuses the session VM with zero virtual NICs and mounts the exact folder read-only at `/source` through macOS VirtioFS or certified Windows HCS Plan9.
+3. Rehydrates the last atomic content-addressed `/workspace` manifest into a 128 MiB tmpfs.
+4. Exchanges protocol-v2 hello/capabilities, hydration, repeated execution, cancellation, workspace delta, result, and shutdown frames over the fixed socket.
+5. Atomically writes complete Python or Node source to a safe workspace-relative path, or runs a command through `/bin/sh` from `/workspace`.
+6. Separately mediates bounded model completions between Core and the host-native inference worker; the guest has no inference channel.
+7. Returns and durably records the proposal, path, source or command, stdout, stderr, result, summary, artifacts, limits, and termination reason.
+8. Atomically commits regular workspace files and directories after each responsive execution. Escaping links, devices, sockets, and traversing paths are rejected.
+9. Keeps the VM as the only warm idle VM until another session, deletion, revocation, shutdown, helper failure, or memory pressure requires eviction.
 
-The guest has no package manager authority, credentials, user home, host shell, general Vault Core endpoint, generic model server, approval authority, export authority, or network broker. Host source folders are never writable. Generated artifacts remain session-owned proposals; an explicit future export capability must be separately authorized.
+The guest has no package manager authority, credentials, user home, host shell, general Vault Core endpoint, generic model server, approval authority, export authority, or network broker. Its `/bin/sh` is inside the no-NIC guest and has no host authority. Host source folders are never writable. Generated artifacts remain session-owned proposals; an explicit future export capability must be separately authorized.
 
 ## Guest Image
 
@@ -60,12 +61,13 @@ The V1 image contains only a reviewed, pinned offline toolset:
 - Python standard-library support for text, JSON, CSV, SQLite, archives, and subprocess-free data work.
 - A minimal reviewed set for PDF, DOCX, XLSX, and image inspection.
 - A tiny guest agent entrypoint and typed IPC codec.
+- BusyBox and every executable named in `packages/workers/images/agent/capabilities.json`; Git, ripgrep, compilers, pip, npm, package managers, and downloadable libraries remain absent.
 
 The exact library names, versions, licenses, notices, hashes, and purpose live in the machine-readable compliance and guest manifests. Package installation commands and package-manager network configuration are absent from the runtime image. Guest builds are reproducible and generated images are not committed.
 
 ## State And Recovery
 
-Vault Core persists authoritative state in the existing schema-versioned workspace catalog and immutable artifact store. M3 adds only the session, turn, attachment, folder-grant, and agent-run records required by the desktop.
+Vault Core persists authoritative state in the existing schema-versioned workspace catalog, immutable artifact store, and per-session content-addressed guest-workspace manifests.
 
 - Folder identity is canonical and stable across equivalent paths.
 - A session belongs either to one folder grant or to the global New chat area.
@@ -75,6 +77,7 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 - Raw hidden model reasoning is never persisted.
 - Typed model thought segments are transient active-run state only; completed snapshots, events, audit, and conversation records never contain them.
 - Generation speed, prompt-processing speed, and total response time are stored as bounded numeric run evidence.
+- Conversation context is rebuilt from durable messages and execution events. Core reserves 4,096 output tokens, protects the current run and newest failed repair chain, anchors up to two recent user turns, and compacts older history without deleting originals.
 
 ## Model And Asset Distribution
 
@@ -114,8 +117,8 @@ Scope:
 - Build the product Tauri v2 and React desktop shell on macOS and Windows.
 - Add native folder/file dialogs without exposing arbitrary paths to the webview.
 - Implement the Vault Core-owned agent loop with bounded turns, typed inference mediation, cancellation, audit, and deterministic fake coverage.
-- Build a reproducible agent guest image with Python, Node.js, the reviewed fixed library set, a typed guest entrypoint, immutable root, read-only inputs, and bounded scratch.
-- Extend the common microVM protocol from the M1 probe to agent tasks, model-completion requests, observations, structured results, and generated scratch artifacts.
+- Build a reproducible agent guest image with Python, Node.js, BusyBox shell/tools, the reviewed fixed library set, a typed guest entrypoint, immutable root, live read-only source, and bounded persistent workspace.
+- Extend the common microVM protocol from the M1 probe to hello/capabilities, workspace hydration, repeated execution, cancellation, workspace deltas, structured results, and graceful shutdown.
 - Integrate the completed Windows native inference boundary into the agent product and verify the real V1 model on both platforms.
 - Package the exact Vault Core sidecar, native helpers, model assets, and guest image with zero-download first launch.
 
@@ -124,11 +127,13 @@ Gate:
 - A fresh install launches on physical Apple-silicon macOS and supported Windows x64 and connects only to its authenticated current-user daemon endpoint.
 - The desktop can add and remove folder grants, create a folder session, create a New chat session, attach files, restore sessions after restart, show exactly five recent sessions per folder, and expand older sessions with Show more.
 - A real local model completes at least one multi-step Python task and one multi-step Node.js task over folder inputs on both platforms.
-- The guest can recursively read the authorized staged folder snapshot and write only to its bounded scratch. It cannot mutate, create, rename, or delete anything in the host source folder.
+- The guest can recursively read the unlimited authorized live folder and write only to its bounded workspace. It cannot mutate, create, rename, or delete anything in the host source folder.
+- A folder with more than 64 files and a sparse file larger than 512 MiB preserves hierarchy without host copy limits; live host changes appear and guest writes fail.
+- A failed program can be corrected at the same workspace path without rebooting, and the workspace survives VM and Core restart.
 - VM configuration and runtime probes prove zero virtual network adapters and denial of DNS, IPv4, IPv6, LAN, multicast, host reachability, package installation, credentials, host paths, arbitrary host services, and generic model endpoints without command or destination matching.
 - Traversal, symlink/junction escape, time-of-check/time-of-use replacement, malformed IPC, oversized input/output, process storms, timeout, cancellation, guest crash, daemon crash, and low-disk cases are contained and produce typed durable outcomes.
 - The webview cannot invoke arbitrary shell commands, processes, paths, URLs, local endpoints, environments, model files, or filesystem operations.
-- The conversation exposes concise activity and generated artifacts, while the Technical details drawer exposes executed code, bounded logs, resource limits, generated-file metadata, and termination reason without persisting hidden reasoning.
+- The conversation exposes concise activity and generated artifacts, while the Technical details drawer exposes workspace paths, executed source or commands, certified guest capabilities, bounded logs, resource limits, generated-file metadata, and termination reason without persisting hidden reasoning.
 - The approved model remains loaded between successful turns, reports its state in the desktop header, and unloads only through the typed idle-only Core command or Core shutdown.
 - Supported Gemma thought segments stream through typed IPC into transient active-run state and are absent from persisted events, messages, audit, and terminal snapshots.
 - The newest assistant response shows measured generation speed, prompt-processing speed, and total run time.
@@ -156,7 +161,6 @@ The generic agent remains available for novel tasks, but supported deterministic
 - External integrations and their typed network broker.
 - Model downloads and alternate runtime adapters.
 - Office appliance multi-user controls.
-- Long-session compaction beyond the recovery needed for V1 sessions.
 - Linux desktop certification.
 
 ## V1 Launch And Contribution Activation

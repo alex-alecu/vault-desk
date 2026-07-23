@@ -1,12 +1,12 @@
 # Workflows
 
-Updated: 2026-07-20
+Updated: 2026-07-23
 
 Vault Desk V1 is a general-purpose local file agent rather than a collection of predefined professional workflows.
 
 ## V1 Interaction
 
-Users ask for an outcome in ordinary language. The agent may inspect selected inputs, write Python or Node.js, execute it in a disposable offline microVM, observe the bounded result, and continue until it completes, fails, or reaches its limits.
+Users ask for an outcome in ordinary language. The agent may inspect the live selected folder, write Python or Node.js, use installed shell tools in its session-scoped offline microVM, observe the bounded result, and continue until it completes, fails, or reaches its limits.
 
 Examples:
 
@@ -19,12 +19,12 @@ Examples:
 
 ## Workflow Invariants
 
-- A folder session receives only a verified read-only snapshot of its selected folder.
+- A folder session receives only a live read-only mount of its selected folder with the original hierarchy.
 - A New chat session receives only its explicit attachments.
-- Agent-authored code runs only in a fresh no-NIC microVM.
-- The immutable guest image contains the only available Python, Node.js, and library versions.
+- Agent-authored code and commands run only in the session-scoped no-NIC microVM.
+- The immutable guest image contains the only available Python, Node.js, BusyBox commands, and library versions.
 - Package installation and runtime network access are unavailable.
-- The guest can write only to bounded scratch and cannot change host source files.
+- The guest can write only to its persistent 128 MiB workspace and ephemeral `/run`; it cannot change host source files.
 - Vault Core mediates model completions, limits, cancellation, audit, and results.
 - Generated artifacts are proposals, not silent host mutations.
 - Observable code and activity are reviewable; hidden reasoning is not persisted.
@@ -43,12 +43,12 @@ After V1, measurements may justify purpose-built document intelligence: parsing,
 
 The V1 workflow suite covers:
 
-- Multi-step Python and Node.js tasks.
+- Multi-step Python, Node.js, and guest shell-tool tasks.
 - Mixed folders and explicit attachments.
 - Correct session/folder scoping.
 - Restart, reconnect, cancellation, timeout, and guest crash.
 - Traversal, escaping links, host-write attempts, credential access, package installation, network access, process storms, and resource exhaustion.
-- Bounded code, stdout, stderr, artifacts, observations, model turns, time, memory, CPU, and scratch.
+- Bounded generated source, commands, stdout, stderr, artifacts, observations, model turns, time, memory, CPU, and persistent workspace. The live read-only source folder is not copied or size-limited.
 - Packaged macOS and Windows behavior with zero-download first launch.
 
 Task-quality cases use deterministic development and held-out inputs. Security invariants require complete detection; general answer quality is reported honestly rather than hidden behind one aggregate score.
@@ -59,3 +59,4 @@ Task-quality cases use deterministic development and held-out inputs. Security i
 |---|---|
 | 2026-07-10 | Created the initial workflow document. |
 | 2026-07-20 | Replaced the pre-V1 vertical workflow sequence with the generic offline dev-agent interaction. |
+| 2026-07-23 | Added the live read-only folder, guest shell tools, session VM, and persistent bounded workspace workflow. |

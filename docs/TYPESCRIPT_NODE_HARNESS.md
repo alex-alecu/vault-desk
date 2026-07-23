@@ -40,20 +40,20 @@ The harness should not directly become:
 - An OCR engine.
 - A vector database implementation.
 - A UI framework.
-- A privileged shell bridge.
-- A general-purpose coding environment.
+- A privileged host-shell bridge.
+- An unbounded host coding environment.
 
 Those should be adapters, services, or tools behind typed boundaries.
 
 ## Sandbox Boundary
 
-The harness coordinates a platform sandbox launcher behind one contract. Hostile document parsing and future executable tools run in disposable, job-scoped microVMs with no virtual network device. The launcher must not approximate network isolation by matching commands, executables, URLs, domains, addresses, or protocols.
+The harness coordinates a platform sandbox launcher behind one contract. Hostile document parsing may use disposable job-scoped microVMs; the M3 development agent uses a reusable session-scoped microVM. Both have no virtual network device. The launcher must not approximate network isolation by matching commands, executables, URLs, domains, addresses, or protocols.
 
 The common microVM contract provides:
 
 - A verified immutable guest image.
-- Job-scoped read-only input storage or bounded byte streams.
-- Bounded ephemeral scratch storage.
+- Job-scoped read-only inputs for document work, or a live read-only source mount plus immutable attachments for the development agent.
+- Bounded ephemeral document scratch, or the development agent's bounded persistent workspace and ephemeral runtime tmpfs.
 - Versioned typed IPC over virtio-socket, Hyper-V socket, or the platform-equivalent host/guest channel.
 - CPU, memory, time, storage, output-size, concurrency, cancellation, and termination controls.
 - Configuration evidence that no virtual network adapter or general host-network proxy exists.
@@ -64,7 +64,7 @@ Vault Core exposes no generic network service to the guest. Explicit external in
 
 Hardware-accelerated inference remains host-native for the first runtime so Metal, CUDA, HIP, and Vulkan remain available. The inference process is supervised and OS-sandboxed, has no shell or executable tools, and receives no network capability, credentials, arbitrary workspace paths, or approval authority. This is a narrow accelerator exception, not an alternative hostile-work sandbox. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
-Agent-authored code uses a separate immutable guest role under the same no-NIC microVM contract. Each job receives explicit read-only inputs, pinned offline interpreters and libraries, bounded scratch space, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable code and execution activity, validates results, and destroys the guest after the job. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
+Agent-authored code uses a separate immutable guest role under the same no-NIC microVM contract. Each session receives a live read-only folder mount, immutable explicit attachments, pinned offline interpreters and tools, a persistent 128 MiB workspace, and a typed result schema. The guest cannot install dependencies or connect to a general model server. Vault Core mediates bounded completion requests over typed host/guest IPC, records observable source, commands, and results, validates workspace manifests, and keeps at most one warm idle VM. See [adr/0018-offline-dev-agent-first.md](adr/0018-offline-dev-agent-first.md).
 
 ## Local Process Boundary
 
@@ -282,3 +282,4 @@ M2 was activated by the repository owner on 2026-07-19 and completed across macO
 | 2026-07-17 | Replaced the proposed OpenTelemetry-shaped audit contract with a small Vault Desk-owned local schema and prohibited telemetry exporters. |
 | 2026-07-19 | Hardened completed M1 recovery, endpoint authentication, audit truncation detection, and worker staging limits after follow-up review. |
 | 2026-07-22 | Aligned the inference adapter boundary with automatic hardware memory and context fitting. |
+| 2026-07-23 | Added the session-scoped agent VM, live read-only folder share, installed guest shell tools, and durable workspace manifests. |

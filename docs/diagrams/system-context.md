@@ -12,7 +12,7 @@ flowchart LR
 
     Control --> Documents["User-selected read-only folders and attachments"]
     Control --> Inference["Local inference runtimes"]
-    Control --> Sandbox["Disposable no-NIC dev-agent microVMs"]
+    Control --> Sandbox["Session-scoped no-NIC dev-agent microVM"]
     Control --> NetworkBroker["Typed external-connection broker"]
     Control --> Audit["Local audit log"]
     Control --> Backup["Backup and recovery"]
@@ -25,7 +25,7 @@ flowchart LR
 
 - Hosted escalation is not a default dependency.
 - Remote support is not a default access path.
-- Selected inputs remain local and read-only to the guest.
+- The selected folder remains local, live, and read-only to the guest; the bounded session workspace is private Vault Desk state.
 - Agent-authored code has no virtual network device; approved future external connections use the separate broker.
 
 ## Revision History
@@ -36,3 +36,4 @@ flowchart LR
 | 2026-07-12 | Added the no-NIC microVM and separate typed external-connection broker. |
 | 2026-07-13 | Identified the Tauri desktop shell and bounded code-interpreter microVM role. |
 | 2026-07-20 | Made read-only folder sessions and the generic offline dev agent the V1 system context. |
+| 2026-07-23 | Added the live read-only folder mount and persistent session workspace. |

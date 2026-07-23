@@ -1,6 +1,6 @@
 # Desktop Design
 
-Updated: 2026-07-22
+Updated: 2026-07-23
 
 Vault Desk V1 is a calm, conversation-centered desktop agent inspired by the structural clarity of the Codex app without copying its branding or visual assets. The interface exposes work and context, not model infrastructure.
 
@@ -55,7 +55,7 @@ New chat must never silently inherit the previously selected folder. Attachments
 
 Adding a folder uses a native Tauri dialog and creates a scoped Vault Core grant. The webview receives an opaque folder identifier and display name, not an unrestricted filesystem handle.
 
-Starting a session under that folder gives each agent run a verified read-only snapshot of the selected folder. The agent can recursively inspect the snapshot inside the microVM. It cannot write, rename, delete, or create files in the host folder.
+Starting a session under that folder gives its agent microVM a live read-only mount of the selected folder at `/source`. The hierarchy is preserved and host changes become visible immediately. The agent cannot write, rename, delete, or create files in the host folder.
 
 Switching sessions restores conversation turns, agent activity summaries, artifacts, warnings, cancellation state, and unsent draft text.
 
@@ -68,7 +68,7 @@ The conversation timeline supports:
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
 - Generated scratch artifacts inline with the surrounding task activity and response.
-- A top-right **Technical details** control that opens resource limits, executed Python or Node.js source, bounded stdout/stderr, termination evidence, and generated-file metadata in a right-side drawer.
+- A top-right **Technical details** control that opens resource limits, executed Python or Node.js source or guest shell commands, bounded stdout/stderr, termination evidence, and generated-file metadata in a right-side drawer.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
 - Security or unsupported-operation warnings.
 - A compact performance row beneath the newest assistant response with generation tokens per second, prompt-processing tokens per second, and total run time.
@@ -100,7 +100,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 - Opening a granted folder passes only its opaque identifier; Vault Core resolves and revalidates the active grant before the Rust host asks the operating system to open it.
 - Native dialogs return selections to the Rust host, which passes them through the typed grant or attachment command; arbitrary path strings from the webview are rejected.
 - The model and guest never receive a writable host folder.
-- Agent code executes only in the disposable no-NIC microVM with fixed interpreters and libraries.
+- Agent code and commands execute only in the session-scoped no-NIC microVM with fixed interpreters, libraries, and installed BusyBox tools.
 - UI state never substitutes for Vault Core grants, policy, audit, resource limits, cancellation, or result validation.
 
 ## Accessibility And Platform Behavior
@@ -123,3 +123,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-22 | Added hardware-derived inference budgets and the user-visible unsupported state for 8 GB Macs. |
 | 2026-07-22 | Added safe CommonMark presentation for assistant responses. |
 | 2026-07-22 | Restored concise activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
+| 2026-07-23 | Replaced folder snapshots and disposable scratch with the live read-only source mount and persistent session workspace. |

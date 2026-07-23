@@ -40,6 +40,15 @@ interface RunTransition {
   performance?: AgentRunPerformance;
 }
 
+function nextEventSequence(database: DatabasePort, runId: string): number {
+  const row = database
+    .prepare(
+      "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_events WHERE run_id = ?",
+    )
+    .get(runId) as { sequence: number };
+  return row.sequence;
+}
+
 export class AgentStore {
   constructor(
     private readonly database: DatabasePort,
@@ -174,26 +183,27 @@ export class AgentStore {
     summary: string,
     detail: Partial<AgentEventDetail> = {},
   ): AgentEvent {
-    const row = this.database
-      .prepare(
-        "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_events WHERE run_id = ?",
-      )
-      .get(runId) as { sequence: number };
     const item = AgentEventSchema.parse({
       id: randomUUID(),
       runId,
-      sequence: row.sequence,
+      sequence: nextEventSequence(this.database, runId),
       type,
       summary,
       language: detail.language ?? null,
-      code: detail.code ?? null,
+      path: detail.path ?? null,
+      source: detail.source ?? null,
+      command: detail.command ?? null,
+      exitCode: detail.exitCode ?? null,
       stdout: detail.stdout ?? null,
       stderr: detail.stderr ?? null,
+      durationMs: detail.durationMs ?? null,
       termination: detail.termination ?? null,
       createdAt: new Date().toISOString(),
     });
     this.database
-      .prepare("INSERT INTO agent_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO agent_events (id, run_id, sequence, event_type, summary, language, code, stdout, stderr, termination, created_at, workspace_path, command, exit_code, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
       .run(
         item.id,
         item.runId,
@@ -201,11 +211,15 @@ export class AgentStore {
         item.type,
         item.summary,
         item.language,
-        item.code,
+        item.source,
         item.stdout,
         item.stderr,
         item.termination,
         item.createdAt,
+        item.path,
+        item.command,
+        item.exitCode,
+        item.durationMs,
       );
     return item;
   }

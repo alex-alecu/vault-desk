@@ -195,7 +195,7 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 
 - Treat model, document reader, tool loop, and UI as separate subsystems.
 - Prefer parsing, OCR, layout extraction, retrieval, and citations before model-only reasoning.
-- For V1, run generic agent-authored Python and Node.js only in a disposable no-NIC microVM with read-only host inputs and bounded guest scratch. Add deterministic document operations later only when measured value justifies them.
+- For V1, run agent-authored Python, Node.js, and guest `/bin/sh` commands only in the session-scoped no-NIC microVM with a live read-only selected-folder mount and a persistent 128 MiB guest workspace. Add deterministic document operations later only when measured value justifies them.
 - Keep destructive or consequential actions approval-gated.
 - Keep filesystem access scoped through typed, policy-controlled adapters.
 - Run hostile document processing and executable tools in a certified no-NIC microVM; do not treat command, URL, domain, address, or protocol matching as network isolation.
@@ -208,8 +208,8 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 
 Future code must assume the model is untrusted for execution decisions.
 
-Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive direct shell or unrestricted filesystem access.
+Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive a host shell or unrestricted filesystem access. M3 permits typed guest-local `/bin/sh` commands only inside the bounded no-NIC microVM.
 
-The certified hostile-work sandbox is a disposable microVM with no virtual network device and only typed host/guest socket IPC. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
+The certified hostile-work sandbox is a no-NIC microVM with only typed host/guest socket IPC. Document jobs may use disposable job-scoped guests; the V1 development agent uses one reusable session-scoped guest with a durable bounded workspace. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 
 For revision history and additional detail when needed, see [README.md](README.md#revision-history).

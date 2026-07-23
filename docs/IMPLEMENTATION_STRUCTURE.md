@@ -1,6 +1,6 @@
 # Implementation Structure
 
-Updated: 2026-07-21
+Updated: 2026-07-23
 
 This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists, and the M3 macOS implementation is complete. M3 remains active for its Windows product integration and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
 
@@ -91,9 +91,9 @@ src/microvm/guest/agent.ts        guest task and completion loop
 images/agent/                      reproducible image recipe and manifest
 ```
 
-Extend the platform launchers to start an `agent` guest role in addition to the existing probe role. Platform helpers continue to own only VM lifecycle, fixed typed socket transport, read-only attachments, bounded scratch, limits, and teardown.
+Extend the platform launchers to start an `agent` guest role in addition to the existing probe role. Platform helpers continue to own only VM lifecycle, fixed typed socket transport, the live read-only folder share, immutable attachments, bounded workspace resources, limits, and teardown.
 
-The guest image contains Python, Node.js, the reviewed fixed library set, and the guest entrypoint. It contains no runtime package installation or network configuration. Generated images remain ignored artifacts.
+The guest image contains Python, Node.js, `/bin/sh`, BusyBox commands, the reviewed fixed library set, and the guest entrypoint. It contains no runtime package installation or network configuration. Generated images remain ignored artifacts.
 
 ### `packages/desktop`
 
@@ -163,6 +163,7 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Attachment identities and immutable staged bytes.
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
 - Generated artifact metadata and immutable bytes accepted from guest scratch.
+- Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
 The newest-five sidebar query is ordered by last activity plus stable ID. Expansion uses an opaque stable cursor. Removing a grant does not delete session history or host files.
 
@@ -170,7 +171,7 @@ The newest-five sidebar query is ordered by last activity plus stable ID. Expans
 
 One machine-readable manifest records each guest runtime/library name, exact version, source, license, notice obligation, hash, and reason. The first set should be limited to the smallest reviewed combination that covers text, JSON, CSV, SQLite, PDF, DOCX, XLSX, and common image inspection.
 
-The manifest, guest build recipe, and compliance inventory change together. Libraries are not added because they might be useful.
+The library manifest, generated executable capabilities manifest, guest build recipe, compliance inventory, package resources, and Technical details language change together. Libraries are not added because they might be useful.
 
 ## Source Limits
 
@@ -197,3 +198,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-13 | Created the original milestone-to-folder blueprint. |
 | 2026-07-20 | Replaced the former pre-product blueprint with the M3 generic offline dev-agent desktop structure. |
 | 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
+| 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |

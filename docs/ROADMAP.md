@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-07-20
+Updated: 2026-07-23
 
 ## Completed Foundations
 
@@ -19,9 +19,9 @@ Ship the first useful product as quickly as the security boundary permits:
 - Native folder and file selection without webview filesystem authority.
 - Persistent conversations, drafts, activity, cancellation, and restart recovery.
 - A generic local agent inspired by modern coding-agent interaction.
-- Python and Node.js execution in a fresh disposable no-NIC microVM.
+- Python, Node.js, and installed shell-tool execution in a session-scoped no-NIC microVM.
 - A reviewed fixed set of offline document and image libraries.
-- Read-only selected host inputs and bounded guest scratch; no host writes.
+- Live read-only selected-folder mount and persistent bounded guest workspace; no selected-folder writes.
 - Typed host-mediated local inference; no generic model endpoint in the guest.
 - Self-contained packages with zero-download first launch on supported macOS and Windows hardware.
 
@@ -54,3 +54,4 @@ One combined follow-up may add:
 | 2026-07-10 | Created the initial roadmap. |
 | 2026-07-13 | Selected Tauri v2 and the no-NIC executable-tool boundary. |
 | 2026-07-20 | Made the generic offline dev-agent desktop the V1 target and moved document intelligence after launch. |
+| 2026-07-23 | Replaced per-execution guests and copied folder inputs with a session VM, live read-only source, and persistent bounded workspace. |

@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentDecision } from "@vault/shared";
-import type { CodeAgentLauncher } from "@vault/workers";
+import type { AgentDecision, AgentExecutionResult } from "@vault/shared";
+import type { AgentSessionExecution, CodeAgentLauncher } from "@vault/workers";
 import { afterEach, describe, expect, it } from "vitest";
 import { AuditLog } from "../audit/log.js";
 import { ConversationStore } from "../conversations/store.js";
@@ -15,6 +15,17 @@ import { AgentService } from "./service.js";
 import { AgentStore } from "./store.js";
 
 const roots: string[] = [];
+
+function fakeLauncher(
+  execute: (request: AgentSessionExecution) => Promise<AgentExecutionResult>,
+): CodeAgentLauncher {
+  return {
+    async openAgentSession() {
+      return { execute, async cancel() {}, async close() {} };
+    },
+    async deleteWorkspace() {},
+  };
+}
 
 async function waitForTerminal(service: AgentService, runId: string) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -41,11 +52,15 @@ describe("M3 persisted agent lifecycle", () => {
     const conversations = new ConversationStore(catalog.database);
     const store = new AgentStore(catalog.database, artifacts);
     const decisions: AgentDecision[] = [
-      { action: "execute", language: "python", code: "print('ok')", summary: "Run Python" },
+      { action: "execute", language: "python", source: "print('ok')", summary: "Run Python" },
       { action: "respond", response: "Finished safely." },
     ];
+    let runId = "";
+    let generation = 0;
     const inference: Pick<InferenceService, "generate"> = {
       async generate() {
+        generation += 1;
+        if (generation === 2) expect(store.snapshot(runId).artifacts).toHaveLength(1);
         const value = decisions.shift();
         if (value === undefined) throw new Error("missing_decision");
         return {
@@ -70,26 +85,27 @@ describe("M3 persisted agent lifecycle", () => {
         };
       },
     };
-    const launcher: CodeAgentLauncher = {
-      async executeAgent(request) {
-        return {
-          language: request.language,
-          code: request.code,
-          exitCode: 0,
-          stdout: "ok\n",
-          stderr: "",
-          durationMs: 2,
-          termination: "completed",
-          artifacts: [
-            {
-              name: "result.txt",
-              mediaType: "text/plain",
-              bytesBase64: Buffer.from("result").toString("base64"),
-            },
-          ],
-        };
-      },
-    };
+    const launcher = fakeLauncher(async (request) => {
+      if (request.language === "shell") throw new Error("unexpected_shell");
+      return {
+        language: request.language,
+        path: request.path,
+        source: request.source,
+        command: null,
+        exitCode: 0,
+        stdout: "ok\n",
+        stderr: "",
+        durationMs: 2,
+        termination: "completed",
+        artifacts: [
+          {
+            name: "result.txt",
+            mediaType: "text/plain",
+            bytesBase64: Buffer.from("result").toString("base64"),
+          },
+        ],
+      };
+    });
     const service = new AgentService(
       catalog.database,
       store,
@@ -102,6 +118,9 @@ describe("M3 persisted agent lifecycle", () => {
     );
     const session = conversations.createSession(null);
     const run = service.start(session.id, "Build a result");
+    runId = run.id;
+    expect(() => service.start(session.id, "Interleave another run")).toThrow("agent_busy");
+    await expect(service.warmSession(session.id)).resolves.toBeUndefined();
     const snapshot = await waitForTerminal(service, run.id);
 
     expect(service.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
@@ -121,6 +140,17 @@ describe("M3 persisted agent lifecycle", () => {
       "inference.started",
       "assistant.completed",
     ]);
+    expect(snapshot.events.find((item) => item.type === "execution.completed")).toMatchObject({
+      path: "steps/0001.py",
+      source: "print('ok')",
+      exitCode: 0,
+      durationMs: 2,
+      termination: "completed",
+    });
+    expect(snapshot.events.find((item) => item.type === "execution.started")).toMatchObject({
+      path: "steps/0001.py",
+      source: "print('ok')",
+    });
     expect(snapshot.artifacts).toHaveLength(1);
     expect(conversations.listMessages(session.id).map((item) => item.role)).toEqual([
       "user",
@@ -146,11 +176,9 @@ describe("M3 persisted agent lifecycle", () => {
         });
       },
     };
-    const launcher: CodeAgentLauncher = {
-      async executeAgent() {
-        throw new Error("execution_should_not_start");
-      },
-    };
+    const launcher = fakeLauncher(async () => {
+      throw new Error("execution_should_not_start");
+    });
     const service = new AgentService(
       catalog.database,
       store,
@@ -207,11 +235,9 @@ describe("M3 persisted agent lifecycle", () => {
         };
       },
     };
-    const launcher: CodeAgentLauncher = {
-      async executeAgent() {
-        throw new Error("execution_should_not_start");
-      },
-    };
+    const launcher = fakeLauncher(async () => {
+      throw new Error("execution_should_not_start");
+    });
     service = new AgentService(
       catalog.database,
       store,

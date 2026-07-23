@@ -22,7 +22,7 @@ Primary package records are the official [Node.js release archive](https://nodej
 
 ## Boundary and maintenance decision
 
-- These packages execute only inside the disposable no-NIC guest as an unprivileged user over staged read-only inputs and bounded tmpfs scratch.
+- These packages execute only inside the session-scoped no-NIC guest as an unprivileged user over a live read-only source mount, immutable attachments, and a bounded persistent tmpfs workspace.
 - XML hardening remains enabled through `defusedxml`; document results are untrusted artifacts until Core validates their protocol, count, size, and content hash.
 - Runtime installation and arbitrary user packages are unsupported. A new library requires a new dependency review, exact pin, license update, reproducibility pass, and physical isolation gate.
 - Generated images and downloaded wheels remain ignored. Distribution carries the guest manifest, third-party notices, SPDX SBOM, and resource hashes.

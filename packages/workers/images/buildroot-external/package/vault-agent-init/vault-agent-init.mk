@@ -15,6 +15,7 @@ endef
 define VAULT_AGENT_INIT_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/vault-agent-init $(TARGET_DIR)/sbin/init
 	$(INSTALL) -D -m 0755 $(@D)/vault-agent.py $(TARGET_DIR)/opt/vault/agent.py
+	rm -rf $(TARGET_DIR)/usr/lib/python3.14/ensurepip
 endef
 
 $(eval $(generic-package))

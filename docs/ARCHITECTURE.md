@@ -2,7 +2,7 @@
 
 Updated: 2026-07-22
 
-Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and disposable no-NIC agent microVMs plus a narrow host-native inference worker.
+Vault Desk V1 is a local desktop application with three isolated layers: a thin Tauri interface, an authoritative Node.js control plane, and session-scoped no-NIC agent microVMs plus a narrow host-native inference worker.
 
 ## System Shape
 
@@ -19,10 +19,10 @@ Vault Desk V1 is a local desktop application with three isolated layers: a thin 
 └───────────────┬──────────────────────────────┬────────────────┘
                 │ typed inference IPC          │ typed VM IPC
 ┌───────────────▼──────────────┐  ┌────────────▼────────────────┐
-│ Native inference worker     │  │ Disposable agent microVM    │
+│ Native inference worker     │  │ Session agent microVM       │
 │ approved model only         │  │ zero NICs · immutable root  │
-│ no tools/workspace/network  │  │ read-only inputs · scratch  │
-└──────────────────────────────┘  │ Python · Node · fixed libs  │
+│ no tools/workspace/network  │  │ live read-only /source     │
+└──────────────────────────────┘  │ durable /workspace · shell │
                                   └─────────────────────────────┘
 ```
 
@@ -41,7 +41,7 @@ Vault Core is a separate Node.js/TypeScript process and the sole product authori
 - Current-user-only local RPC and version negotiation.
 - Folder grants and explicit attachments.
 - Session, turn, draft, job, and artifact state.
-- Scoped file access and immutable input staging.
+- Canonical folder grants, live read-only mount authority, and immutable attachment staging.
 - Policy, audit, cancellation, timeouts, and recovery.
 - Model selection, memory scheduling, and inference mediation.
 - Agent-loop orchestration and worker teardown.
@@ -51,16 +51,17 @@ Unit tests may use the programmatic facade, but every desktop capability also cr
 
 ## Agent MicroVM
 
-Every executable agent turn starts a fresh microVM under ADR 0012. The VM configuration contains no virtual network adapter, DNS, route, NAT, bridge, or generic host proxy.
+Each agent session starts or reuses one microVM under ADR 0012. Only one execution runs at a time. The VM configuration contains no virtual network adapter, DNS, route, NAT, bridge, or generic host proxy.
 
 The guest receives:
 
 - An immutable verified root image.
-- A read-only staged folder snapshot or explicit attachments.
-- Bounded writable scratch that is destroyed with the VM.
+- The selected folder mounted live and read-only at `/source`, without Core enumeration or copy limits.
+- Immutable explicit attachments under `/run/attachments`.
+- A 128 MiB writable `/workspace` committed as an atomic content-addressed manifest and rehydrated after eviction or restart.
 - One fixed typed host/guest socket.
 - A typed task and bounded completion mediation.
-- Fixed Python, Node.js, and reviewed offline libraries.
+- Fixed Python, Node.js, `/bin/sh`, BusyBox tools, and reviewed offline libraries.
 
 The guest does not receive credentials, user home, writable host mounts, arbitrary host paths, a host shell, package installation, an external broker, a generic Vault Core API, approval authority, export authority, or a generic model endpoint.
 
@@ -70,13 +71,13 @@ Vault Core may accept declared scratch artifacts as session-owned proposals afte
 
 Vault Core owns the loop; the guest owns execution.
 
-1. Core resolves the session and immutable authorized inputs.
-2. Core starts the guest with one bounded task.
-3. The guest proposes or runs Python/Node.js and returns an observation.
-4. A schema-bounded completion request may cross to Core.
-5. Core calls the constrained inference worker and returns only the allowed completion payload.
-6. The guest continues until it returns a structured result or reaches a turn/resource boundary.
-7. Core records observable activity, validates the result, and destroys the guest.
+1. Core resolves the session, canonical folder grant, attachments, and durable history.
+2. Core starts or reuses the guest and hydrates `/workspace`.
+3. Core calls the constrained inference worker with a schema-bounded request assembled from durable context.
+4. The model proposes Python, Node.js, a guest-shell command, or a final response; Core validates the typed shape.
+5. For an execution proposal, Core sends only the source or command and limits to the guest.
+6. The guest returns a structured result and workspace delta, and Core decides whether another model step is allowed.
+7. Core records observable activity, validates and commits the workspace manifest, and retains the guest as the single warm idle VM.
 
 OpenCode informs interaction and loop design but is not a runtime dependency. A dependency may be adopted later only after a separate review proves that it reduces maintained code without weakening these boundaries.
 

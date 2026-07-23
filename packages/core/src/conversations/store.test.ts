@@ -85,6 +85,10 @@ describe("ConversationStore sessions", () => {
     expect(second.items).toHaveLength(1);
     expect(new Set([...first.items, ...second.items].map((item) => item.id))).toEqual(sessionIds);
     expect(store.listSessions(null).items.map((item) => item.id)).toEqual([global.id]);
+    catalog.database
+      .prepare("UPDATE sessions SET updated_at = ? WHERE id = ?")
+      .run("2099-01-01T00:00:00.000Z", global.id);
+    expect(store.mostRecentSessionId()).toBe(global.id);
     catalog.close();
   });
 });

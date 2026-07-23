@@ -4,11 +4,11 @@ import {
   type AgentEventType,
   type AgentExecutionResult,
   AgentExecutionResultSchema,
-  type AgentLanguage,
   type AgentRunResult,
   AgentRunResultSchema,
   type InferencePerformance,
 } from "@vault/shared";
+import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
 import {
   type AgentProgress,
@@ -22,10 +22,7 @@ import {
 const MAX_DECISIONS = 12;
 
 export interface AgentExecutor {
-  execute(
-    input: { language: AgentLanguage; code: string },
-    signal?: AbortSignal,
-  ): Promise<AgentExecutionResult>;
+  execute(input: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
 }
 
 export interface AgentRunInput extends AgentPromptInput {
@@ -53,10 +50,14 @@ function addPerformance(total: InferencePerformance, next: InferencePerformance)
 }
 
 export class AgentLoop {
+  private contextTokens: number;
   constructor(
     private readonly inference: Pick<InferenceService, "generate">,
     private readonly executor: AgentExecutor,
-  ) {}
+    contextTokens = 8_192,
+  ) {
+    this.contextTokens = Math.max(8_192, contextTokens);
+  }
 
   private async decide(
     input: AgentRunInput,
@@ -75,7 +76,7 @@ export class AgentLoop {
     let thinking = "";
     input.onThinking?.(null);
     const generated = await this.inference.generate(
-      generationInput(input, progress, finalResponse),
+      generationInput(input, progress, finalResponse, this.contextTokens),
       input.signal,
       (delta) => {
         thinking = `${thinking}${delta}`.slice(-64_000);
@@ -83,6 +84,7 @@ export class AgentLoop {
       },
     );
     addPerformance(inference, generated.performance);
+    this.contextTokens = generated.memory.contextSizeTokens ?? this.contextTokens;
     input.onThinking?.(null);
     return parseDecision(generated.value);
   }
@@ -92,23 +94,36 @@ export class AgentLoop {
     decision: Extract<AgentDecision, { action: "execute" }>,
     progress: AgentProgress,
   ): Promise<void> {
+    const execution: AgentSessionExecution =
+      decision.language === "shell"
+        ? { language: "shell", command: decision.command }
+        : {
+            language: decision.language,
+            path:
+              decision.path ??
+              `steps/${String(progress.executions.length + 1).padStart(4, "0")}.${decision.language === "python" ? "py" : "mjs"}`,
+            source: decision.source,
+          };
     input.onEvent?.("execution.started", decision.summary, {
       language: decision.language,
-      code: decision.code,
+      path: execution.language === "shell" ? null : execution.path,
+      source: decision.language === "shell" ? null : decision.source,
+      command: decision.language === "shell" ? decision.command : null,
     });
-    const result = await this.executor.execute(
-      { language: decision.language, code: decision.code },
-      input.signal,
-    );
+    const result = await this.executor.execute(execution, input.signal);
     progress.executions.push(AgentExecutionResultSchema.parse(result));
     input.onEvent?.(
       "execution.completed",
       `${decision.language} finished with exit code ${result.exitCode}.`,
       {
         language: result.language,
-        code: result.code,
+        path: result.path,
+        source: result.source,
+        command: result.command,
+        exitCode: result.exitCode,
         stdout: result.stdout,
         stderr: result.stderr,
+        durationMs: result.durationMs,
         termination: result.termination,
       },
     );
@@ -141,7 +156,9 @@ export class AgentLoop {
           (execution) =>
             execution.exitCode === 0 &&
             execution.termination === "completed" &&
-            execution.code === decision.code,
+            (decision.language === "shell"
+              ? execution.command === decision.command
+              : execution.source === decision.source),
         )
       ) {
         progress.rejectedDuplicates += 1;

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -45,14 +45,12 @@ describe("M3 session-owned inputs", () => {
     catalog.close();
   });
 
-  it("snapshots regular folder files and excludes a symlink escape", async () => {
+  it("passes the canonical folder live and snapshots only explicit attachments", async () => {
     const { root, catalog, store, conversations } = await fixture();
     const selected = join(root, "selected-folder");
-    const outside = join(root, "outside.txt");
     await mkdir(selected);
-    await writeFile(join(selected, "inside.txt"), "allowed");
-    await writeFile(outside, "denied");
-    await symlink(outside, join(selected, "escape.txt"));
+    await mkdir(join(selected, "nested"));
+    await writeFile(join(selected, "nested", "inside.txt"), "allowed");
     const folder = conversations.addFolder(selected);
     const session = conversations.createSession(folder.id);
     const duplicateRoot = join(root, "duplicate");
@@ -62,29 +60,32 @@ describe("M3 session-owned inputs", () => {
     await store.addAttachment(session.id, duplicate);
 
     const snapshot = await new AgentInputResolver(catalog.database, store).resolve(session.id);
-    expect(snapshot.files.map((item) => item.name)).toEqual(["inside.txt", "01-inside.txt"]);
-    expect(await readFile(snapshot.files[0]?.path ?? "", "utf8")).toBe("allowed");
-    expect(await readFile(snapshot.files[1]?.path ?? "", "utf8")).toBe("attached");
+    expect(snapshot.sourceFolder).toBe(await realpath(selected));
+    expect(snapshot.attachments.map((item) => item.name)).toEqual(["01-inside.txt"]);
     await snapshot.dispose();
     catalog.close();
   });
 });
 
-describe("M3 folder input capacity", () => {
-  it("accepts a small folder with more than 32 files", async () => {
+describe("M3 live folder capacity", () => {
+  it("does not enumerate or size-limit the selected folder", async () => {
     const { root, catalog, store, conversations } = await fixture();
     const selected = join(root, "selected-folder");
     await mkdir(selected);
     await Promise.all(
-      Array.from({ length: 37 }, async (_, index) => {
+      Array.from({ length: 65 }, async (_, index) => {
         await writeFile(join(selected, `${index.toString().padStart(2, "0")}.txt`), `${index}`);
       }),
     );
+    const sparse = join(selected, "sparse.bin");
+    await writeFile(sparse, "");
+    await truncate(sparse, 513 * 1024 * 1024);
     const folder = conversations.addFolder(selected);
     const session = conversations.createSession(folder.id);
 
     const snapshot = await new AgentInputResolver(catalog.database, store).resolve(session.id);
-    expect(snapshot.files).toHaveLength(37);
+    expect(snapshot.sourceFolder).toBe(await realpath(selected));
+    expect(snapshot.attachments).toEqual([]);
     await snapshot.dispose();
     catalog.close();
   });

@@ -14,11 +14,13 @@ A package or process boundary is not a sufficient hostile-code boundary. Command
 
 ## Decision
 
-The certified hostile-work boundary is a disposable microVM. Document parsing and any future model-requested executable tool run inside a job-scoped microVM with no virtual network device attached. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
+The certified hostile-work boundary is a no-NIC microVM. Document parsing may use a disposable job-scoped VM; the V1 development agent uses a reusable session-scoped VM. Network denial is structural: the guest receives no virtual NIC, route, DNS service, bridged interface, NAT interface, or general host-network proxy. Vault Desk must not implement this guarantee by matching individual commands, executables, hostnames, URLs, IP addresses, or protocols.
 
-The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Inputs arrive as job-scoped bytes, read-only staged storage, or explicit brokered handles. The guest root is immutable, writable scratch storage is ephemeral and bounded, and the whole microVM is terminated and discarded at job completion or forced cancellation.
+The microVM exposes only a narrow host/guest socket for versioned typed IPC. That socket is not a network broker and cannot forward arbitrary destinations. Executed children receive no control-socket descriptor and an OS-enforced syscall filter denies new sockets, including VSOCK connections to other host services. Explicit attachments arrive as immutable session-owned bytes. For the offline dev agent, the selected folder is a platform-native live read-only share at `/source`, and the bounded writable `/workspace` persists only through validated content-addressed manifests. The guest root remains immutable. The VM is session-scoped, admits one execution at a time, and is discarded on eviction, revocation, deletion, Core shutdown, or containment failure.
 
-The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every code job starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. The guest may request only schema-bounded model completions through typed Vault Core mediation to the host-native inference worker. It receives no generic model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
+macOS uses one read-only VirtioFS share. Windows certification requires an HCS Plan9 share with both host `ReadOnly` and guest read-only mount enforcement over Hyper-V sockets, without a virtual NIC or copy fallback. This scoped Plan9 transport is not a network broker. Windows is not certified until physical evidence proves the boundary.
+
+The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every session starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. Vault Core calls the separately confined host-native inference worker, then sends only validated execution requests to the guest. The guest receives no model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
 
 The first platform backends to validate are research-derived until M0 proves their packaging and lifecycle behavior:
 
@@ -33,7 +35,7 @@ Hardware-accelerated inference is a separate trust class. The pinned node-llama-
 Workers follow a capability-scoped job protocol:
 
 - Vault Core inventories and authorizes inputs before dispatch.
-- Workers receive job-scoped bytes, staged read-only files, or explicit brokered handles rather than arbitrary user paths.
+- Workers receive explicit attachment bytes or one Core-validated canonical selected-folder share rather than arbitrary model-chosen paths.
 - Workers cannot approve actions, mutate workspace policy, write exports, or access the general workspace filesystem.
 - MicroVM workers have no virtual network device; native accelerator workers have networking denied by an operating-system sandbox or capability boundary.
 - Each job has limits for wall time, CPU, memory, temporary storage, input expansion, output size, and concurrency.
@@ -41,7 +43,7 @@ Workers follow a capability-scoped job protocol:
 - Cancellation is cooperative first and process termination is the fallback.
 - Worker output is schema-validated and size-checked before Vault Core commits it.
 - Worker crashes and malformed messages become typed job failures with durable resume points.
-- Temporary files live in job-scoped directories and are cleaned after success, cancellation, crash, and startup recovery.
+- Temporary transport files live in scoped directories and are cleaned after success, cancellation, crash, and startup recovery. Session workspace content survives only through validated manifests.
 
 Source documents and retrieved chunks are always data. Text inside them cannot redefine system policy, grant permissions, request approval, or become a tool call. Prompts and tool-loop adapters preserve an explicit separation between trusted workflow instructions and untrusted evidence.
 
@@ -59,7 +61,7 @@ Positive:
 Negative:
 
 - Adds a microVM launcher, guest image, typed socket IPC, and supervision code.
-- Requires copying or staging some inputs and outputs.
+- Requires platform-specific read-only sharing plus workspace manifest hydration and commit.
 - Platform launchers and packaging differ and need separate certification evidence.
 - Hyper-V availability may require a supported Windows edition; weaker fallbacks cannot be marketed as equivalent.
 - GPU acceleration inside the microVM is not assumed, so native accelerator workers retain a narrower secondary boundary.
@@ -85,3 +87,4 @@ Negative:
 | 2026-07-12 | Replaced process-only network policy with a certified no-NIC microVM boundary, typed host/guest socket IPC, explicit platform targets, and a narrower native accelerator exception. |
 | 2026-07-13 | Applied the same boundary to the generated-code fallback and added typed host-mediated inference plus code-specific limits. |
 | 2026-07-20 | Applied the boundary to the V1 generic offline dev agent under ADR 0018. |
+| 2026-07-23 | Added the live read-only folder share and session-scoped persistent workspace boundary, including required macOS VirtioFS and Windows Plan9 enforcement. |

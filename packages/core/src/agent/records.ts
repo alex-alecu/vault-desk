@@ -35,8 +35,12 @@ export interface EventRow {
   summary: string;
   language: string | null;
   code: string | null;
+  workspace_path: string | null;
+  command: string | null;
+  exit_code: number | null;
   stdout: string | null;
   stderr: string | null;
+  duration_ms: number | null;
   termination: string | null;
   created_at: string;
 }
@@ -87,9 +91,13 @@ export function eventFromRow(row: EventRow): AgentEvent {
     type: row.event_type,
     summary: row.summary,
     language: row.language,
-    code: row.code,
+    path: row.workspace_path,
+    source: row.code,
+    command: row.command,
+    exitCode: row.exit_code,
     stdout: row.stdout,
     stderr: row.stderr,
+    durationMs: row.duration_ms,
     termination: row.termination,
     createdAt: row.created_at,
   });

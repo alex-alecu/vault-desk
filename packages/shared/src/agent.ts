@@ -9,24 +9,44 @@ import {
 } from "./ids.js";
 import { InferencePerformanceSchema } from "./inference.js";
 
-export const AgentLanguageSchema = z.enum(["python", "node"]);
+export const AgentLanguageSchema = z.enum(["python", "node", "shell"]);
 
-export const AgentDecisionSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("execute"),
-    language: AgentLanguageSchema,
-    code: z.string().min(1).max(128_000),
-    summary: z.string().min(1).max(500),
-  }),
+export const AgentWorkspacePathSchema = z
+  .string()
+  .min(1)
+  .max(1_000)
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.includes("\\") &&
+      !value.includes("\0") &&
+      value.split("/").every((part) => part.length > 0 && part !== "." && part !== ".."),
+    "unsafe_workspace_path",
+  );
+
+export const AgentDecisionSchema = z.union([
+  z.discriminatedUnion("language", [
+    z.object({
+      action: z.literal("execute"),
+      language: z.enum(["python", "node"]),
+      path: AgentWorkspacePathSchema.optional(),
+      source: z.string().min(1).max(128_000),
+      summary: z.string().min(1).max(500),
+    }),
+    z.object({
+      action: z.literal("execute"),
+      language: z.literal("shell"),
+      command: z.string().min(1).max(128_000),
+      summary: z.string().min(1).max(500),
+    }),
+  ]),
   z.object({
     action: z.literal("respond"),
     response: z.string().min(1).max(64_000),
   }),
 ]);
 
-export const AgentExecutionResultSchema = z.object({
-  language: AgentLanguageSchema,
-  code: z.string().min(1).max(128_000),
+const AgentExecutionEvidenceSchema = z.object({
   exitCode: z.number().int().min(0).max(255),
   stdout: z.string().max(1_000_000),
   stderr: z.string().max(1_000_000),
@@ -43,6 +63,21 @@ export const AgentExecutionResultSchema = z.object({
     .max(16)
     .default([]),
 });
+
+export const AgentExecutionResultSchema = z.discriminatedUnion("language", [
+  AgentExecutionEvidenceSchema.extend({
+    language: z.enum(["python", "node"]),
+    path: AgentWorkspacePathSchema,
+    source: z.string().min(1).max(128_000),
+    command: z.null(),
+  }),
+  AgentExecutionEvidenceSchema.extend({
+    language: z.literal("shell"),
+    path: z.null(),
+    source: z.null(),
+    command: z.string().min(1).max(128_000),
+  }),
+]);
 
 export const AgentRunResultSchema = z.object({
   response: z.string().min(1),
@@ -95,9 +130,13 @@ export const AgentEventSchema = z.object({
   type: AgentEventTypeSchema,
   summary: z.string().min(1).max(1_000),
   language: AgentLanguageSchema.nullable().default(null),
-  code: z.string().max(128_000).nullable().default(null),
+  path: AgentWorkspacePathSchema.nullable().default(null),
+  source: z.string().max(128_000).nullable().default(null),
+  command: z.string().max(128_000).nullable().default(null),
+  exitCode: z.number().int().min(0).max(255).nullable().default(null),
   stdout: z.string().max(1_000_000).nullable().default(null),
   stderr: z.string().max(1_000_000).nullable().default(null),
+  durationMs: z.number().int().nonnegative().nullable().default(null),
   termination: z
     .enum(["completed", "timeout", "cancelled", "resource_limit", "crash"])
     .nullable()
@@ -137,7 +176,15 @@ export type AgentEventType = z.infer<typeof AgentEventTypeSchema>;
 export type AgentEvent = z.infer<typeof AgentEventSchema>;
 export type AgentEventDetail = Pick<
   AgentEvent,
-  "language" | "code" | "stdout" | "stderr" | "termination"
+  | "language"
+  | "path"
+  | "source"
+  | "command"
+  | "exitCode"
+  | "stdout"
+  | "stderr"
+  | "durationMs"
+  | "termination"
 >;
 export type AgentArtifactSummary = z.infer<typeof AgentArtifactSummarySchema>;
 export type AgentRunSnapshot = z.infer<typeof AgentRunSnapshotSchema>;

@@ -57,7 +57,7 @@ Avoid:
 - Generic agent frameworks that obscure policy and audit boundaries.
 - Generated boilerplate that is not exercised by a workflow.
 - Generated code for common supported document operations.
-- A persistent or networked coding workspace.
+- A networked, host-authorized, or unbounded coding workspace.
 
 ## Minimal Test Rule
 
@@ -148,7 +148,7 @@ When deciding whether to add a test, ask:
 - Can a certified microVM acquire a network device or turn typed host/guest IPC into a general proxy?
 - Can a native accelerator gain network, shell, credential, tool, approval, or arbitrary workspace authority?
 - Can generated code reach a network, host path, credential, package manager, approval, export, or generic model endpoint?
-- Can generated code modify the selected host folder or survive outside bounded guest scratch?
+- Can generated code modify the selected host folder or survive outside the validated bounded session workspace?
 - Can a session or attachment receive another folder's authority?
 - Can the Tauri webview invoke an arbitrary command, process, path, URL, endpoint, or model file?
 

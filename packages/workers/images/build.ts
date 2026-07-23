@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { generateGuestCapabilities } from "./capabilities.js";
 
 type GuestArchitecture = "aarch64" | "x86_64";
 interface Output {
@@ -145,6 +146,13 @@ async function install(selected: GuestArchitecture, source: string): Promise<voi
   await mkdir(destination, { recursive: true });
   await copyFile(join(source, output.kernelFile), join(destination, output.kernelFile));
   await copyFile(join(source, output.initramfsFile), join(destination, output.initramfsFile));
+  if (agentBuild) {
+    await generateGuestCapabilities(
+      join(destination, output.initramfsFile),
+      join(imageRoot, "agent/manifest.json"),
+      join(imageRoot, "agent/capabilities.json"),
+    );
+  }
 }
 
 const archiveValue = process.env.VAULT_BUILDROOT_ARCHIVE;

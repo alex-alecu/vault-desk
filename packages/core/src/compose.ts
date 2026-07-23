@@ -11,6 +11,11 @@ import {
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
+import {
+  addFolderGrant,
+  deleteConversationSession,
+  warmConversationSession,
+} from "./conversations/lifecycle.js";
 import { ConversationStore } from "./conversations/store.js";
 import { createFacade, type VaultCore, type VaultCorePorts } from "./facade.js";
 import { JobStore } from "./jobs/jobs.js";
@@ -81,27 +86,11 @@ function unavailableInference(message?: string) {
   };
 }
 
-function deleteConversationSession(
-  conversations: ConversationStore,
-  audit: AuditLog,
-  database: ReturnType<typeof openWorkspaceCatalog>["database"],
-  sessionId: string,
-): boolean {
-  return database.transaction(() => {
-    const deleted = conversations.deleteSession(sessionId);
-    audit.append({
-      type: "session.deleted",
-      outcome: deleted ? "succeeded" : "failed",
-      metadata: { sessionId },
-    });
-    return deleted;
-  })();
-}
-
 function createConversationPorts(
   conversations: ConversationStore,
   audit: AuditLog,
   database: ReturnType<typeof openWorkspaceCatalog>["database"],
+  agent?: AgentService,
 ): Pick<
   VaultCorePorts,
   | "addFolder"
@@ -116,19 +105,14 @@ function createConversationPorts(
 > {
   return {
     async addFolder(rootPath) {
-      return database.transaction(() => {
-        const folder = conversations.addFolder(rootPath);
-        audit.append({
-          type: "folder.granted",
-          outcome: "succeeded",
-          metadata: { folderId: folder.id },
-        });
-        return folder;
-      })();
+      return addFolderGrant(conversations, audit, database, rootPath);
     },
     listFolders: async () => conversations.listFolders(),
     resolveFolderPath: async (folderId) => conversations.resolveFolderPath(folderId),
     async revokeFolder(folderId) {
+      for (const sessionId of conversations.sessionIdsForFolder(folderId)) {
+        await agent?.closeSession(sessionId);
+      }
       const revoked = conversations.revokeFolder(folderId);
       audit.append({
         type: "folder.revoked",
@@ -149,7 +133,10 @@ function createConversationPorts(
       })();
     },
     async deleteSession(sessionId) {
-      return deleteConversationSession(conversations, audit, database, sessionId);
+      await agent?.closeSession(sessionId);
+      const deleted = deleteConversationSession(conversations, audit, database, sessionId);
+      if (deleted) await agent?.closeSession(sessionId, true);
+      return deleted;
     },
     async listSessions(folderId, cursor, limit) {
       return conversations.listSessions(folderId, cursor, limit);
@@ -166,6 +153,7 @@ function createConversationPorts(
       })();
     },
     async listMessages(sessionId) {
+      warmConversationSession(agent, audit, sessionId);
       return conversations.listMessages(sessionId);
     },
   };
@@ -195,7 +183,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
       protocolVersion: 1,
       status: "ok",
     }),
-    ...createConversationPorts(conversations, audit, catalog.database),
+    ...createConversationPorts(conversations, audit, catalog.database, agent),
     async saveDraft(sessionId, content) {
       return agent?.saveDraft(sessionId, content) ?? unavailableAgent();
     },
@@ -284,9 +272,17 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
           jobs,
           artifacts,
           inference,
-          new MacOsMicroVmLauncher(options.agentHelperPath, options.agentImageRoot),
+          new MacOsMicroVmLauncher(
+            options.agentHelperPath,
+            options.agentImageRoot,
+            resolve(workspaceRoot, ".vault", "agent-workspaces"),
+          ),
           audit,
         );
+  const restoredSessionId = conversations.mostRecentSessionId();
+  if (agent !== undefined && restoredSessionId !== undefined) {
+    warmConversationSession(agent, audit, restoredSessionId);
+  }
   return assembleVaultCore({
     catalog,
     workspace,

@@ -101,12 +101,13 @@
     }
   ],
   "networkFeaturesForbidden": ["CONFIG_INET", "CONFIG_IPV6", "CONFIG_WLAN", "CONFIG_WIRELESS"],
+  "capabilitiesFile": "capabilities.json",
   "outputs": {
     "aarch64": {
       "kernelFile": "Image",
       "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
       "initramfsFile": "rootfs.cpio",
-      "initramfsSha256": "fcb580df90dc4a540829e25f4f0092ea38854255682a6062e66b6d7bda4c4f81"
+      "initramfsSha256": "9800cf6a6f17cb1f4d87a25cc34d3065501aa4bfbde7a1561e925dbe750fd532"
     }
   }
 }

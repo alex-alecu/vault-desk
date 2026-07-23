@@ -51,7 +51,7 @@ function capturingInference(
 function executor(results: AgentExecutionResult[], calls: string[]): AgentExecutor {
   return {
     async execute(input) {
-      calls.push(input.code);
+      calls.push(input.language === "shell" ? input.command : input.source);
       const result = results.shift();
       if (result === undefined) throw new Error("Missing fake execution result.");
       return result;
@@ -61,7 +61,9 @@ function executor(results: AgentExecutionResult[], calls: string[]): AgentExecut
 
 const completed: AgentExecutionResult = {
   language: "python",
-  code: "print(2 + 2)",
+  path: "steps/0001.py",
+  source: "print(2 + 2)",
+  command: null,
   exitCode: 0,
   stdout: "4\n",
   stderr: "",
@@ -114,7 +116,7 @@ describe("AgentLoop schema", () => {
         }),
         expect.objectContaining({
           properties: expect.objectContaining({
-            code: expect.objectContaining({
+            source: expect.objectContaining({
               type: "array",
               items: expect.objectContaining({ maxLength: 512 }),
             }),
@@ -174,7 +176,7 @@ describe("AgentLoop source", () => {
           value: {
             action: "execute",
             language: "python",
-            code: ["value = 2 + 2", "print(value)"],
+            source: ["value = 2 + 2", "print(value)"],
             summary: "Calculate",
           },
           memory: {
@@ -216,10 +218,32 @@ describe("AgentLoop response", () => {
   });
 });
 
+function expectObservationPrompts(prompts: string[]): void {
+  expect(prompts[1]).toContain(`"source":"${completed.source ?? ""}"`);
+  expect(prompts[1]).not.toContain("private-input.xlsx");
+  expect(prompts[1]).toContain("Selected input count: 1.");
+  expect(prompts[1]).toContain("Successful execution count: 1.");
+  expect(prompts[1]).toContain("Never import pandas");
+  expect(prompts[1]).toContain("never assume a flat folder");
+  expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
+  expect(prompts[1]).toContain("path.suffix.lower()");
+  expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
+  expect(prompts[1]).toContain("smallest repair");
+  expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
+  expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
+  expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
+  expect(prompts[1]).toContain("Current required phase: calculate and verify");
+}
+
 describe("AgentLoop observations", () => {
   it("feeds bounded execution observations back to the model", async () => {
     const decisions: AgentDecision[] = [
-      { action: "execute", language: "python", code: completed.code, summary: "Calculate" },
+      {
+        action: "execute",
+        language: "python",
+        source: completed.source ?? "",
+        summary: "Calculate",
+      },
       { action: "respond", response: "The answer is 4." },
     ];
     const calls: string[] = [];
@@ -235,7 +259,7 @@ describe("AgentLoop observations", () => {
       inputNames: ["private-input.xlsx"],
     });
 
-    expect(calls).toEqual([completed.code]);
+    expect(calls).toEqual([completed.source ?? ""]);
     expect(result).toEqual({
       response: "The answer is 4.",
       executions: [completed],
@@ -247,20 +271,6 @@ describe("AgentLoop observations", () => {
         totalDurationMs: 1_200,
       },
     });
-    expect(prompts[1]).not.toContain(`"code":"${completed.code}"`);
-    expect(prompts[1]).not.toContain("private-input.xlsx");
-    expect(prompts[1]).toContain("Selected input count: 1.");
-    expect(prompts[1]).toContain("Successful execution count: 1.");
-    expect(prompts[1]).toContain("Never import pandas");
-    expect(prompts[1]).toContain("Never guess column positions");
-    expect(prompts[1]).toContain("sheet.iter_rows(values_only=True)");
-    expect(prompts[1]).toContain("path.suffix.lower()");
-    expect(prompts[1]).toContain("case-insensitive substring");
-    expect(prompts[1]).toContain("print(path.name, sheet.title, row)");
-    expect(prompts[1]).toContain("Never execute imports or definitions by themselves");
-    expect(prompts[1]).toContain("CommonMark Markdown when formatting improves readability");
-    expect(prompts[0]).toContain("Current required phase: inspect before calculating.");
-    expect(prompts[1]).not.toContain("Current required phase: inspect before calculating.");
-    expect(prompts[1]).toContain("Current required phase: calculate and verify");
+    expectObservationPrompts(prompts);
   });
 });

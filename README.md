@@ -2,18 +2,18 @@
 
 **Private work should stay private.**
 
-Vault Desk is building a local-first AI coworker for private folders and files. The M3 product target lets you select a folder or attach files to a chat; its local agent will inspect them and write Python or Node.js to complete the task without sending the work to a cloud service.
+Vault Desk is building a local-first AI coworker for private folders and files. The M3 product target lets you select a folder or attach files to a chat; its local agent can inspect them and run Python, Node.js, or installed guest shell tools without sending the work to a cloud service.
 
 > The community software is free. Vault Desk sells certainty.
 
 > [!IMPORTANT]
-> Vault Desk completed M0, cross-platform M1, and cross-platform M2. The M3 macOS desktop agent is implemented and physically certified: its packaged local agent runs Python and Node.js only inside a disposable offline microVM over user-selected read-only inputs. The global M3 launch gate remains open for Windows product integration and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
+> Vault Desk completed M0, cross-platform M1, and cross-platform M2. The M3 macOS desktop agent uses one session-scoped no-NIC microVM for Python, Node.js, and installed guest shell tools, with a live read-only selected folder and durable bounded workspace. The global M3 launch gate remains open for Windows product integration and physical certification. [The M3 status](docs/M3_STATUS.md) records exact evidence and deferrals.
 
 ## Why
 
 People should not have to upload private work—or learn models, runtimes, sandboxes, and context windows—to get useful help from an AI agent.
 
-Vault Desk hides that machinery. Folder sessions keep related conversations together. New chat accepts explicit attachments without granting a whole folder. The agent may create scripts and temporary artifacts inside its disposable workspace, but it cannot write to the selected host folder.
+Vault Desk hides that machinery. Folder sessions keep related conversations and a bounded agent workspace together. New chat accepts explicit attachments without granting a whole folder. The agent can create scripts and artifacts in that private workspace, but it cannot write to the selected host folder.
 
 The same platform is planned as a free community desktop app, a supported personal computer, and a governed office appliance. [The product brief](docs/PRODUCT.md) explains that shape without the implementation detail.
 
@@ -23,9 +23,9 @@ The same platform is planned as a free community desktop app, a supported person
 
 - [node-llama-cpp](https://node-llama-cpp.withcat.ai/) runs the local generation model in a separately constrained host-native worker. Contracts remain model-agnostic even though the first certified model is deliberate.
 
-- Agent-authored Python and Node.js run in a disposable [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md) with an immutable image, fixed offline libraries, read-only selected inputs, bounded scratch, typed host/guest IPC, and no package installation or host write authority.
+- Agent-authored Python, Node.js, and installed shell commands run in a session-scoped [no-network microVM](docs/adr/0012-worker-isolation-and-untrusted-documents.md) with an immutable image, a live read-only folder mount, a persistent 128 MiB workspace, typed host/guest IPC, and no package installation or selected-folder write authority.
 
-- Vault Core owns folder grants, sessions, policy, audit, model mediation, resource limits, cancellation, and worker teardown. The model proposes code; it never receives direct shell, filesystem, network, approval, or VM authority.
+- Vault Core owns folder grants, sessions, policy, audit, model mediation, resource limits, cancellation, and worker teardown. The model may propose bounded guest commands; it never receives a host shell, unrestricted filesystem, network, approval, or VM authority.
 
 - Vault Desk sends no application telemetry. Local customer-owned audit records stay on the device unless the user explicitly exports them.
 

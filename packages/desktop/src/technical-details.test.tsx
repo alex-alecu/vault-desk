@@ -20,7 +20,7 @@ const timeline = [
     eventType: "run.started",
     id: "limits",
     kind: "activity",
-    text: "Offline limits: 4 CPUs, 4 GiB memory, 128 MiB scratch.",
+    text: "Offline limits: 4 CPUs, 4 GiB memory, 128 MiB persistent workspace.",
   },
   {
     createdAt: timestamp,
@@ -66,7 +66,10 @@ describe("technical details drawer", () => {
 
     expect(markup).toContain("Technical details");
     expect(markup).toContain('aria-label="Close technical details"');
-    expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB scratch");
+    expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
+    expect(markup).toContain("Certified guest capabilities");
+    expect(markup).toContain("Python: 3.14.5");
+    expect(markup).toContain("/usr/bin/patch");
     expect(markup).toContain("print(&#x27;ok&#x27;)");
     expect(markup).toContain("Output:\nok");
     expect(markup).toContain("Termination: completed");

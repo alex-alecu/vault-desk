@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
-  AgentArtifactSummary,
+  AgentExecutionResult,
   AgentRunPerformance,
   AgentRunSnapshot,
   AgentRunSummary,
@@ -15,8 +15,10 @@ import type { JobStore } from "../jobs/jobs.js";
 import type { InferenceService } from "../runtime/inference.js";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
 import { AgentLoop } from "./loop.js";
+import { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
 
 const MODEL_ID = "gemma-4-12b-it-qat-q4_0";
@@ -34,6 +36,7 @@ interface ActiveRun {
   controller: AbortController;
   finished: Promise<void>;
   runId: string;
+  sessionId: string;
   thinking: string | null;
 }
 
@@ -47,22 +50,30 @@ function failureText(error: unknown): string {
 }
 
 function failureSummary(detail: string): string {
-  if (detail === "worker_input_limit_exceeded") {
+  if (detail === "agent_context_exhausted")
+    return "The required conversation and repair context no longer fits in the local model window.";
+  if (detail === "worker_input_limit_exceeded")
     return "The selected files exceed this task's supported input limit.";
-  }
-  if (detail.includes("memory")) {
+  if (detail.includes("memory"))
     return "The local model needs more available memory to complete this task.";
-  }
-  if (detail.includes("model") || detail.includes("Inference")) {
+  if (detail.includes("model") || detail.includes("Inference"))
     return "The local model could not be loaded or did not respond.";
-  }
   return "The local task could not be completed safely.";
+}
+
+function failureEvent(cancelled: boolean, detail: string) {
+  if (cancelled) return { type: "run.cancelled" as const, summary: "Task cancelled.", detail: {} };
+  return {
+    type: "run.failed" as const,
+    summary: failureSummary(detail),
+    detail: { stderr: detail },
+  };
 }
 
 export class AgentService {
   private readonly active = new Map<string, ActiveRun>();
   private closed = false;
-  private readonly inputs: AgentInputResolver;
+  private readonly sessions: AgentSessionManager;
 
   // biome-ignore lint/complexity/useMaxParams: explicit ports keep security authorities visible at construction.
   constructor(
@@ -71,11 +82,16 @@ export class AgentService {
     private readonly conversations: ConversationStore,
     private readonly jobs: JobStore,
     private readonly artifacts: ArtifactStore,
-    private readonly inference: Pick<InferenceService, "generate">,
-    private readonly launcher: CodeAgentLauncher,
+    private readonly inference: Pick<InferenceService, "generate"> &
+      Partial<Pick<InferenceService, "modelStatus">>,
+    launcher: CodeAgentLauncher,
     private readonly audit: AuditLog,
   ) {
-    this.inputs = new AgentInputResolver(database, store);
+    this.sessions = new AgentSessionManager(
+      launcher,
+      new AgentInputResolver(database, store),
+      LIMITS,
+    );
     store.recoverInterrupted();
   }
 
@@ -88,7 +104,9 @@ export class AgentService {
   }
 
   async addAttachment(sessionId: string, path: string): Promise<AttachmentSummary> {
+    if (this.active.size > 0) throw new Error("agent_busy");
     const item = await this.store.addAttachment(sessionId, path);
+    await this.sessions.closeSession(sessionId);
     this.audit.append({
       type: "attachment.added",
       outcome: "succeeded",
@@ -101,8 +119,10 @@ export class AgentService {
     return this.store.listAttachments(sessionId);
   }
 
-  removeAttachment(sessionId: string, attachmentId: string): boolean {
+  async removeAttachment(sessionId: string, attachmentId: string): Promise<boolean> {
+    if (this.active.size > 0) throw new Error("agent_busy");
     const removed = this.store.removeAttachment(sessionId, attachmentId);
+    if (removed) await this.sessions.closeSession(sessionId);
     this.audit.append({
       type: "attachment.removed",
       outcome: removed ? "succeeded" : "failed",
@@ -113,6 +133,7 @@ export class AgentService {
 
   start(sessionId: string, task: string): AgentRunSummary {
     if (this.closed) throw new Error("agent_service_closed");
+    if (this.active.size > 0) throw new Error("agent_busy");
     const run = this.database.transaction(() => {
       this.conversations.appendMessage(sessionId, "user", task);
       this.store.saveDraft(sessionId, "");
@@ -120,10 +141,18 @@ export class AgentService {
       return this.store.createRun(sessionId, job.id);
     })();
     const controller = new AbortController();
-    const finished = this.execute(run, task, controller.signal).finally(() => {
-      this.active.delete(run.jobId);
+    const finished = Promise.resolve()
+      .then(async () => await this.execute(run, task, controller.signal))
+      .finally(() => {
+        this.active.delete(run.jobId);
+      });
+    this.active.set(run.jobId, {
+      controller,
+      finished,
+      runId: run.id,
+      sessionId: run.sessionId,
+      thinking: null,
     });
-    this.active.set(run.jobId, { controller, finished, runId: run.id, thinking: null });
     return run;
   }
 
@@ -132,22 +161,50 @@ export class AgentService {
     const thinking = [...this.active.values()].find((run) => run.runId === runId)?.thinking ?? null;
     return { ...snapshot, thinking };
   }
-
   listRuns(sessionId: string): AgentRunSummary[] {
     return this.store.listRuns(sessionId);
   }
-
+  private async persistArtifacts(runId: string, outputs: AgentExecutionResult["artifacts"]) {
+    for (const output of outputs) {
+      const bytes = Buffer.from(output.bytesBase64, "base64");
+      if (bytes.toString("base64") !== output.bytesBase64)
+        throw new Error("agent_artifact_invalid");
+      this.store.addArtifact(runId, {
+        name: output.name,
+        mediaType: output.mediaType,
+        byteLength: bytes.byteLength,
+        contentHash: await this.artifacts.put(bytes),
+      });
+    }
+  }
+  private async contextTokens(): Promise<number> {
+    try {
+      return (await this.inference.modelStatus?.())?.contextSizeTokens ?? 8_192;
+    } catch {
+      return 8_192;
+    }
+  }
+  warmSession(sessionId: string): Promise<void> {
+    if (this.closed) return Promise.reject(new Error("agent_service_closed"));
+    if (this.active.size > 0) return Promise.resolve();
+    return this.sessions.warmSession(sessionId);
+  }
+  async closeSession(sessionId: string, deleteWorkspace = false): Promise<void> {
+    const active = [...this.active.values()].find((run) => run.sessionId === sessionId);
+    if (active !== undefined) {
+      active.controller.abort(new DOMException("Session closed.", "AbortError"));
+      await active.finished;
+    }
+    await this.sessions.closeSession(sessionId, deleteWorkspace);
+  }
   cancel(jobId: string): boolean {
     const active = this.active.get(jobId);
     const cancelled = this.jobs.cancel(jobId) !== undefined;
     active?.controller.abort(new DOMException("Agent run cancelled.", "AbortError"));
     return cancelled;
   }
-
   // biome-ignore lint/complexity/noExcessiveLinesPerFunction: the run lifecycle stays linear so cleanup and terminal persistence remain paired.
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: success, cancellation, failure, and cleanup are kept in one lifecycle boundary so terminal persistence cannot diverge.
   private async execute(run: AgentRunSummary, task: string, signal: AbortSignal): Promise<void> {
-    let resolved: Awaited<ReturnType<AgentInputResolver["resolve"]>> | undefined;
     try {
       this.database.transaction(() => {
         this.jobs.transition(run.jobId, "running");
@@ -155,25 +212,30 @@ export class AgentService {
         this.store.appendEvent(
           run.id,
           "run.started",
-          "Offline limits: 64 selected files, 6 executions, 120 seconds each, 4 CPUs, 4 GiB memory, 128 MiB scratch.",
+          "Offline limits: live read-only source, 6 executions, 120 seconds each, 4 CPUs, 4 GiB memory, and a persistent 128 MiB workspace.",
         );
       })();
-      resolved = await this.inputs.resolve(run.sessionId);
-      const loop = new AgentLoop(this.inference, {
-        execute: async (input, executionSignal) =>
-          await this.launcher.executeAgent({
-            jobId: run.jobId,
-            language: input.language,
-            code: input.code,
-            readonlyInputs: resolved?.files ?? [],
-            limits: LIMITS,
-            ...(executionSignal === undefined ? {} : { signal: executionSignal }),
-          }),
-      });
+      const messages = this.conversations.listMessages(run.sessionId);
+      const contextTokens = await this.contextTokens();
+      const loop = new AgentLoop(
+        this.inference,
+        {
+          execute: async (input, executionSignal) => {
+            const result = await this.sessions.execute(run.sessionId, input, executionSignal);
+            await this.persistArtifacts(run.id, result.artifacts);
+            return result;
+          },
+        },
+        contextTokens,
+      );
       const result = await loop.run({
         task,
         modelId: MODEL_ID,
-        inputNames: resolved.files.map((item) => item.name),
+        inputNames: this.store.listAttachments(run.sessionId).map((item) => item.name),
+        history: {
+          messages: messages.slice(0, -1),
+          runs: historyForSession(this.database, run.sessionId, run.id),
+        },
         signal,
         onThinking: (thinking) => {
           const active = this.active.get(run.jobId);
@@ -181,21 +243,6 @@ export class AgentService {
         },
         onEvent: (type, summary, detail) => this.store.appendEvent(run.id, type, summary, detail),
       });
-      const outputs: Array<Omit<AgentArtifactSummary, "id" | "runId" | "createdAt">> = [];
-      for (const execution of result.executions) {
-        for (const output of execution.artifacts) {
-          const bytes = Buffer.from(output.bytesBase64, "base64");
-          if (bytes.toString("base64") !== output.bytesBase64) {
-            throw new Error("agent_artifact_invalid");
-          }
-          outputs.push({
-            name: output.name,
-            mediaType: output.mediaType,
-            byteLength: bytes.byteLength,
-            contentHash: await this.artifacts.put(bytes),
-          });
-        }
-      }
       const performance: AgentRunPerformance = {
         promptTokens: result.inference.promptTokens,
         outputTokens: result.inference.outputTokens,
@@ -209,7 +256,6 @@ export class AgentService {
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
       this.database.transaction(() => {
-        for (const output of outputs) this.store.addArtifact(run.id, output);
         this.conversations.appendMessage(run.sessionId, "assistant", result.response, run.id);
         this.store.transitionRun(run.id, {
           state: "succeeded",
@@ -227,24 +273,19 @@ export class AgentService {
       const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);
       const state = cancelled ? "cancelled" : "failed";
       const detail = cancelled ? "cancelled" : failureText(error);
+      const event = failureEvent(cancelled, detail);
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
       this.database.transaction(() => {
         this.store.transitionRun(run.id, { state, error: detail });
         if (!cancelled) this.jobs.transition(run.jobId, "failed");
-        this.store.appendEvent(
-          run.id,
-          cancelled ? "run.cancelled" : "run.failed",
-          cancelled ? "Task cancelled." : failureSummary(detail),
-        );
+        this.store.appendEvent(run.id, event.type, event.summary, event.detail);
       })();
       this.audit.append({
         type: "agent.completed",
         outcome: "failed",
         metadata: { runId: run.id, jobId: run.jobId, code: detail },
       });
-    } finally {
-      await resolved?.dispose();
     }
   }
 
@@ -253,5 +294,6 @@ export class AgentService {
     const active = [...this.active.values()];
     for (const run of active) run.controller.abort(new DOMException("Core closed.", "AbortError"));
     await Promise.all(active.map((run) => run.finished));
+    await this.sessions.close();
   }
 }

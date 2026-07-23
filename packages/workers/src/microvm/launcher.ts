@@ -1,9 +1,4 @@
-import type {
-  AgentExecutionResult,
-  AgentLanguage,
-  MicroVmProbeReport,
-  WorkerLimits,
-} from "@vault/shared";
+import type { AgentExecutionResult, MicroVmProbeReport, WorkerLimits } from "@vault/shared";
 
 export interface MicroVmLaunchRequest {
   jobId: string;
@@ -24,14 +19,24 @@ export interface AgentInputFile {
 }
 
 export interface MicroVmAgentRequest {
-  jobId: string;
-  language: AgentLanguage;
-  code: string;
+  sessionId: string;
+  sourceFolder: string;
   readonlyInputs: AgentInputFile[];
   limits: WorkerLimits;
   signal?: AbortSignal;
 }
 
+export type AgentSessionExecution =
+  | { language: "python" | "node"; path: string; source: string }
+  | { language: "shell"; command: string };
+
+export interface CodeAgentSession {
+  execute(request: AgentSessionExecution, signal?: AbortSignal): Promise<AgentExecutionResult>;
+  cancel(): Promise<void>;
+  close(): Promise<void>;
+}
+
 export interface CodeAgentLauncher {
-  executeAgent(request: MicroVmAgentRequest): Promise<AgentExecutionResult>;
+  openAgentSession(request: MicroVmAgentRequest): Promise<CodeAgentSession>;
+  deleteWorkspace(sessionId: string): Promise<void>;
 }

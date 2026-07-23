@@ -25,6 +25,7 @@ const migrationNames = [
   "0003-conversations.sql",
   "0004-agent.sql",
   "0005-agent-performance.sql",
+  "0006-agent-workspace.sql",
 ];
 
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {
@@ -138,6 +139,10 @@ async function installMacAgentResources(): Promise<
   await copyFile(
     join(imageSource, "agent/manifest.json"),
     join(imageDestination, "agent/manifest.json"),
+  );
+  await copyFile(
+    join(imageSource, "agent/capabilities.json"),
+    join(imageDestination, "agent/capabilities.json"),
   );
   const kernel = join(imageDestination, ".generated/agent/artifacts/aarch64/Image");
   const initramfs = join(imageDestination, ".generated/agent/artifacts/aarch64/rootfs.cpio");

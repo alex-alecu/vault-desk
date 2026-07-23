@@ -18,6 +18,7 @@
     "models": "assets/models.json",
     "guestImage": "packages/workers/images/manifest.json",
     "agentGuestImage": "packages/workers/images/agent/manifest.json",
+    "agentGuestCapabilities": "packages/workers/images/agent/capabilities.json",
     "agentGuestReview": "docs/research/m3-agent-guest-dependency-review.md"
   },
   "directDependencies": [

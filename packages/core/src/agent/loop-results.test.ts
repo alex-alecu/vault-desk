@@ -12,7 +12,9 @@ const performance = {
 };
 const completed: AgentExecutionResult = {
   language: "python",
-  code: "print(2 + 2)",
+  path: "steps/0001.py",
+  source: "print(2 + 2)",
+  command: null,
   exitCode: 0,
   stdout: "4\n",
   stderr: "",
@@ -61,7 +63,7 @@ function capturingInference(
 function executor(results: AgentExecutionResult[], calls: string[]): AgentExecutor {
   return {
     async execute(input) {
-      calls.push(input.code);
+      calls.push(input.language === "shell" ? input.command : input.source);
       const result = results.shift();
       if (result === undefined) throw new Error("Missing fake execution result.");
       return result;
@@ -72,13 +74,13 @@ function executor(results: AgentExecutionResult[], calls: string[]): AgentExecut
 describe("AgentLoop repairs", () => {
   it("returns failed and empty-output source for focused repair", async () => {
     const failed = { ...completed, exitCode: 1, stdout: "", stderr: "SyntaxError" };
-    const empty = { ...completed, code: "print('')", stdout: "" };
+    const empty = { ...completed, source: "print('')", stdout: "" };
     const prompts: string[] = [];
     const loop = new AgentLoop(
       capturingInference(
         [
-          { action: "execute", language: "python", code: failed.code, summary: "Try" },
-          { action: "execute", language: "python", code: empty.code, summary: "Retry" },
+          { action: "execute", language: "python", source: failed.source ?? "", summary: "Try" },
+          { action: "execute", language: "python", source: empty.source, summary: "Retry" },
           { action: "respond", response: "Could not verify." },
         ],
         prompts,
@@ -88,28 +90,29 @@ describe("AgentLoop repairs", () => {
 
     await loop.run({ task: "Inspect input", modelId: "test-model" });
 
-    expect(prompts[1]).toContain(`"codeToRepair":"${failed.code}"`);
-    expect(prompts[2]).toContain(`"codeToRepair":"${empty.code}"`);
+    expect(prompts[1]).toContain(`"source":"${failed.source}"`);
+    expect(prompts[1]).toContain(`"path":"${failed.path}"`);
+    expect(prompts[2]).toContain(`"source":"${empty.source}"`);
   });
 });
 
 describe("AgentLoop execution-backed results", () => {
   it("returns the verified XLSX result without model retyping", async () => {
-    const inspection = { ...completed, code: "print('rows')", stdout: "rows\n" };
+    const inspection = { ...completed, source: "print('rows')", stdout: "rows\n" };
     const resultEvidence = {
       ...completed,
-      code: "print('Total: 4')",
+      source: "print('Total: 4')",
       stdout: "| Count | Total |\n| ---: | ---: |\n| 1 | 4 |\n",
     };
     const schemas: Array<Record<string, unknown>> = [];
     const loop = new AgentLoop(
       capturingInference(
         [
-          { action: "execute", language: "python", code: inspection.code, summary: "Inspect" },
+          { action: "execute", language: "python", source: inspection.source, summary: "Inspect" },
           {
             action: "execute",
             language: "python",
-            code: resultEvidence.code,
+            source: resultEvidence.source,
             summary: "Calculate",
           },
           { action: "respond", response: "Hallucinated total: 5" },
@@ -138,7 +141,7 @@ describe("AgentLoop limits", () => {
     const calls: string[] = [];
     const results = Array.from({ length: 6 }, (_, index) => ({
       ...completed,
-      code: `print(${index})`,
+      source: `print(${index})`,
     }));
     const schemas: Array<Record<string, unknown>> = [];
     let generation = 0;
@@ -152,7 +155,7 @@ describe("AgentLoop limits", () => {
               ? {
                   action: "execute",
                   language: "python",
-                  code: `print(${generation - 1})`,
+                  source: `print(${generation - 1})`,
                   summary: "Continue",
                 }
               : { action: "respond", response: "Execution limit reached." },
@@ -181,12 +184,12 @@ describe("AgentLoop duplicate decisions", () => {
     const prompts: string[] = [];
     const nextCode = "print('next')";
     const decisions: AgentDecision[] = [
-      { action: "execute", language: "python", code: completed.code, summary: "Step 1" },
-      { action: "execute", language: "python", code: completed.code, summary: "Repeat" },
-      { action: "execute", language: "python", code: nextCode, summary: "Step 2" },
+      { action: "execute", language: "python", source: completed.source ?? "", summary: "Step 1" },
+      { action: "execute", language: "python", source: completed.source ?? "", summary: "Repeat" },
+      { action: "execute", language: "python", source: nextCode, summary: "Step 2" },
       { action: "respond", response: "Done." },
     ];
-    const second = { ...completed, code: nextCode, stdout: "next\n" };
+    const second = { ...completed, source: nextCode, stdout: "next\n" };
     const loop = new AgentLoop(
       capturingInference(decisions, prompts),
       executor([{ ...completed }, second], calls),
@@ -194,7 +197,7 @@ describe("AgentLoop duplicate decisions", () => {
 
     const result = await loop.run({ task: "Complete two steps", modelId: "test-model" });
 
-    expect(calls).toEqual([completed.code, nextCode]);
+    expect(calls).toEqual([completed.source ?? "", nextCode]);
     expect(result.executions).toEqual([completed, second]);
     expect(prompts[2]).toContain("Rejected duplicate successful programs: 1.");
   });

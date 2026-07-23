@@ -4,7 +4,9 @@ export { FakeInferenceWorker } from "./inference/fake.js";
 export { decodeFrame, encodeFrame, FrameDecoder } from "./ipc.js";
 export type {
   AgentInputFile,
+  AgentSessionExecution,
   CodeAgentLauncher,
+  CodeAgentSession,
   MicroVmAgentRequest,
   MicroVmLauncher,
   MicroVmLaunchRequest,

@@ -16,11 +16,12 @@ flowchart TD
     Core --> Agent["Core-owned agent loop"]
 
     Agent --> Inference["Constrained host-native inference"]
-    Agent --> VM["Disposable no-NIC microVM"]
-    VM --> Inputs["Read-only selected inputs"]
-    VM --> Scratch["Bounded ephemeral scratch"]
+    Agent --> VM["Session-scoped no-NIC microVM"]
+    VM --> Inputs["Live read-only /source"]
+    VM --> Scratch["Persistent bounded /workspace"]
     VM --> Python["Fixed Python and libraries"]
     VM --> Node["Fixed Node.js runtime"]
+    VM --> Shell["Fixed /bin/sh and BusyBox"]
     VM --> Agent
 
     Sessions --> UI
@@ -41,3 +42,4 @@ flowchart TD
 |---|---|
 | 2026-07-10 | Created the initial desktop architecture diagram. |
 | 2026-07-20 | Reframed the desktop around folder sessions and the generic offline dev-agent microVM. |
+| 2026-07-23 | Added the live read-only source mount, durable session workspace, and guest shell/tool capability. |

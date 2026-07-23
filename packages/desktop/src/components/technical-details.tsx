@@ -1,4 +1,5 @@
 import type { AgentArtifactSummary } from "@vault/shared";
+import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { TimelineItem } from "../state.js";
 import { Icon } from "./icons.js";
 
@@ -15,6 +16,22 @@ function isTechnical(item: TimelineItem): boolean {
   );
 }
 
+function guestCapabilities(): string {
+  const runtimes = Object.entries(capabilities.runtimes).map(
+    ([name, version]) => `${name}: ${version}`,
+  );
+  return [
+    `Source: ${capabilities.sourceMount.path} (${capabilities.sourceMount.mode}, live)`,
+    `Workspace: ${capabilities.workspaceMount.path} (${capabilities.workspaceMount.maximumBytes} bytes)`,
+    `Temporary runtime: ${capabilities.runtimeMount.path} (${capabilities.runtimeMount.maximumBytes} bytes, ephemeral)`,
+    `Shell: ${capabilities.shell}`,
+    "Runtimes:",
+    ...runtimes,
+    "Executables:",
+    ...capabilities.executables,
+  ].join("\n");
+}
+
 export function TechnicalDetails({ artifacts, open, timeline, onClose }: TechnicalDetailsProps) {
   const details = timeline.filter(isTechnical);
   return open ? (
@@ -22,7 +39,7 @@ export function TechnicalDetails({ artifacts, open, timeline, onClose }: Technic
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
-          <p>Code, logs, and local task limits</p>
+          <p>Code, commands, logs, local limits, and generated files</p>
         </div>
         <button aria-label="Close technical details" onClick={onClose} type="button">
           <Icon name="close" />
@@ -34,6 +51,13 @@ export function TechnicalDetails({ artifacts, open, timeline, onClose }: Technic
             Technical details will appear after a task runs.
           </p>
         ) : null}
+        <article className="technical-details-item">
+          <p>Certified guest capabilities</p>
+          <details>
+            <summary>Show tools and runtimes</summary>
+            <pre>{guestCapabilities()}</pre>
+          </details>
+        </article>
         {details.map((item) => (
           <article className="technical-details-item" key={item.id}>
             <p>{item.text}</p>

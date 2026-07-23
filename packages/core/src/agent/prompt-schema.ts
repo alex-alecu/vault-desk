@@ -1,0 +1,83 @@
+const FINAL_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    action: { const: "respond" },
+    response: {
+      type: "array",
+      items: { type: "string", maxLength: 512 },
+      minItems: 1,
+      maxItems: 100,
+    },
+  },
+  required: ["action", "response"],
+  additionalProperties: false,
+} as const;
+
+const SOURCE_EXECUTION_SCHEMA = {
+  type: "object",
+  properties: {
+    action: { const: "execute" },
+    language: { enum: ["python", "node"] },
+    path: { type: "string", minLength: 1, maxLength: 1_000 },
+    source: {
+      type: "array",
+      items: { type: "string", maxLength: 512 },
+      minItems: 1,
+      maxItems: 250,
+    },
+    summary: { type: "string", minLength: 1, maxLength: 500 },
+  },
+  required: ["action", "language", "source", "summary"],
+  additionalProperties: false,
+} as const;
+
+const SHELL_EXECUTION_SCHEMA = {
+  type: "object",
+  properties: {
+    action: { const: "execute" },
+    language: { const: "shell" },
+    command: {
+      type: "array",
+      items: { type: "string", minLength: 1, maxLength: 512 },
+      minItems: 1,
+      maxItems: 1,
+    },
+    summary: { type: "string", minLength: 1, maxLength: 500 },
+  },
+  required: ["action", "language", "command", "summary"],
+  additionalProperties: false,
+} as const;
+
+const DECISION_SCHEMA = {
+  oneOf: [FINAL_RESPONSE_SCHEMA, SOURCE_EXECUTION_SCHEMA, SHELL_EXECUTION_SCHEMA],
+} as const;
+
+function namedSourceLanguage(task: string): "python" | "node" | undefined {
+  const python = /\bpython\b/iu.test(task);
+  const node = /\bnode(?:\.js)?\b/iu.test(task);
+  if (python === node) return undefined;
+  return python ? "python" : "node";
+}
+
+function sourceExecutionSchema(language: "python" | "node" | undefined) {
+  if (language === undefined) return SOURCE_EXECUTION_SCHEMA;
+  return {
+    ...SOURCE_EXECUTION_SCHEMA,
+    properties: {
+      ...SOURCE_EXECUTION_SCHEMA.properties,
+      language: { const: language },
+    },
+  } as const;
+}
+
+export function agentDecisionJsonSchema(
+  task: string,
+  finalResponse: boolean,
+  requiresSourceExecution: boolean,
+) {
+  if (finalResponse) return FINAL_RESPONSE_SCHEMA;
+  const language = namedSourceLanguage(task);
+  const source = sourceExecutionSchema(language);
+  if (requiresSourceExecution) return source;
+  return language === undefined ? DECISION_SCHEMA : { oneOf: [FINAL_RESPONSE_SCHEMA, source] };
+}

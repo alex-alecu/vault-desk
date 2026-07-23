@@ -188,6 +188,23 @@ export class ConversationStore {
     );
   }
 
+  sessionIdsForFolder(folderId: string): string[] {
+    return (
+      this.database.prepare("SELECT id FROM sessions WHERE folder_id = ?").all(folderId) as Array<{
+        id: string;
+      }>
+    ).map((row) => row.id);
+  }
+
+  mostRecentSessionId(): string | undefined {
+    const row = this.database
+      .prepare(
+        "SELECT s.id FROM sessions s LEFT JOIN folder_grants f ON f.id = s.folder_id WHERE s.folder_id IS NULL OR f.revoked_at IS NULL ORDER BY s.updated_at DESC, s.id DESC LIMIT 1",
+      )
+      .get() as { id: string } | undefined;
+    return row?.id;
+  }
+
   listSessions(folderId: string | null, cursor?: string, limit = 5): SessionPage {
     if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new Error("invalid_page_limit");
     const values: unknown[] = folderId === null ? [] : [folderId];

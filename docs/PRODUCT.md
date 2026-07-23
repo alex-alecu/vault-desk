@@ -47,8 +47,8 @@ Expected characteristics:
 - Local and offline by default.
 - Windows and macOS initially.
 - Supported Apple, AMD, and NVIDIA hardware paths.
-- A generic agent that can inspect selected folders or attachments and write Python or Node.js inside an offline microVM.
-- Read-only access to host source folders and bounded disposable guest scratch.
+- A generic agent that can inspect selected folders or attachments and use Python, Node.js, or installed guest commands inside an offline microVM.
+- Live read-only access to host source folders and a durable bounded guest workspace.
 - No artificial document, message, or usage limits.
 - Community documentation and support.
 - Optional paid professional support.
@@ -125,7 +125,7 @@ Users should ask for outcomes:
 - Turn these CSV files into one clean report.
 - Inspect these images and create a contact sheet.
 
-For V1, the local model may author Python or Node.js for the requested task, but execution occurs only in a disposable no-NIC microVM with fixed offline libraries, read-only selected inputs, and bounded scratch. Purpose-built deterministic document operations may follow after V1 when measurements justify them.
+For V1, the local model may author Python, Node.js, or guest shell commands for the requested task, but execution occurs only in a session-scoped no-NIC microVM with fixed offline tools, a live read-only selected-folder mount, and a persistent bounded workspace. Purpose-built deterministic document operations may follow after V1 when measurements justify them.
 
 ### Desktop Interaction
 
@@ -180,3 +180,4 @@ Medical administration is a later target. Initial medical scope should avoid aut
 | 2026-07-17 | Prohibited all application telemetry and distinguished explicit user exports from local customer-owned audit records. |
 | 2026-07-20 | Made the generic offline dev agent the first desktop product and moved deterministic document specialization after V1. |
 | 2026-07-22 | Grouped creation actions under their matching sidebar sections. |
+| 2026-07-23 | Added session-scoped offline execution with a live read-only folder mount and persistent bounded workspace. |
