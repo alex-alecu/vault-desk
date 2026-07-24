@@ -1,10 +1,11 @@
 use crate::Arguments;
 use crate::acl;
 use crate::socket;
+use crate::source_access::SourceAccess;
 use std::error::Error;
 use std::ffi::{OsStr, c_void};
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::ptr::{null, null_mut};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -132,17 +133,6 @@ fn take_document(document: *mut u16) -> String {
     text
 }
 
-struct SourceAccess {
-    runtime_id: String,
-    path: PathBuf,
-}
-
-impl Drop for SourceAccess {
-    fn drop(&mut self) {
-        let _ = acl::revoke(&self.runtime_id, &self.path);
-    }
-}
-
 struct System {
     handle: Handle,
     source_access: Option<SourceAccess>,
@@ -193,17 +183,45 @@ impl System {
         )?;
         operation.wait("property query")
     }
+
+    fn terminate(&mut self) -> Result<(), Box<dyn Error>> {
+        if self.handle.is_null() {
+            return Ok(());
+        }
+        let result = (|| {
+            let operation = Operation::new()?;
+            started(
+                unsafe { HcsTerminateComputeSystem(self.handle, operation.0, null()) },
+                "compute system termination",
+            )?;
+            operation.wait("compute system termination")?;
+            Ok(())
+        })();
+        unsafe { HcsCloseComputeSystem(self.handle) };
+        self.handle = null_mut();
+        result
+    }
+
+    fn teardown(mut self) -> Result<(), Box<dyn Error>> {
+        let termination = self.terminate();
+        let revocation = match self.source_access.take() {
+            Some(access) => access.revoke(),
+            None => Ok(()),
+        };
+        match (termination, revocation) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(error), Ok(())) | (Ok(()), Err(error)) => Err(error),
+            (Err(termination), Err(revocation)) => Err(format!(
+                "{termination}; source ACL revocation also failed: {revocation}"
+            )
+            .into()),
+        }
+    }
 }
 
 impl Drop for System {
     fn drop(&mut self) {
-        if let Ok(operation) = Operation::new() {
-            let status = unsafe { HcsTerminateComputeSystem(self.handle, operation.0, null()) };
-            if status >= 0 {
-                let _ = operation.wait("compute system termination");
-            }
-        }
-        unsafe { HcsCloseComputeSystem(self.handle) };
+        let _ = self.terminate();
     }
 }
 
@@ -230,43 +248,46 @@ fn runtime_id(properties: &str) -> Result<&str, Box<dyn Error>> {
         .ok_or_else(|| "RuntimeId was unterminated.".into())
 }
 
-fn start(configuration: &str, arguments: &Arguments) -> Result<System, Box<dyn Error>> {
+fn start(configuration: &str, arguments: &Arguments) -> Result<(System, String), Box<dyn Error>> {
     let mut system = System::create(configuration)?;
     let runtime = system.properties()?;
-    let runtime_id = runtime_id(&runtime)?;
+    let runtime_id = runtime_id(&runtime)?.to_owned();
     if let Some(parent) = arguments
         .inputs
         .first()
         .or(arguments.scratch.as_ref())
         .and_then(|path| path.parent())
     {
-        acl::grant_traverse(runtime_id, parent)?;
+        acl::grant_traverse(&runtime_id, parent)?;
     }
     for input in &arguments.inputs {
-        acl::grant_read(runtime_id, input)?;
+        acl::grant_read(&runtime_id, input)?;
     }
     if let Some(scratch) = &arguments.scratch {
-        acl::grant_full(runtime_id, scratch)?;
+        acl::grant_full(&runtime_id, scratch)?;
     }
     if let Some(source) = &arguments.source {
-        acl::grant_tree_read(runtime_id, source)?;
-        system.source_access = Some(SourceAccess {
-            runtime_id: runtime_id.to_owned(),
-            path: source.clone(),
-        });
+        acl::grant_tree_read(&runtime_id, source)?;
+        system.source_access = Some(SourceAccess::new(runtime_id.clone(), source.clone()));
     }
     system.start()?;
-    Ok(system)
+    Ok((system, runtime_id))
+}
+
+fn finish<T>(system: System, run: Result<T, Box<dyn Error>>) -> Result<T, Box<dyn Error>> {
+    match (run, system.teardown()) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+        (Err(run), Err(teardown)) => Err(format!("{run}; teardown also failed: {teardown}").into()),
+    }
 }
 
 pub fn run_probe(configuration: &str, arguments: &Arguments) -> Result<String, Box<dyn Error>> {
-    let system = start(configuration, arguments)?;
-    let runtime = system.properties()?;
-    socket::exchange(runtime_id(&runtime)?)
+    let (system, runtime_id) = start(configuration, arguments)?;
+    finish(system, socket::exchange(&runtime_id))
 }
 
 pub fn run_agent(configuration: &str, arguments: &Arguments) -> Result<(), Box<dyn Error>> {
-    let system = start(configuration, arguments)?;
-    let runtime = system.properties()?;
-    socket::relay(runtime_id(&runtime)?)
+    let (system, runtime_id) = start(configuration, arguments)?;
+    finish(system, socket::relay(&runtime_id))
 }

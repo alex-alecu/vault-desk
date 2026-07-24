@@ -4,6 +4,8 @@ mod acl;
 mod hcs;
 #[cfg(windows)]
 mod socket;
+#[cfg(windows)]
+mod source_access;
 
 #[cfg(windows)]
 use std::env;
