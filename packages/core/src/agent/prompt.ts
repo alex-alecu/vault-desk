@@ -5,7 +5,7 @@ import {
   type InferencePerformance,
 } from "@vault/shared";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
-import type { GenerationInput } from "../runtime/inference.js";
+import { effectiveGenerationInput, type GenerationInput } from "../runtime/inference.js";
 import { assembleHistory, type DurableAgentHistory } from "./history.js";
 import { agentDecisionJsonSchema } from "./prompt-schema.js";
 
@@ -200,21 +200,21 @@ export function generationInput(
     JSON.stringify({ modelId: input.modelId, jsonSchema, contextSize: "auto", maxTokens: 4096 })
       .length / 4,
   );
-  const result: GenerationInput = {
+  const result = effectiveGenerationInput({
     modelId: input.modelId,
     prompt: prompt(input, progress, finalResponse, { contextTokens, requestOverheadTokens }),
     jsonSchema,
     contextSize: "auto",
     maxTokens: 4096,
-  };
+  });
   const requestTokens = Math.ceil(JSON.stringify(result).length / 4);
   const requestBudget = Math.max(0, contextTokens - 4_096);
   if (requestTokens > requestBudget) {
     requestOverheadTokens += requestTokens - requestBudget;
-    result.prompt = prompt(input, progress, finalResponse, {
-      contextTokens,
-      requestOverheadTokens,
-    });
+    result.prompt = effectiveGenerationInput({
+      ...result,
+      prompt: prompt(input, progress, finalResponse, { contextTokens, requestOverheadTokens }),
+    }).prompt;
   }
   if (Math.ceil(JSON.stringify(result).length / 4) > requestBudget) {
     throw new Error("agent_context_exhausted");

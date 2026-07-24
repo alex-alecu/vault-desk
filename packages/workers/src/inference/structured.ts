@@ -73,17 +73,14 @@ async function gemmaStructuredValue(
   callbacks: StructuredCallbacks,
 ): Promise<unknown> {
   try {
-    await session.prompt(
-      `${request.prompt}\nCall exactly one available function with your answer.`,
-      {
-        functions: structuredFunctions(request.jsonSchema),
-        maxTokens: request.maxTokens,
-        budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },
-        temperature: 0,
-        onResponseChunk: callbacks.onResponseChunk,
-        onToken: callbacks.onToken,
-      },
-    );
+    await session.prompt(request.prompt, {
+      functions: structuredFunctions(request.jsonSchema),
+      maxTokens: request.maxTokens,
+      budgets: { thoughtTokens: Math.min(1_024, Math.floor(request.maxTokens / 2)) },
+      temperature: 0,
+      onResponseChunk: callbacks.onResponseChunk,
+      onToken: callbacks.onToken,
+    });
     throw new Error("structured_tool_call_required");
   } catch (error) {
     if (error instanceof StructuredResult) return error.value;

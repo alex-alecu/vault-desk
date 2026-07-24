@@ -27,6 +27,7 @@ const migrationNames = [
   "0005-agent-performance.sql",
   "0006-agent-workspace.sql",
   "0007-agent-executions.sql",
+  "0008-agent-inference-traces.sql",
 ];
 
 function run(command: string, args: string[], env?: NodeJS.ProcessEnv): void {

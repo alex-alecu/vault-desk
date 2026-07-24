@@ -24,7 +24,11 @@ function failure(request: RpcRequest | undefined, code: ErrorCode, message: stri
 
 function executionFailure(request: RpcRequest, error: unknown): RpcResponse {
   const message = error instanceof Error ? error.message : "";
-  if (message === "folder_not_found" || message === "session_not_found") {
+  if (
+    message === "folder_not_found" ||
+    message === "session_not_found" ||
+    message === "run_not_found"
+  ) {
     return failure(request, "not_found", "The requested record was not found.");
   }
   if (message === "session_busy") {
@@ -160,6 +164,12 @@ async function getAgentRun(core: VaultCore, request: RpcRequest): Promise<RpcRes
   return success(request, await core.getAgentRun(runId.data));
 }
 
+async function getAgentTrace(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
+  const runId = AgentRunIdSchema.safeParse(request.params.runId);
+  if (!runId.success) return failure(request, "invalid_request", "Invalid run id.");
+  return success(request, await core.getAgentTrace(runId.data));
+}
+
 async function listAgentRuns(core: VaultCore, request: RpcRequest): Promise<RpcResponse> {
   return success(request, await core.listAgentRuns(sessionIdParam(request)));
 }
@@ -215,6 +225,8 @@ async function dispatchMethod(core: VaultCore, request: RpcRequest): Promise<Rpc
       return listAgentRuns(core, request);
     case "agent.get":
       return getAgentRun(core, request);
+    case "agent.trace":
+      return getAgentTrace(core, request);
     case "agent.cancel":
       return cancelAgent(core, request);
     case "model.status":

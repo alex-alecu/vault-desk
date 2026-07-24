@@ -79,9 +79,7 @@ function unavailableInference(message?: string) {
         ...(message === undefined ? {} : { message }),
       };
     },
-    async unloadModel() {
-      return false;
-    },
+    unloadModel: async () => false,
     async close() {},
   };
 }
@@ -165,13 +163,14 @@ interface CoreServices {
   audit: AuditLog;
   jobs: JobStore;
   conversations: ConversationStore;
+  agentStore: AgentStore;
   inference: InferenceSupervisor | ReturnType<typeof unavailableInference>;
   agent?: AgentService;
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: facade assembly intentionally lists every public capability.
 function assembleVaultCore(services: CoreServices): VaultCore {
-  const { catalog, workspace, audit, jobs, conversations, inference, agent } = services;
+  const { catalog, workspace, audit, jobs, conversations, agentStore, inference, agent } = services;
   const unavailableAgent = (): never => {
     throw Object.assign(new Error("agent_not_packaged"), { code: "unsupported" });
   };
@@ -208,6 +207,7 @@ function assembleVaultCore(services: CoreServices): VaultCore {
     async getAgentRun(runId) {
       return agent?.snapshot(runId) ?? unavailableAgent();
     },
+    getAgentTrace: async (runId) => agentStore.trace.get(runId),
     async cancelAgent(jobId) {
       return agent?.cancel(jobId) ?? false;
     },
@@ -221,8 +221,8 @@ function assembleVaultCore(services: CoreServices): VaultCore {
       return cancelled;
     },
     verifyAudit: async () => audit.verify(),
-    generate: (input, signal, onThinkingDelta) =>
-      inference.generate(input, signal, onThinkingDelta),
+    generate: (input, signal, onThinkingDelta, identity) =>
+      inference.generate(input, signal, onThinkingDelta, identity),
     embed: (input, signal) => inference.embed(input, signal),
     modelStatus: () => inference.modelStatus(),
     unloadModel: () => inference.unloadModel(),
@@ -249,6 +249,8 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
   const jobs = new JobStore(catalog.database);
   const conversations = new ConversationStore(catalog.database);
   const artifacts = await ArtifactStore.create(scope);
+  const agentStore = new AgentStore(catalog.database, artifacts, (event) => audit.append(event));
+  agentStore.recoverInterrupted();
   let inference: InferenceSupervisor | ReturnType<typeof unavailableInference>;
   let inferenceAvailable = false;
   try {
@@ -267,7 +269,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
       ? undefined
       : new AgentService(
           catalog.database,
-          new AgentStore(catalog.database, artifacts),
+          agentStore,
           conversations,
           jobs,
           artifacts,
@@ -289,6 +291,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
     audit,
     jobs,
     conversations,
+    agentStore,
     inference,
     ...(agent === undefined ? {} : { agent }),
   });
