@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node --import tsx run-tauri.ts build",
     "build:sidecar": "node --import tsx build-sidecar.ts",
+    "check:sidecar": "node --import tsx build-sidecar.ts --check",
     "dev": "vite --port 1420 --strictPort",
     "build:web": "vite build",
     "tauri": "node --import tsx run-tauri.ts"

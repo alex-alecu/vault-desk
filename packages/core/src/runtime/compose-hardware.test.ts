@@ -16,7 +16,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe("8 GB Mac composition", () => {
+describe.skipIf(process.platform !== "darwin")("8 GB Mac composition", () => {
   it("returns an unsupported model before opening a model store or worker", async () => {
     const workspaceDir = await mkdtemp(join(tmpdir(), "vault-unsupported-hardware-"));
     roots.push(workspaceDir);

@@ -239,7 +239,7 @@ async function installResources(identity: PackageIdentity): Promise<ResourceHash
     windowsPipeGuard = await sha256(pipeGuard);
   }
   const productResources =
-    process.platform === "darwin"
+    process.platform === "darwin" && !process.argv.includes("--check")
       ? {
           ...(await installInferenceResources()),
           ...(await installMacAgentResources()),
@@ -253,7 +253,7 @@ async function installResources(identity: PackageIdentity): Promise<ResourceHash
     resources: { migrations, ...productResources },
   });
   const resourceManifest =
-    process.platform === "darwin"
+    process.platform === "darwin" && !process.argv.includes("--check")
       ? await writePackageCompliance(
           resourcesRoot,
           join(workerResourcesRoot, "images/agent/manifest.json"),
