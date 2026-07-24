@@ -6,6 +6,7 @@ import {
   JobIdSchema,
   RequestIdSchema,
 } from "./ids.js";
+import { MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS } from "./inference.js";
 
 export const AgentInferencePhaseSchema = z.enum(["decision", "final_response"]);
 export const AgentInferenceOutcomeSchema = z.enum([
@@ -32,7 +33,7 @@ export const AgentInferenceTurnSchema = z.object({
   promptHash: ContentHashSchema,
   schemaHash: ContentHashSchema,
   responseHash: ContentHashSchema.nullable(),
-  prompt: z.string().min(1).max(256_000),
+  prompt: z.string().min(1).max(MAX_EFFECTIVE_GENERATION_PROMPT_CHARACTERS),
   jsonSchema: z.record(z.string(), z.unknown()),
   structuredResponse: z.unknown().nullable(),
   outcome: AgentInferenceOutcomeSchema.nullable(),

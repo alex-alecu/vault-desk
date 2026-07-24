@@ -1,6 +1,9 @@
+import { InferenceWorkerRequestSchema, JobIdSchema } from "@vault/shared";
 import { describe, expect, it } from "vitest";
 import { generationInput } from "../agent/prompt.js";
-import { effectiveGenerationInput } from "./inference.js";
+import { createGenerationRequest, effectiveGenerationInput } from "./inference.js";
+
+const MAXIMUM_INPUT_PROMPT = "x".repeat(256_000);
 
 describe("M3 effective inference prompts", () => {
   it("constructs the exact Gemma function-call prompt before worker dispatch", () => {
@@ -13,6 +16,31 @@ describe("M3 effective inference prompts", () => {
     });
     expect(input.prompt).toBe("Respond.\nCall exactly one available function with your answer.");
     expect(effectiveGenerationInput(input)).toBe(input);
+  });
+
+  it("keeps a maximum-length Gemma prompt encodable after adding the suffix", () => {
+    const request = createGenerationRequest(
+      {
+        modelId: "gemma-4-test",
+        prompt: MAXIMUM_INPUT_PROMPT,
+        jsonSchema: { type: "object" },
+        contextSize: 512,
+        maxTokens: 8,
+      },
+      { requestId: "test", jobId: JobIdSchema.parse("00000000-0000-4000-8000-000000000001") },
+    );
+
+    expect(request.input.prompt.startsWith(MAXIMUM_INPUT_PROMPT)).toBe(true);
+    expect(request.input.prompt).toHaveLength(256_054);
+    expect(() =>
+      InferenceWorkerRequestSchema.parse({
+        protocolVersion: 1,
+        requestId: request.identity.requestId,
+        jobId: request.identity.jobId,
+        operation: "generate",
+        ...request.input,
+      }),
+    ).not.toThrow();
   });
 
   it("includes the suffix in the agent context-budget calculation", () => {
