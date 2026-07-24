@@ -5,8 +5,8 @@ import {
   type DebugRunRecords,
   readDebugCatalog,
   type TraceTurnRecord,
-} from "./debug-database.js";
-import { DebugSessionError, debugStateInvalid } from "./debug-errors.js";
+} from "./database.js";
+import { DebugSessionError, debugStateInvalid } from "./errors.js";
 import {
   makePrivateDirectory,
   makeSnapshotDirectory,
@@ -15,8 +15,8 @@ import {
   removeSnapshot,
   writePrivateFile,
   writePrivateJson,
-} from "./debug-files.js";
-import { writeWorkspaceSnapshot } from "./debug-workspace-snapshot.js";
+} from "./files.js";
+import { writeWorkspaceSnapshot } from "./workspace-snapshot.js";
 
 const SNAPSHOT_VERSION = 1;
 

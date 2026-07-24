@@ -181,3 +181,15 @@ export async function cancelAgent(jobId: string): Promise<boolean> {
   const value = record(await invoke("cancel_agent", { jobId }));
   return value.cancelled === true;
 }
+
+export async function createDebugSnapshot(sessionId: string): Promise<string> {
+  const value = record(await invoke("create_debug_snapshot", { sessionId }));
+  if (typeof value.path !== "string" || value.path.length === 0) {
+    throw new Error("The desktop bridge returned an invalid debug snapshot path.");
+  }
+  return value.path;
+}
+
+export async function revealDebugSnapshot(sessionId: string): Promise<void> {
+  await invoke("reveal_debug_snapshot", { sessionId });
+}

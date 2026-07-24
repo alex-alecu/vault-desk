@@ -1,4 +1,5 @@
 export type DebugSessionErrorCode =
+  | "debug_arguments_invalid"
   | "debug_database_unsafe"
   | "debug_schema_unsupported"
   | "debug_session_not_found"

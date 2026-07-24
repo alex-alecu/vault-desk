@@ -11,8 +11,8 @@ import {
   SessionIdSchema,
   type SessionSummary,
 } from "@vault/shared";
-import { DebugSessionError, debugStateInvalid } from "./debug-errors.js";
-import { safeDatabasePath } from "./debug-files.js";
+import { DebugSessionError, debugStateInvalid } from "./errors.js";
+import { safeDatabasePath } from "./files.js";
 import {
   artifactFromRow,
   attachmentFromRow,
@@ -28,7 +28,7 @@ import {
   sessionDraftFromRow,
   sessionFromRow,
   text,
-} from "./debug-records.js";
+} from "./records.js";
 
 const CATALOG_SCHEMA_VERSION = 8;
 

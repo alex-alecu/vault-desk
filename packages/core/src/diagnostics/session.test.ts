@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, expect, it } from "vitest";
-import { createSessionDebugSnapshot } from "./debug-session.js";
-import { createDebugFixture, type DebugFixture, IDS } from "./debug-session-fixture.js";
+import { createSessionDebugSnapshot } from "./session.js";
+import { createDebugFixture, type DebugFixture, IDS } from "./session-fixture.js";
 
 const run = promisify(execFile);
 const cleanup = new Set<string>();
@@ -159,12 +159,12 @@ it("isolates one live session with workspace, bounded logs, artifacts, and trace
   await assertPrivateTree(root);
 });
 
-it("prints a fresh temporary path from the CLI", async () => {
+it("prints a fresh temporary path from the Core diagnostic mode", async () => {
   const state = await newFixture();
   const arguments_ = [
     "--import",
     "tsx",
-    "packages/cli/src/main.ts",
+    "packages/core/src/daemon/main.ts",
     "debug-session",
     "--database",
     state.databasePath,
@@ -182,6 +182,24 @@ it("prints a fresh temporary path from the CLI", async () => {
   expect(paths[0]).not.toBe(paths[1]);
   expect(paths.every((path) => path.startsWith(join(tmpdir(), "vault-session-debug-")))).toBe(true);
   expect(await lstat(join(paths[0] ?? "", "session.json"))).toBeDefined();
+});
+
+it("rejects invalid Core diagnostic arguments with only a typed error", async () => {
+  try {
+    await run(process.execPath, [
+      "--import",
+      "tsx",
+      "packages/core/src/daemon/main.ts",
+      "debug-session",
+      "--database",
+      "/not-enough-arguments",
+    ]);
+    throw new Error("Core diagnostic mode unexpectedly succeeded");
+  } catch (error) {
+    const failure = error as { stdout?: string; stderr?: string };
+    expect(failure.stdout).toBe("");
+    expect(failure.stderr).toBe("debug_arguments_invalid\n");
+  }
 });
 
 it("preserves guest paths that alias or are invalid on host filesystems", async () => {
@@ -237,7 +255,7 @@ it("fails safely on malformed persisted diagnostics", async () => {
     await run(process.execPath, [
       "--import",
       "tsx",
-      "packages/cli/src/main.ts",
+      "packages/core/src/daemon/main.ts",
       "debug-session",
       "--database",
       state.databasePath,

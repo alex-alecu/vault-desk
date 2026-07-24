@@ -17,7 +17,7 @@ import {
   type SessionSummary,
   SessionSummarySchema,
 } from "@vault/shared";
-import { debugStateInvalid } from "./debug-errors.js";
+import { debugStateInvalid } from "./errors.js";
 
 export type Row = Record<string, unknown>;
 

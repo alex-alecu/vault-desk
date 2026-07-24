@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { AgentWorkspacePathSchema, ContentHashSchema } from "@vault/shared";
-import { DebugSessionError, debugStateInvalid } from "./debug-errors.js";
+import { DebugSessionError, debugStateInvalid } from "./errors.js";
 
 const MAX_WORKSPACE_BYTES = 128 * 1024 * 1024;
 const WORKSPACE_ATTEMPTS = 3;

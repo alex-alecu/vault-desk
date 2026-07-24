@@ -3,6 +3,7 @@ import { chmod, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 
 export const IDS = {
   folder: "11111111-1111-4111-8111-111111111111",
@@ -22,6 +23,7 @@ export const IDS = {
 } as const;
 
 const NOW = "2026-07-24T12:00:00.000Z";
+const migrationRoot = fileURLToPath(new URL("../workspace/migrations/", import.meta.url));
 
 export interface DebugFixture {
   root: string;
@@ -45,7 +47,7 @@ async function applyMigrations(database: DatabaseSync): Promise<void> {
       "agent-inference-traces",
     ];
     const name = `${String(version).padStart(4, "0")}-${names[version - 1]}.sql`;
-    database.exec(await readFile(join("packages/core/src/workspace/migrations", name), "utf8"));
+    database.exec(await readFile(join(migrationRoot, name), "utf8"));
   }
 }
 

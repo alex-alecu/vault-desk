@@ -5,7 +5,7 @@ import {
   type WorkspaceEntry,
   writePrivateFile,
   writePrivateJson,
-} from "./debug-files.js";
+} from "./files.js";
 
 interface WorkspaceSnapshotEntry {
   kind: "directory" | "file";

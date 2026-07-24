@@ -64,6 +64,7 @@ src/sessions/attachments.ts  explicit-file staging for New chat
 src/agent/loop.ts            bounded Core-owned agent orchestration
 src/agent/guest.ts           CodeAgentPort consumed by the loop
 src/agent/events.ts          observable event persistence and polling/streaming
+src/diagnostics/             private read-only session snapshot adapter and process mode
 workspace/migrations/        M3 folder/session/agent tables
 ```
 
@@ -73,7 +74,7 @@ Extend existing files:
 src/facade.ts          M3 programmatic commands and queries
 src/compose.ts         production session and guest adapters
 src/daemon/methods.ts  M3 JSON-RPC dispatch
-src/daemon/main.ts     required model, guest, and package inputs
+src/daemon/main.ts     daemon startup plus the isolated packaged diagnostic mode
 src/policy/policy.ts   folder/attachment/agent-run decisions
 src/audit/log.ts       M3 observable security events
 ```
@@ -122,22 +123,20 @@ src-tauri/build.rs
 src-tauri/tauri.conf.json
 src-tauri/capabilities/default.json
 src-tauri/src/main.rs      dialogs, exact sidecar, connection bootstrap only
+src-tauri/src/diagnostics.rs fixed packaged-sidecar snapshot and reveal commands
 ```
 
 Plain React state is sufficient. Do not add a router, component library, CSS framework, state-management package, webview filesystem plugin, shell permission, HTTP plugin, updater, analytics, or crash reporter for V1. The Rust host may use the reviewed shell plugin only for fixed supervision of the exact packaged Core sidecar.
 
 ### `packages/cli`
 
-Extend only as needed to exercise M3 daemon behavior without the desktop:
+Retain only the existing daemon health client:
 
 ```text
-vault folders add/list/remove
-vault sessions create/list/show
-vault agent run/cancel
-vault debug-session --database <catalog> --session <session>
+vault status --workspace <directory> [--json]
 ```
 
-The CLI does not open or traverse granted folders itself. Native path selection remains a desktop concern; test and CLI grant creation accepts an explicit owner-authorized path through the same Core validation. The local debug command is a separate read-only catalog adapter: it reconstructs only the requested session's already-persisted private state into an owner-only temporary directory, mapping exact guest paths to host-safe numbered payloads, and does not call a native helper or mutate the catalog.
+The CLI does not create session snapshots. The private Core diagnostic adapter is available to the installed desktop only through the exact packaged sidecar; the webview supplies a session ID and cannot supply a catalog or reveal path.
 
 ### `packages/eval`
 
@@ -205,3 +204,4 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-24 | Added the read-only local session debug snapshot over existing catalog and content-addressed stores. |
 | 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
 | 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |
+| 2026-07-24 | Moved the debug snapshot adapter into Core and limited installed-app creation and reveal to fixed Tauri commands. |
