@@ -68,7 +68,7 @@ fn plan9(arguments: &Arguments) -> Result<String, Box<dyn Error>> {
         return Ok(String::new());
     };
     Ok(format!(
-        r#",\"Plan9\":{{\"Shares\":[{{\"Name\":\"source\",\"Path\":\"{}\",\"Port\":50001,\"ReadOnly\":true}}]}}"#,
+        r#",\"Plan9\":{{\"Shares\":[{{\"Name\":\"source\",\"Path\":\"{}\",\"Port\":50001,\"Flags\":1}}]}}"#,
         json_path(source)?
     ))
 }
