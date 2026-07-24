@@ -15,8 +15,8 @@ import {
   removeSnapshot,
   writePrivateFile,
   writePrivateJson,
-  writeWorkspace,
 } from "./debug-files.js";
+import { writeWorkspaceSnapshot } from "./debug-workspace-snapshot.js";
 
 const SNAPSHOT_VERSION = 1;
 
@@ -184,7 +184,7 @@ async function populateSnapshot(root: string, records: DebugCatalogRecords): Pro
     sessionId: records.session.id,
     messages: records.messages,
   });
-  await writeWorkspace(join(root, "workspace"), workspace.entries);
+  await writeWorkspaceSnapshot(join(root, "workspace"), workspace.entries);
   await makePrivateDirectory(join(root, "artifacts"));
   await makePrivateDirectory(join(root, "logs"));
   for (let index = 0; index < records.runs.length; index += 1) {

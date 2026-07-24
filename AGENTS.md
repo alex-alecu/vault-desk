@@ -44,7 +44,7 @@ Technical details shows the current local session ID and catalog path. To create
 pnpm vault debug-session --database "<catalog path>" --session "<session ID>"
 ```
 
-The command opens the catalog read-only, verifies content-addressed workspace and artifact bytes, and prints a fresh owner-only temporary directory containing the selected session's conversation, reconstructed workspace, generated artifacts, bounded execution logs and diagnostics, and recorded inference traces. Historical runs explicitly report `not_recorded` when traces predate catalog v8. The snapshot is local and may contain private customer content; share it only through an owner-approved channel. It never modifies authoritative state or exposes raw native-helper stderr, and ordinary operating-system temporary-file cleanup may remove it later.
+The command opens the catalog read-only, verifies content-addressed workspace and artifact bytes, and prints a fresh owner-only temporary directory containing the selected session's conversation, a workspace manifest with host-safe numbered payloads that preserve exact guest paths, generated artifacts, bounded execution logs and diagnostics, and recorded inference traces. Historical runs explicitly report `not_recorded` when traces predate catalog v8. The snapshot is local and may contain private customer content; share it only through an owner-approved channel. It never modifies authoritative state or exposes raw native-helper stderr, and ordinary operating-system temporary-file cleanup may remove it later.
 
 ## Commit Authorship Rule
 

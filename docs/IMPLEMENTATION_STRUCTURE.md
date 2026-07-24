@@ -137,7 +137,7 @@ vault agent run/cancel
 vault debug-session --database <catalog> --session <session>
 ```
 
-The CLI does not open or traverse granted folders itself. Native path selection remains a desktop concern; test and CLI grant creation accepts an explicit owner-authorized path through the same Core validation. The local debug command is a separate read-only catalog adapter: it reconstructs only the requested session's already-persisted private state into an owner-only temporary directory and does not call a native helper or mutate the catalog.
+The CLI does not open or traverse granted folders itself. Native path selection remains a desktop concern; test and CLI grant creation accepts an explicit owner-authorized path through the same Core validation. The local debug command is a separate read-only catalog adapter: it reconstructs only the requested session's already-persisted private state into an owner-only temporary directory, mapping exact guest paths to host-safe numbered payloads, and does not call a native helper or mutate the catalog.
 
 ### `packages/eval`
 

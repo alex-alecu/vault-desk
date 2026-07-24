@@ -40,7 +40,7 @@ interface ManifestEntry {
   byteLength?: number;
 }
 
-interface WorkspaceEntry {
+export interface WorkspaceEntry {
   kind: "directory" | "file";
   path: string;
   bytes?: Buffer;
@@ -264,15 +264,6 @@ export async function writePrivateFile(path: string, bytes: Uint8Array): Promise
 
 export async function writePrivateJson(path: string, value: unknown): Promise<void> {
   await writePrivateFile(path, Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8"));
-}
-
-export async function writeWorkspace(path: string, entries: WorkspaceEntry[]): Promise<void> {
-  await makePrivateDirectory(path);
-  for (const entry of entries) {
-    const destination = join(path, entry.path);
-    if (entry.kind === "directory") await makePrivateDirectory(destination);
-    else await writePrivateFile(destination, entry.bytes ?? Buffer.alloc(0));
-  }
 }
 
 export async function removeSnapshot(path: string): Promise<void> {

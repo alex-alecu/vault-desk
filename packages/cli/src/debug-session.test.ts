@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { chmod, lstat, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -63,6 +64,39 @@ async function newFixture(): Promise<DebugFixture> {
   return fixture;
 }
 
+async function workspaceFile(root: string, path: string): Promise<string> {
+  const manifest = await json(join(root, "workspace", "manifest.json"));
+  expect(manifest.version).toBe(1);
+  const entries = manifest.entries as Array<Record<string, unknown>>;
+  const entry = entries.find((item) => item.kind === "file" && item.path === path);
+  expect(entry?.snapshotPath).toMatch(/^files\/[0-9]{8}$/u);
+  return await readFile(join(root, "workspace", String(entry?.snapshotPath)), "utf8");
+}
+
+async function replaceWorkspace(
+  state: DebugFixture,
+  files: Array<{ path: string; value: string }>,
+): Promise<void> {
+  const root = join(state.internalRoot, "agent-workspaces");
+  const entries = [];
+  for (const file of files) {
+    const bytes = Buffer.from(file.value);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    const blobPath = join(root, "blobs", digest);
+    await writeFile(blobPath, bytes, { mode: 0o600 });
+    await chmod(blobPath, 0o600);
+    entries.push({
+      kind: "file",
+      path: file.path,
+      contentHash: digest,
+      byteLength: bytes.byteLength,
+    });
+  }
+  const manifestPath = join(root, "manifests", `${IDS.session}.json`);
+  await writeFile(manifestPath, JSON.stringify({ version: 1, entries }), { mode: 0o600 });
+  await chmod(manifestPath, 0o600);
+}
+
 async function assertSnapshotContent(root: string): Promise<void> {
   const session = await json(join(root, "session.json"));
   const conversation = await json(join(root, "conversation.json"));
@@ -73,9 +107,7 @@ async function assertSnapshotContent(root: string): Promise<void> {
   expect(JSON.stringify(session)).not.toContain(IDS.otherSession);
   expect(JSON.stringify(conversation)).toContain("selected private prompt");
   expect(JSON.stringify(conversation)).not.toContain("other session secret");
-  expect(await readFile(join(root, "workspace", "notes", "state.txt"), "utf8")).toBe(
-    "private workspace\n",
-  );
+  expect(await workspaceFile(root, "notes/state.txt")).toBe("private workspace\n");
   expect(execution).toMatchObject({
     source: "print('ok')",
     stdout: "bounded stdout\n",
@@ -150,6 +182,27 @@ it("prints a fresh temporary path from the CLI", async () => {
   expect(paths[0]).not.toBe(paths[1]);
   expect(paths.every((path) => path.startsWith(join(tmpdir(), "vault-session-debug-")))).toBe(true);
   expect(await lstat(join(paths[0] ?? "", "session.json"))).toBeDefined();
+});
+
+it("preserves guest paths that alias or are invalid on host filesystems", async () => {
+  const state = await newFixture();
+  const files = [
+    { path: "Foo", value: "upper" },
+    { path: "foo", value: "lower" },
+    { path: "CON", value: "reserved" },
+    { path: "report?.txt", value: "wildcard" },
+    { path: "trailing.", value: "period" },
+  ];
+  await replaceWorkspace(state, files);
+  const root = await createSessionDebugSnapshot(state.databasePath, IDS.session);
+  cleanup.add(root);
+
+  const manifest = await json(join(root, "workspace", "manifest.json"));
+  const entries = manifest.entries as Array<Record<string, unknown>>;
+  expect(entries.map((entry) => entry.path)).toEqual(files.map((file) => file.path));
+  expect(new Set(entries.map((entry) => entry.snapshotPath)).size).toBe(files.length);
+  for (const file of files) expect(await workspaceFile(root, file.path)).toBe(file.value);
+  expect((await readdir(join(root, "workspace"))).sort()).toEqual(["files", "manifest.json"]);
 });
 
 it("rejects corrupted workspace and artifact bytes without retaining partial output", async () => {
