@@ -14,4 +14,4 @@ Updated: 2026-07-18
 - Security and maintenance: the helper creates one local-only pipe instance with a protected current-user DACL, relays opaque length-framed bytes over inherited stdio, closes the instance to produce EOF, and recreates it with the same descriptor. It parses no RPC, path, workflow, or document data.
 - Adapter fit: Vault Core retains endpoint naming, lifecycle, the request-limit definition, JSON-RPC parsing, dispatch, and authorization policy in TypeScript; the helper owns secure pipe creation, byte relay, and enforcement of the supplied resource ceiling.
 - Validation: the live descriptor is `D:P(A;;FA;;;S-1-5-21-2956651453-1646027870-1593765367-1001)` on the proving host; a restricted token with that SID disabled receives access denied; same-user RPC, CLI health, restart, signing, Rust gates, and the complete M1 gate pass.
-- Decision: adopted and validated for M1; production packaging, release signing, and packaged identity verification remain M10.
+- Decision: adopted and validated for M1; production packaging, release signing, and packaged identity verification are now part of M3.

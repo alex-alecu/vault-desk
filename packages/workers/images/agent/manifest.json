@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "builder": {
+    "name": "buildroot",
+    "version": "2026.05",
+    "config": "vault_agent_aarch64_defconfig",
+    "sourceUrl": "https://buildroot.org/downloads/buildroot-2026.05.tar.xz",
+    "sourceSha256": "9d2f3af10fcac763a61ff6e41894a033f9ecf9267ba13dd0912eedcd3be2b22a",
+    "sourceDateEpoch": 1780876800,
+    "containerImage": "registry.gitlab.com/buildroot.org/buildroot/base@sha256:340aa0de68e8e13e4eca70a00aaf94ec68d3a3891c28f3e7495d844829a8c958",
+    "sourceInputs": [
+      {
+        "file": "linux/linux-6.18.7.tar.xz",
+        "sha256": "b726a4d15cf9ae06219b56d87820776e34d89fbc137e55fb54a9b9c3015b8f1e"
+      }
+    ]
+  },
+  "contents": [
+    {
+      "name": "Linux",
+      "version": "6.18.7",
+      "license": "GPL-2.0-only",
+      "purpose": "no-NIC guest kernel"
+    },
+    {
+      "name": "BusyBox",
+      "version": "1.38.0",
+      "license": "GPL-2.0-only",
+      "sha256": "34f9ea6ff8636f2c9241153b9114eefa9e65674a45318ae1ef95bb5f31c53bb2",
+      "purpose": "minimal userspace"
+    },
+    {
+      "name": "Python",
+      "version": "3.14.5",
+      "license": "Python-2.0",
+      "sha256": "7e32597b99e5d9a39abed35de4693fa169df3e5850d4c334337ffd6a19a36db6",
+      "purpose": "Python tasks and standard document codecs"
+    },
+    {
+      "name": "Node.js",
+      "version": "24.18.0",
+      "license": "MIT",
+      "sha256": "58c9520501f6ae2b52d5b210444e24b9d0c029a58c5011b797bc1fe7105886f6",
+      "purpose": "Node tasks matching Core runtime major"
+    },
+    {
+      "name": "Pillow",
+      "version": "12.0.0",
+      "license": "HPND",
+      "sha256": "87d4f8125c9988bfbed67af47dd7a953e2fc7b0cc1e7800ec6d2080d490bb353",
+      "purpose": "common image inspection"
+    },
+    {
+      "name": "pypdf",
+      "version": "6.14.2",
+      "license": "BSD-3-Clause",
+      "sha256": "3f07891af76dc002657e04993ab9b4de81de29f9013b9761d0b7968bff12e946",
+      "purpose": "PDF reading and writing"
+    },
+    {
+      "name": "openpyxl",
+      "version": "3.1.5",
+      "license": "MIT",
+      "sha256": "5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2",
+      "purpose": "XLSX reading and writing"
+    },
+    {
+      "name": "et-xmlfile",
+      "version": "2.0.0",
+      "license": "MIT",
+      "sha256": "7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa",
+      "purpose": "openpyxl XML writer"
+    },
+    {
+      "name": "defusedxml",
+      "version": "0.7.1",
+      "license": "Python-2.0",
+      "sha256": "1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69",
+      "purpose": "hostile XML limits for XLSX"
+    },
+    {
+      "name": "lxml",
+      "version": "6.0.2",
+      "license": "BSD-3-Clause",
+      "sha256": "cd79f3367bd74b317dda655dc8fcfa304d9eb6e4fb06b7168c5cf27f96e0cd62",
+      "purpose": "python-docx XML runtime"
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.15.0",
+      "license": "PSF-2.0",
+      "sha256": "0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466",
+      "purpose": "python-docx typing runtime"
+    },
+    {
+      "name": "python-docx",
+      "version": "1.2.0",
+      "license": "MIT",
+      "sha256": "3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7",
+      "purpose": "DOCX reading and writing"
+    }
+  ],
+  "networkFeaturesForbidden": ["CONFIG_INET", "CONFIG_IPV6", "CONFIG_WLAN", "CONFIG_WIRELESS"],
+  "capabilitiesFile": "capabilities.json",
+  "outputs": {
+    "aarch64": {
+      "kernelFile": "Image",
+      "kernelSha256": "211d283fafe9e094e614629ef21f8616cdce24c5e4b43b936c4c73a3e447e7bd",
+      "initramfsFile": "rootfs.cpio",
+      "initramfsSha256": "882d9d5592a68b3aee4858670bab55d6aff1d1219a669dd46947dd4e7d463c9b"
+    },
+    "x86_64": {
+      "kernelFile": "bzImage",
+      "kernelSha256": "pending",
+      "initramfsFile": "rootfs.cpio",
+      "initramfsSha256": "pending"
+    }
+  }
+}

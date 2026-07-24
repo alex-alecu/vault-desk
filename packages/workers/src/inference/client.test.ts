@@ -10,9 +10,12 @@ import { WindowsNativeWorkerLauncher } from "../native/windows.js";
 import { InferenceWorkerClient, InferenceWorkerError } from "./client.js";
 
 class ScriptLauncher implements NativeWorkerLauncher {
+  launches = 0;
+
   constructor(private readonly script: string) {}
 
   async launch(_request: NativeWorkerLaunchRequest): Promise<NativeWorkerHandle> {
+    this.launches += 1;
     const child = spawn(process.execPath, ["-e", this.script], {
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -24,6 +27,41 @@ class ScriptLauncher implements NativeWorkerLauncher {
     };
   }
 }
+
+const residentWorkerScript = `
+let pending = Buffer.alloc(0);
+function send(value) {
+  const payload = Buffer.from(JSON.stringify(value));
+  const frame = Buffer.alloc(4 + payload.length);
+  frame.writeUInt32BE(payload.length, 0);
+  payload.copy(frame, 4);
+  process.stdout.write(frame);
+}
+process.stdin.on("data", (chunk) => {
+  pending = Buffer.concat([pending, chunk]);
+  while (pending.length >= 4) {
+    const length = pending.readUInt32BE(0);
+    if (pending.length < 4 + length) return;
+    const request = JSON.parse(pending.subarray(4, 4 + length));
+    pending = pending.subarray(4 + length);
+    send({protocolVersion: 1, requestId: request.requestId, status: "stream", event: "thinking.delta", text: "Checking locally. "});
+    send({
+      protocolVersion: 1,
+      requestId: request.requestId,
+      status: "ok",
+      operation: "generate",
+      value: {result: "ok"},
+      memory: {
+        cpuRamBytes: 1,
+        gpuVramBytes: 1,
+        budgetBytes: 1024,
+        detectedGpuVramBytes: 1024,
+      },
+      performance: {promptTokens: 10, outputTokens: 2, promptDurationMs: 5, generationDurationMs: 4, totalDurationMs: 9}
+    });
+  }
+});
+`;
 
 const probe = InferenceWorkerRequestSchema.parse({
   protocolVersion: 1,
@@ -98,4 +136,26 @@ describe("M2 inference worker containment", () => {
       ).rejects.toMatchObject({ code: "unsupported" });
     },
   );
+});
+
+describe("resident inference worker", () => {
+  it("reuses one process, streams supported thinking, and unloads explicitly", async () => {
+    const launcher = new ScriptLauncher(residentWorkerScript);
+    const client = new InferenceWorkerClient(launcher, "unused");
+    const thinking: string[] = [];
+    const execution = {
+      request: largeGeneration,
+      modelPath: "/approved/model.gguf",
+      memoryBudgetBytes: 1024,
+      timeoutMs: 500,
+      onThinkingDelta: (text: string) => thinking.push(text),
+    };
+
+    await expect(client.execute(execution)).resolves.toMatchObject({ operation: "generate" });
+    await expect(client.execute(execution)).resolves.toMatchObject({ operation: "generate" });
+
+    expect(launcher.launches).toBe(1);
+    expect(thinking).toEqual(["Checking locally. ", "Checking locally. "]);
+    await expect(client.unload()).resolves.toBe(true);
+  });
 });

@@ -4,8 +4,16 @@ import { mkdtemp, open, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { JobIdSchema, MicroVmProbeReportSchema, WorkerLimitsSchema } from "@vault/shared";
-import type { MicroVmLauncher, MicroVmLaunchRequest, MicroVmLaunchResult } from "./launcher.js";
+import type {
+  CodeAgentLauncher,
+  CodeAgentSession,
+  MicroVmAgentRequest,
+  MicroVmLauncher,
+  MicroVmLaunchRequest,
+  MicroVmLaunchResult,
+} from "./launcher.js";
 import { copyBoundedInput, launchSignal } from "./staging.js";
+import { WindowsAgentLauncher } from "./windows-agent.js";
 
 const SECTOR_BYTES = 512;
 const MINIMUM_INPUT_BYTES = 4 * 1024 * 1024;
@@ -61,7 +69,7 @@ function diskGeometry(bytes: number): number {
   return ((sectors << 16) | (heads << 8) | sectorsPerTrack) >>> 0;
 }
 
-function fixedVhdFooter(capacity: number): Buffer {
+export function fixedVhdFooter(capacity: number): Buffer {
   const footer = Buffer.alloc(SECTOR_BYTES);
   footer.write("conectix", 0, "ascii");
   footer.writeUInt32BE(2, 8);
@@ -172,8 +180,24 @@ function runHelper(
   });
 }
 
-export class WindowsMicroVmLauncher implements MicroVmLauncher {
-  constructor(private readonly helperPath: string) {}
+export class WindowsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher {
+  private readonly agent: WindowsAgentLauncher;
+
+  constructor(
+    private readonly helperPath: string,
+    imageRoot?: string,
+    workspaceRoot?: string,
+  ) {
+    this.agent = new WindowsAgentLauncher(helperPath, imageRoot, workspaceRoot);
+  }
+
+  openAgentSession(request: MicroVmAgentRequest): Promise<CodeAgentSession> {
+    return this.agent.openAgentSession(request);
+  }
+
+  deleteWorkspace(sessionId: string): Promise<void> {
+    return this.agent.deleteWorkspace(sessionId);
+  }
 
   async launchProbe(request: MicroVmLaunchRequest): Promise<MicroVmLaunchResult> {
     if (process.platform !== "win32" || process.arch !== "x64")

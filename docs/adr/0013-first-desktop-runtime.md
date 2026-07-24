@@ -45,7 +45,7 @@ Negative:
 
 - Native load and structured-generation smoke tests on initial Windows and macOS targets in M2.
 - OS-sandbox tests proving network-capability denial and absence of shell, executable-tool, credential, approval, and arbitrary-workspace authority.
-- Local 12 and Local 16 memory, context, cancellation, crash, and soak tests.
+- Automatic macOS tier and representative Windows GPU memory, context, cancellation, crash, and soak tests.
 - Packaged offline first-launch tests with the exact pinned runtime and model artifacts.
 - A superseding ADR before any second runtime is called certified.
 
@@ -57,3 +57,4 @@ Negative:
 | 2026-07-12 | Bound the host-native runtime to the narrow OS-sandboxed accelerator exception in ADR 0012. |
 | 2026-07-13 | Updated the packaging gate for the Tauri desktop shell selected by ADR 0014. |
 | 2026-07-15 | Replaced the EmbeddingGemma retrieval line with the ADR 0016 default encoder (Qwen3-Embedding-0.6B) on the same runtime. |
+| 2026-07-22 | Replaced fixed profile validation with automatic macOS tiers and complete detected Windows GPU VRAM. |

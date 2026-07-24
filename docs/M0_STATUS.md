@@ -8,7 +8,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 
 - Goal: establish the smallest reproducible Vault Desk workspace and validation surface required by M0.
 - Active milestone and issue: M0, started by the repository owner's explicit 2026-07-16 request; no separate issue was supplied.
-- Allowed scope: phase-rule updates, Apache 2.0 root license, pinned Node/pnpm/Rust and root tooling, M0-only `shared` and `eval` packages, model and compliance manifests, deterministic invoice corpora, test-only Tauri and microVM probes, guest-image recipe, ADR 0017, and macOS/Windows CI.
+- Allowed scope: phase-rule updates, Apache 2.0 root license, pinned Node/pnpm/Rust and root tooling, M0-only `shared` and `eval` packages, model and compliance manifests, test-only Tauri and microVM probes, guest-image recipe, ADR 0017, and macOS/Windows CI.
 - Product boundaries: model manifests are canonical in `@vault/shared`; model fetching remains development-only in `@vault/eval`; Tauri exposes only a fixed test command and exact sidecar; hostile-work validation requires a no-NIC guest and typed host/guest IPC; no product UI or external integration is introduced.
 - Explicitly not doing: M1 daemon/CLI/workspace/worker code, product UI, customer-document handling, external integrations, model redistribution, committed binaries, or contribution activation.
 
@@ -22,7 +22,7 @@ Milestone M0 is complete. The Mac and Windows checkpoints and published cross-pl
 | Gate | Evidence | State |
 |---|---|---|
 | Root license and compliance owners | `LICENSE`; `compliance/inventory.json`; unit inventory assertion | Pass |
-| Deterministic development and held-out corpora | Both corpora cover all six required classes; anchors are checked against decoded fixture content | Pass |
+| Deterministic development and held-out corpora | Generic offline-agent tasks cover all six required classes; anchors are checked against decoded fixture content | Pass |
 | Model manifest and real load | Official Qwen Q8_0 exact bytes/SHA-256; 1,024-dimensional embedding smoke | Pass on Mac and Windows |
 | Local pinned workspace | Locked install and complete verification | Pass on Mac and Windows |
 | macOS and Windows CI | Immutable action pins and `macos-26` / `windows-2025` jobs | Pass in published run `29556828274` |

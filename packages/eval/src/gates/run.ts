@@ -4,7 +4,7 @@ function milestoneArgument(): string {
   const index = process.argv.indexOf("--milestone");
   const milestone = process.argv[index + 1];
   if (index === -1 || milestone === undefined) {
-    throw new Error("Usage: pnpm test:gate --milestone <0|1|2>");
+    throw new Error("Usage: pnpm test:gate --milestone <0|1|2|3>");
   }
   return milestone;
 }
@@ -31,7 +31,10 @@ function requiredModelPath(): string {
 }
 
 const milestone = milestoneArgument();
-if (milestone === "2") {
+if (milestone === "3") {
+  runPnpm(["verify"]);
+  run(process.execPath, ["--import", "tsx", "packages/eval/src/gates/m3-readiness.ts"]);
+} else if (milestone === "2") {
   runPnpm(["verify"]);
   runPnpm(["test:native:m2"]);
   runPnpm(["test:m2:native"]);
@@ -51,5 +54,5 @@ if (milestone === "2") {
   ]);
   runPnpm(["test:platform:m0", "--require-certified"]);
 } else {
-  throw new Error("Only milestone gates 0, 1, and 2 exist.");
+  throw new Error("Only milestone gates 0, 1, 2, and 3 exist.");
 }

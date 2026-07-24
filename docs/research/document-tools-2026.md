@@ -131,7 +131,7 @@ Do not benchmark a custom parser or custom OCR path unless the maintained tools 
 Create private benchmark folders containing:
 
 - 100-page PDFs.
-- Scanned invoices.
+- Scanned business records.
 - Mixed digital and scanned PDFs.
 - Multi-sheet XLSX files with formulas.
 - Large CSV exports.
@@ -140,7 +140,7 @@ Create private benchmark folders containing:
 - Files with images and low-quality scans.
 - Physically degraded scans (warp, skew, poor lighting) to expose VLM OCR failure modes.
 - Romanian and EU accounting documents.
-- Duplicate and near-duplicate invoices.
+- Duplicate and near-duplicate records.
 
 ## Revision History
 

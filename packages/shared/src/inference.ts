@@ -2,7 +2,7 @@ import { z } from "zod";
 import { VaultErrorSchema } from "./errors.js";
 import { JobIdSchema, RequestIdSchema } from "./ids.js";
 
-export const InferenceProfileSchema = z.enum(["local12", "local16"]);
+export const InferenceProfileSchema = z.enum(["auto", "local12", "local16"]);
 export const InferenceOperationSchema = z.enum(["generate", "embed", "probe"]);
 
 const JsonSchemaSchema = z.record(z.string(), z.unknown());
@@ -17,7 +17,7 @@ export const StructuredGenerationRequestSchema = RequestBaseSchema.extend({
   modelId: z.string().min(1),
   prompt: z.string().min(1).max(256_000),
   jsonSchema: JsonSchemaSchema,
-  contextSize: z.number().int().min(512).max(131_072),
+  contextSize: z.union([z.literal("auto"), z.number().int().min(512).max(262_144)]),
   maxTokens: z.number().int().positive().max(4_096),
 });
 
@@ -45,6 +45,16 @@ export const InferenceMemoryReportSchema = z.object({
   cpuRamBytes: z.number().int().nonnegative(),
   gpuVramBytes: z.number().int().nonnegative(),
   budgetBytes: z.number().int().positive(),
+  detectedGpuVramBytes: z.number().int().nonnegative(),
+  contextSizeTokens: z.number().int().positive().optional(),
+});
+
+export const InferencePerformanceSchema = z.object({
+  promptTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  promptDurationMs: z.number().int().nonnegative(),
+  generationDurationMs: z.number().int().nonnegative(),
+  totalDurationMs: z.number().int().nonnegative(),
 });
 
 const ResponseBaseSchema = z.object({
@@ -57,6 +67,7 @@ export const StructuredGenerationResultSchema = ResponseBaseSchema.extend({
   operation: z.literal("generate"),
   value: z.unknown(),
   memory: InferenceMemoryReportSchema,
+  performance: InferencePerformanceSchema,
 });
 
 export const EmbeddingResultSchema = ResponseBaseSchema.extend({
@@ -84,6 +95,14 @@ export const InferenceWorkerFailureSchema = z.object({
   error: VaultErrorSchema,
 });
 
+export const InferenceWorkerThinkingEventSchema = z.object({
+  protocolVersion: z.literal(1),
+  requestId: RequestIdSchema,
+  status: z.literal("stream"),
+  event: z.literal("thinking.delta"),
+  text: z.string().min(1).max(4_096),
+});
+
 export const InferenceWorkerResponseSchema = z.union([
   StructuredGenerationResultSchema,
   EmbeddingResultSchema,
@@ -91,11 +110,19 @@ export const InferenceWorkerResponseSchema = z.union([
   InferenceWorkerFailureSchema,
 ]);
 
+export const InferenceWorkerMessageSchema = z.union([
+  InferenceWorkerResponseSchema,
+  InferenceWorkerThinkingEventSchema,
+]);
+
 export type InferenceProfile = z.infer<typeof InferenceProfileSchema>;
 export type InferenceOperation = z.infer<typeof InferenceOperationSchema>;
 export type StructuredGenerationRequest = z.infer<typeof StructuredGenerationRequestSchema>;
 export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
+export type NativeWorkerProbeRequest = z.infer<typeof NativeWorkerProbeRequestSchema>;
 export type InferenceWorkerRequest = z.infer<typeof InferenceWorkerRequestSchema>;
 export type InferenceWorkerResponse = z.infer<typeof InferenceWorkerResponseSchema>;
+export type InferenceWorkerMessage = z.infer<typeof InferenceWorkerMessageSchema>;
+export type InferencePerformance = z.infer<typeof InferencePerformanceSchema>;
 export type StructuredGenerationResult = z.infer<typeof StructuredGenerationResultSchema>;
 export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;

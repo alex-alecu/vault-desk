@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { generateGuestCapabilities } from "./capabilities.js";
 
 type GuestArchitecture = "aarch64" | "x86_64";
 interface Output {
@@ -17,15 +18,20 @@ interface Manifest {
     sourceSha256: string;
     sourceDateEpoch: number;
     version: string;
+    config?: string;
   };
   outputs: Record<GuestArchitecture, Output>;
 }
 
 const imageRoot = join(process.cwd(), "packages/workers/images");
-const generatedRoot = join(imageRoot, ".generated");
-const downloadRoot = join(generatedRoot, "downloads");
+const agentBuild = process.argv.includes("--agent");
+const sharedGeneratedRoot = join(imageRoot, ".generated");
+const generatedRoot = agentBuild ? join(sharedGeneratedRoot, "agent") : sharedGeneratedRoot;
+const downloadRoot = join(sharedGeneratedRoot, "downloads");
 const externalRoot = join(imageRoot, "buildroot-external");
-const manifest = JSON.parse(await readFile(join(imageRoot, "manifest.json"), "utf8")) as Manifest;
+const manifest = JSON.parse(
+  await readFile(join(imageRoot, agentBuild ? "agent/manifest.json" : "manifest.json"), "utf8"),
+) as Manifest;
 
 function architecture(): GuestArchitecture {
   const index = process.argv.indexOf("--arch");
@@ -81,7 +87,11 @@ function build(
   run("docker", [...base, "tar", "-xJf", "/input/buildroot.tar.xz", "-C", "/workspace"]);
   const source = `/workspace/buildroot-${manifest.builder.version}`;
   const variables = ["BR2_EXTERNAL=/external", "O=/workspace/output", "BR2_DL_DIR=/downloads"];
-  run("docker", [...base, "make", "-C", source, ...variables, `vault_probe_${selected}_defconfig`]);
+  const config =
+    agentBuild && selected === "x86_64"
+      ? "vault_agent_x86_64_defconfig"
+      : (manifest.builder.config ?? `vault_probe_${selected}_defconfig`);
+  run("docker", [...base, "make", "-C", source, ...variables, config]);
   run("docker", [...base, "make", "-s", "-C", source, ...variables]);
 }
 
@@ -104,7 +114,10 @@ async function verifyInputs(): Promise<void> {
   }
 }
 
-async function verifyBuilds(selected: GuestArchitecture, roots: [string, string]): Promise<void> {
+async function verifyBuilds(
+  selected: GuestArchitecture,
+  roots: [string, string],
+): Promise<{ kernel: string; initramfs: string }> {
   const output = manifest.outputs[selected];
   const hashes = await Promise.all(
     roots.map(async (root) => ({
@@ -115,14 +128,17 @@ async function verifyBuilds(selected: GuestArchitecture, roots: [string, string]
   if (hashes[0]?.kernel !== hashes[1]?.kernel || hashes[0]?.initramfs !== hashes[1]?.initramfs) {
     throw new Error("Independent guest builds were not byte-for-byte reproducible.");
   }
+  const actual = hashes[0];
+  if (actual === undefined) throw new Error("Missing guest output hashes.");
   if (
-    hashes[0]?.kernel !== output.kernelSha256 ||
-    hashes[0]?.initramfs !== output.initramfsSha256
+    output.kernelSha256 !== "pending" &&
+    (actual.kernel !== output.kernelSha256 || actual.initramfs !== output.initramfsSha256)
   ) {
     throw new Error(
       `Reproducible guest output does not match the immutable manifest: kernel=${hashes[0]?.kernel} initramfs=${hashes[0]?.initramfs}`,
     );
   }
+  return actual;
 }
 
 async function install(selected: GuestArchitecture, source: string): Promise<void> {
@@ -131,6 +147,13 @@ async function install(selected: GuestArchitecture, source: string): Promise<voi
   await mkdir(destination, { recursive: true });
   await copyFile(join(source, output.kernelFile), join(destination, output.kernelFile));
   await copyFile(join(source, output.initramfsFile), join(destination, output.initramfsFile));
+  if (agentBuild) {
+    await generateGuestCapabilities(
+      join(destination, output.initramfsFile),
+      join(imageRoot, "agent/manifest.json"),
+      join(imageRoot, "agent/capabilities.json"),
+    );
+  }
 }
 
 const archiveValue = process.env.VAULT_BUILDROOT_ARCHIVE;
@@ -141,8 +164,8 @@ if ((await sha256(archive)) !== manifest.builder.sourceSha256)
   throw new Error("Buildroot source SHA-256 mismatch.");
 const selected = architecture();
 const volumes: [string, string] = [
-  `vault-desk-m1-${selected}-${process.pid}-first`,
-  `vault-desk-m1-${selected}-${process.pid}-second`,
+  `vault-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-first`,
+  `vault-desk-${agentBuild ? "m3-agent" : "m1"}-${selected}-${process.pid}-second`,
 ];
 const comparisonRoot = join(generatedRoot, "comparisons", String(process.pid));
 const roots: [string, string] = [join(comparisonRoot, "first"), join(comparisonRoot, "second")];
@@ -157,10 +180,18 @@ try {
   build(volumes[1], archive, selected, true);
   extract(volumes[0], roots[0], manifest.outputs[selected]);
   extract(volumes[1], roots[1], manifest.outputs[selected]);
-  await verifyBuilds(selected, roots);
+  const hashes = await verifyBuilds(selected, roots);
   await install(selected, roots[0]);
   await rm(comparisonRoot, { recursive: true, force: true });
-  console.log(JSON.stringify({ architecture: selected, ...manifest.outputs[selected] }));
+  console.log(
+    JSON.stringify({
+      architecture: selected,
+      kernelFile: manifest.outputs[selected].kernelFile,
+      kernelSha256: hashes.kernel,
+      initramfsFile: manifest.outputs[selected].initramfsFile,
+      initramfsSha256: hashes.initramfs,
+    }),
+  );
 } finally {
   for (const volume of volumes) run("docker", ["volume", "rm", "--force", volume]);
 }

@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-This document defines the implementation quality constraints for Vault Desk. M0 and M1 are complete under the milestone-scoped authority in [AGENTS.md](../AGENTS.md); this quality bar does not authorize M2 or later work.
+This document defines the implementation quality constraints for Vault Desk. M0 and M1 are complete, the macOS inference foundation exists, and M3 is active under [AGENTS.md](../AGENTS.md).
 
 The goal is the least amount of new code and the least amount of tests that still protects the product's privacy, correctness, auditability, and local performance promises.
 
@@ -12,22 +12,16 @@ Implementation starts from product contracts, not framework defaults.
 
 Add code only when it is required to express one of these product responsibilities:
 
-- Document-set manifests.
-- Typed tool boundaries.
-- Policy and approval decisions.
+- Folder grants, attachments, grouped sessions, turns, and drafts.
+- Typed agent and desktop boundaries.
+- Policy decisions.
 - Runtime adapter contracts.
-- Parser adapter contracts.
-- Retrieval adapter contracts.
-- Evidence-pack assembly.
-- Claim and citation verification.
-- Compaction state management.
 - Audit events.
-- Export approval and rollback.
 - Schema-versioned workspace recovery.
 - Worker supervision and resource limits.
 - MicroVM lifecycle, immutable guest images, and no-NIC verification.
-- Deterministic canonical-document operations.
-- Bounded code-interpreter routing, result verification, and audit.
+- Bounded generic-agent orchestration, inference mediation, result validation, and audit.
+- Tauri session/folder interface and packaged sidecar lifecycle.
 - The minimal Tauri sidecar and capability boundary.
 
 Do not write custom infrastructure when a maintained local dependency can satisfy a narrow adapter contract.
@@ -63,7 +57,7 @@ Avoid:
 - Generic agent frameworks that obscure policy and audit boundaries.
 - Generated boilerplate that is not exercised by a workflow.
 - Generated code for common supported document operations.
-- A persistent or networked coding workspace.
+- A networked, host-authorized, or unbounded coding workspace.
 
 ## Minimal Test Rule
 
@@ -148,13 +142,14 @@ When deciding whether to add a test, ask:
 - Can this failure make a verified answer unsupported?
 - Can this failure corrupt an export?
 - Can this failure make a long folder job non-resumable?
-- Can this failure make Local 12 and Local 16 behave differently beyond context size?
+- Can this failure make hardware tiers behave differently beyond their memory and context allocation?
 - Can this failure make authoritative workspace state unrecoverable or derived state impossible to rebuild?
 - Can untrusted document content or a worker escape its data-only role?
 - Can a certified microVM acquire a network device or turn typed host/guest IPC into a general proxy?
 - Can a native accelerator gain network, shell, credential, tool, approval, or arbitrary workspace authority?
-- Can a supported deterministic operation be routed unnecessarily to generated code?
 - Can generated code reach a network, host path, credential, package manager, approval, export, or generic model endpoint?
+- Can generated code modify the selected host folder or survive outside the validated bounded session workspace?
+- Can a session or attachment receive another folder's authority?
 - Can the Tauri webview invoke an arbitrary command, process, path, URL, endpoint, or model file?
 
 If the answer is yes, add a focused test. If the answer is no, prefer a simpler implementation and defer the test.
@@ -170,7 +165,7 @@ Before code for a milestone is added, the implementation plan must name:
 - The dependencies being used instead of custom code.
 - The code that will intentionally not be written.
 
-No package manifest or source tree should be created until that plan exists and the milestone is active. M0 satisfies this entry gate through [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#m0--phase-change-minimal-scaffold-ci-models-and-evaluation-corpora) and [M0_STATUS.md](M0_STATUS.md).
+No package manifest or source tree should be created until that plan exists and the milestone is active. M3 satisfies this entry gate through [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md#m3--offline-dev-agent-desktop-v1--active), [ADR 0018](adr/0018-offline-dev-agent-first.md), and [M3_STATUS.md](M3_STATUS.md).
 
 ## Revision History
 
@@ -183,3 +178,5 @@ No package manifest or source tree should be created until that plan exists and 
 | 2026-07-13 | Added Tauri, deterministic document operations, and the bounded code-interpreter fallback to the minimal component and test bar. |
 | 2026-07-16 | Activated the quality bar for M0 while retaining milestone-scoped authorization. |
 | 2026-07-17 | Replaced the proposed OpenTelemetry trace shape with a minimal Vault Desk-owned local audit schema and no exporter. |
+| 2026-07-20 | Replaced the pre-V1 document-specific quality surface with the generic offline dev-agent desktop gate. |
+| 2026-07-22 | Replaced fixed profile checks with automatic memory-tier and Windows GPU-budget validation. |

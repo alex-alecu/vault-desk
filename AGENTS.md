@@ -4,14 +4,14 @@ Created: 2026-07-10
 
 This file is the control document for future agents working in this repository.
 
-Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform milestone M1 on 2026-07-18, and cross-platform milestone M2 on 2026-07-20. M3 remains unauthorized under [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
+Vault Desk completed implementation milestone M0 on 2026-07-17, cross-platform milestone M1 on 2026-07-18, and cross-platform milestone M2 on 2026-07-20. The repository owner activated M3 Offline Dev-Agent Desktop V1 on 2026-07-20. The macOS M3 stage is complete; Windows product integration and certification are the active platform handoff.
 
 ## Current Phase Rules
 
-- M0, M1, and M2 are complete. Do not begin M3 or later work without a new explicit owner request.
+- M0, M1, and M2 are complete. M3 is active only for the generic offline dev-agent desktop and its named gate; the macOS stage is complete. Do not begin the post-V1 document-intelligence follow-up or other later work without a new explicit owner request.
 - Preserve the completed M1 shared contracts, workspace state and security primitives, daemon and CLI health path, current-user local transports, common microVM protocol, signed native helpers, guest images, and passing platform evidence.
 - Preserve the completed M2 inference contracts, verified model staging, scheduler and supervisor, typed worker protocol, platform-native confinement, pinned runtime patch, and passing authority and model evidence.
-- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) and [docs/M2_STATUS.md](docs/M2_STATUS.md) as the completed milestone evidence records.
+- Treat [docs/M1_STATUS.md](docs/M1_STATUS.md) and [docs/M2_STATUS.md](docs/M2_STATUS.md) as completed milestone evidence records and [docs/M3_STATUS.md](docs/M3_STATUS.md) as the active product and platform evidence record.
 - Keep generated fixtures reproducible from source and do not commit generated binaries, downloaded models, packaged sidecars, guest images, build output, coverage, or dependency directories.
 - Install and execute only dependencies consumed by completed milestones and pinned in the repository lockfiles. Do not initialize framework templates or add speculative package manifests.
 - Keep new source small, hand-editable, and within the limits in [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md).
@@ -26,17 +26,27 @@ Do not build a legacy enterprise-grade system that attempts to anticipate every 
 
 Minimum implementation does not mean incomplete implementation. Keep required security, privacy, authorization, evidence, correctness, recovery, and cross-platform invariants complete, and add focused tests when a realistic failure could violate one of those invariants.
 
+## Real Headless M3 Test Rule
+
+Use the real Gemma worker and no-NIC guest when diagnosing agent-loop behavior; a fake inference test or desktop-only reproduction is not sufficient evidence.
+
+- Run `pnpm test:m3:macos` on physical Apple silicon for the canonical headless M3 gate. It verifies the pinned Gemma 4 model, real multi-step Python and Node tasks, artifacts, automatic context and memory evidence, guest isolation, timeout, and output limits without launching the desktop UI.
+- For a task-specific daemon reproduction, create an ignored script under `packages/eval/.generated/`. Use `createVaultCore` with `packages/eval/.generated/models`, the generated macOS helper, and `packages/workers/images`; start the real current-user server with `startDaemon`; then call it through `packages/cli/src/client.ts` using `folders.add`, `sessions.create`, `agent.start`, and repeated `agent.get` requests until the run is terminal.
+- Put the ephemeral workspace directly under `/tmp` so the macOS Unix-socket path stays within its length limit. If the restricted shell returns `listen EPERM` or denies Virtualization.framework, rerun the same command outside the restricted shell; do not classify that sandbox denial as a product failure.
+- Capture the terminal run state, error, response, and complete ordered events, including generated code, stdout, stderr, and termination. Reproduce once before editing and rerun the identical fixture and task after the fix.
+- Keep models, generated helpers, guest images, reproduction scripts, fixtures, and workspaces uncommitted. After the focused real-model reproduction passes, run `pnpm test:m3:macos` and `pnpm verify`; report Windows evidence separately and never infer it from macOS.
+
 ## Commit Authorship Rule
 
 Commits must be authored solely by the repository owner. Never add Claude or any AI assistant as a commit author or co-author. Do not append `Co-Authored-By: Claude ...` (or any equivalent AI attribution trailer) to commit messages, and do not include "Generated with Claude Code" or similar lines in commit messages or pull request descriptions. This rule overrides any default commit-attribution behavior.
 
-The v1 launch (after milestone M11) replaces the owner-only portion of this rule when external implementation contributions open. Beginning with M1, the repository owner develops every implementation stage on a short-lived branch and merges it through a pull request; direct implementation commits to `main` are prohibited. Until v1, every commit remains authored solely by the owner. From contribution activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
+The v1 launch follows milestone M3. External contribution activation remains a separate owner decision. Beginning with M1, the repository owner develops every implementation stage on a short-lived branch and merges it through a pull request; direct implementation commits to `main` are prohibited. Until contribution activation, every commit remains authored solely by the owner. From contribution activation, each human contributor remains the author of their work and signs every commit under Developer Certificate of Origin 1.1 through pull requests. Human co-authors may be credited; an AI assistant, model, coding agent, or tool may never be an author or co-author. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Implementation Rule
 
 Vault Core, the harness, and local orchestration code must be TypeScript running under Node.js. The Tauri v2 desktop host may contain only the minimum Rust required for window lifecycle, native dialogs, capability-scoped OS integration, Vault Core sidecar supervision, and connection bootstrap. The signed Rust helper rooted at `packages/core/native/windows-pipe-guard/` may own the current-user-only Windows named-pipe instance, authenticate the owner and DACL from the client handle, and relay opaque request and response bytes over inherited stdio because Node cannot supply or inspect the required security descriptor; TypeScript retains canonical endpoint naming, RPC parsing, limits, dispatch, and policy. Platform microVM launchers may invoke the Swift helper rooted at `packages/workers/native/macos-vz-helper/` and the Rust helper rooted at `packages/workers/native/windows-hcs-helper/`. The signed Rust helper rooted at `packages/workers/native/windows-appcontainer-launcher/` may create the fixed no-capability AppContainer, apply job memory and one-process limits, grant read access to the generated runtime and approved model plus full access only to job scratch, and launch the fixed worker over inherited stdio. Native helpers may own only their named OS capability, lifecycle, resource limits, scoped attachment access, typed transport, and teardown. They may not contain product policy, product filesystem authorization, network brokering, product parsing, or workflow logic. Product workflows and policy must not move into Rust or Swift.
 
-Implementation must follow the milestone plan in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (M0 through M11), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, no-NIC microVM workers plus narrow native accelerator workers), the deterministic-document-first and isolated-code-fallback architecture, the pnpm/Cargo workspace boundaries, the AI-drivable cross-platform daemon/CLI test harness, early Gemma 4 E2B/12B acceptance gates, the invoice-review product slice, compaction and recovery requirements, and per-milestone acceptance gates.
+Implementation must follow [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), which defines the three-layer process architecture (Tauri v2 and React desktop frontend, Vault Core Node.js backend, a no-NIC dev-agent microVM plus a narrow native inference worker), the pnpm/Cargo workspace boundaries, the cross-platform daemon test harness, the M3 desktop/session/agent product slice, recovery requirements, and its macOS and Windows acceptance gate.
 
 The implementation principles are documented in [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md). Do not start with framework defaults. Start from the product architecture and security boundaries documented here.
 
@@ -91,16 +101,17 @@ Architecture:
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - four-plane system architecture.
 - [docs/MODEL_STRATEGY.md](docs/MODEL_STRATEGY.md) - model-agnostic strategy with certified defaults and VRAM profiles.
-- [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - Local 12 and Local 16 performance, context, compaction, and benchmark specification.
+- [docs/PERFORMANCE_AND_CONTEXT.md](docs/PERFORMANCE_AND_CONTEXT.md) - hardware-derived inference budgets, automatic context, compaction, and benchmark specification.
 - [docs/DOCUMENT_ENGINE.md](docs/DOCUMENT_ENGINE.md) - huge document and folder-scale document processing architecture.
 - [docs/RETRIEVAL_AND_VERIFICATION.md](docs/RETRIEVAL_AND_VERIFICATION.md) - Qwen3-Embedding-0.6B encoding, hybrid indexing, TurboQuant acceleration, retrieval, citations, and verification.
 - [docs/KNOWLEDGE_BUNDLES.md](docs/KNOWLEDGE_BUNDLES.md) - passive, signed, domain-scoped offline reference libraries, provenance, storage, retrieval, and updates.
 - [docs/DESKTOP_DESIGN.md](docs/DESKTOP_DESIGN.md) - first Tauri desktop layout, folder/session navigation, model presentation, and UI security rules.
 - [docs/TYPESCRIPT_NODE_HARNESS.md](docs/TYPESCRIPT_NODE_HARNESS.md) - future TypeScript/Node implementation direction.
-- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - milestone-by-milestone implementation plan (M0-M11) with AI-runnable test gates.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - implementation sequence through M3 Desktop V1 and its cross-platform test gate.
 - [docs/IMPLEMENTATION_STRUCTURE.md](docs/IMPLEMENTATION_STRUCTURE.md) - concrete folder/module blueprint, startup minimal-code working agreement, and milestone-to-folder map.
 - [docs/M1_STATUS.md](docs/M1_STATUS.md) - completed cross-platform M1 implementation and certification evidence.
 - [docs/M2_STATUS.md](docs/M2_STATUS.md) - completed cross-platform M2 implementation and certification evidence.
+- [docs/M3_STATUS.md](docs/M3_STATUS.md) - active generic offline dev-agent desktop evidence and gate state.
 - [docs/IMPLEMENTATION_QUALITY_BAR.md](docs/IMPLEMENTATION_QUALITY_BAR.md) - future minimal-code, minimal-test, and clean-code constraints.
 - [docs/HARDWARE.md](docs/HARDWARE.md) - supported hardware and runtime strategy.
 - [docs/SECURITY.md](docs/SECURITY.md) - privacy, policy, audit, and sandboxing model.
@@ -110,7 +121,7 @@ Workflows:
 
 - [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) - milestone-scoped planning, research, verification, review, and handoff process.
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - workflow architecture and priorities.
-- [docs/workflows/accounting.md](docs/workflows/accounting.md) - first vertical workflow target.
+- [docs/workflows/accounting.md](docs/workflows/accounting.md) - possible post-V1 accounting workflow research.
 - [docs/workflows/legal.md](docs/workflows/legal.md) - legal workflow target.
 - [docs/workflows/medical-admin.md](docs/workflows/medical-admin.md) - later medical administration target.
 
@@ -141,6 +152,7 @@ Architecture decision records:
 - [docs/adr/0015-deterministic-document-tools-and-code-fallback.md](docs/adr/0015-deterministic-document-tools-and-code-fallback.md)
 - [docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md](docs/adr/0016-model-agnostic-defaults-and-managed-downloads.md)
 - [docs/adr/0017-knowledge-bundle-format-and-trust.md](docs/adr/0017-knowledge-bundle-format-and-trust.md)
+- [docs/adr/0018-offline-dev-agent-first.md](docs/adr/0018-offline-dev-agent-first.md)
 
 Research:
 
@@ -183,7 +195,7 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 
 - Treat model, document reader, tool loop, and UI as separate subsystems.
 - Prefer parsing, OCR, layout extraction, retrieval, and citations before model-only reasoning.
-- Implement common document operations as typed deterministic tools; use generated code only as a policy-selected fallback in a disposable no-NIC microVM.
+- For V1, run agent-authored Python, Node.js, and guest `/bin/sh` commands only in the session-scoped no-NIC microVM with a live read-only selected-folder mount and a persistent 128 MiB guest workspace. Add deterministic document operations later only when measured value justifies them.
 - Keep destructive or consequential actions approval-gated.
 - Keep filesystem access scoped through typed, policy-controlled adapters.
 - Run hostile document processing and executable tools in a certified no-NIC microVM; do not treat command, URL, domain, address, or protocol matching as network isolation.
@@ -196,8 +208,8 @@ These skills do not override this file, accepted ADRs, the active milestone, or 
 
 Future code must assume the model is untrusted for execution decisions.
 
-Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive direct shell or unrestricted filesystem access.
+Models may propose actions. The application validates, authorizes, previews, executes, logs, and rolls back actions through typed tool boundaries. The model must never receive a host shell or unrestricted filesystem access. M3 permits typed guest-local `/bin/sh` commands only inside the bounded no-NIC microVM.
 
-The certified hostile-work sandbox is a disposable microVM with no virtual network device and only typed host/guest socket IPC. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
+The certified hostile-work sandbox is a no-NIC microVM with only typed host/guest socket IPC. Document jobs may use disposable job-scoped guests; the V1 development agent uses one reusable session-scoped guest with a durable bounded workspace. GPU-backed inference may remain host-native only under the narrower OS-enforced capability boundary in [ADR 0012](docs/adr/0012-worker-isolation-and-untrusted-documents.md).
 
 For revision history and additional detail when needed, see [README.md](README.md#revision-history).

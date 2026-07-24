@@ -1,6 +1,16 @@
 import { createHash } from "node:crypto";
 import { constants, createReadStream } from "node:fs";
-import { chmod, copyFile, lstat, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { InstalledModelStoreSchema } from "@vault/shared";
@@ -10,6 +20,28 @@ export interface StagedModel {
   dispose(): Promise<void>;
 }
 
+export async function initializeEmptyModelStore(root: string): Promise<void> {
+  try {
+    await mkdir(root, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  const state = await lstat(root);
+  const wrongOwner = process.getuid !== undefined && state.uid !== process.getuid();
+  if (!state.isDirectory() || state.isSymbolicLink() || wrongOwner) {
+    throw new Error("model_store_unsafe");
+  }
+  await chmod(root, 0o700);
+  try {
+    await writeFile(
+      join(root, "installed-models.json"),
+      `${JSON.stringify({ schemaVersion: 1, models: [] })}\n`,
+      { encoding: "utf8", flag: "wx", mode: 0o600 },
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+}
 async function digest(path: string, signal?: AbortSignal): Promise<string> {
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(path)) {

@@ -1,0 +1,29 @@
+{
+  "name": "@vault/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --import tsx run-tauri.ts build",
+    "build:sidecar": "node --import tsx build-sidecar.ts",
+    "check:sidecar": "node --import tsx build-sidecar.ts --check",
+    "dev": "vite --port 1420 --strictPort",
+    "build:web": "vite build",
+    "tauri": "node --import tsx run-tauri.ts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1",
+    "@vault/shared": "workspace:*",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-markdown": "10.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "esbuild": "0.28.1",
+    "postject": "1.0.0-alpha.6",
+    "vite": "8.1.4"
+  }
+}

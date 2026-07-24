@@ -7,7 +7,11 @@ target/
 .generated/
 *.gguf
 *.tmp
+*.tsbuildinfo
 packages/eval/src/platform/tauri-smoke/src-tauri/binaries/
 packages/eval/src/platform/tauri-smoke/src-tauri/gen/
 packages/eval/src/platform/tauri-smoke/src-tauri/icons/*
 !packages/eval/src/platform/tauri-smoke/src-tauri/icons/icon.svg
+packages/desktop/src-tauri/binaries/
+packages/desktop/src-tauri/gen/
+packages/desktop/src-tauri/resources/

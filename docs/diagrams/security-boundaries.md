@@ -1,65 +1,41 @@
 # Security Boundaries Diagram
 
-Created: 2026-07-10
+Updated: 2026-07-20
 
 ```mermaid
 sequenceDiagram
-    participant UI as User interface
-    participant CP as Control plane
-    participant Model as Model runtime
-    participant Policy as Policy engine
-    participant Approval as Approval flow
-    participant Sandbox as No-NIC microVM
-    participant Code as Code-interpreter guest
-    participant Broker as External-connection broker
-    participant Audit as Audit log
+    participant UI as Tauri webview
+    participant Core as Vault Core
+    participant Model as Native inference worker
+    participant VM as No-NIC agent microVM
+    participant Audit as Local audit
 
-    UI->>CP: Request with selected workspace
-    CP->>Model: Evidence and task context
-    Model-->>CP: Answer or proposed tool call
-    CP->>Policy: Validate schema, scope, and permissions
-    Policy-->>CP: Allow, ask, or deny
-    alt approval required
-        CP->>Approval: Show preview or diff
-        Approval-->>CP: Approved or rejected
-    end
-    alt approved action
-        CP->>Sandbox: Execute hostile scoped work over typed IPC
-        Sandbox-->>CP: Tool result
-        CP->>Audit: Record request, decision, and result
-        CP->>Model: Continue with tool result
-        Model-->>UI: Final cited answer
-    else denied or rejected
-        CP->>Audit: Record denial or rejection
-        CP-->>UI: Explain blocked action
-    end
-    opt approved external integration
-        CP->>Broker: Execute typed policy-approved request
-        Broker-->>CP: Audited bounded result
-    end
-    opt unsupported transformation selected by policy
-        CP->>Code: Read-only inputs and typed job over no-NIC IPC
-        Code->>CP: Bounded model-completion request
-        CP->>Model: Schema-bounded completion
-        Model-->>CP: Completion
-        CP-->>Code: Typed completion result
-        Code-->>CP: Code, logs, and structured result
-        CP->>Audit: Record code, environment, resources, and result
-    end
+    UI->>Core: Session request with opaque folder or attachment IDs
+    Core->>Core: Validate and canonicalize grant; load durable history
+    Core->>VM: Live read-only source; hydrate bounded workspace
+    VM-->>Core: Observable activity or bounded completion request
+    Core->>Model: Schema and token-bounded completion
+    Model-->>Core: Typed completion
+    Core-->>VM: Typed completion result
+    VM-->>Core: Source or command, logs, workspace delta, result
+    Core->>Core: Validate schema, path, hash, size, and terminal state
+    Core->>Audit: Record observable activity and outcome
+    Core-->>UI: Streamed result, activity, artifacts, or failure
+    Core->>VM: Keep warm or commit and evict
 ```
 
 ## Notes
 
-- The model never executes tools directly.
-- Policy and approval are separate from model reasoning.
-- Audit records are created for both successful and blocked actions.
-- The microVM has no virtual network device; only the separate broker can perform an approved external request.
-- Generated code receives no generic model endpoint, Vault Core API, credentials, host paths, approval authority, or export authority.
+- The model proposes and Vault Core mediates; neither receives direct host execution authority.
+- The guest has zero virtual NICs, no credentials, no package installation, no generic host service, and no writable selected-folder mount. Its durable workspace is private Core state.
+- The webview never supplies arbitrary executable names, endpoints, or filesystem paths.
+- Generated artifacts remain session-owned proposals and cannot silently mutate the host.
 
 ## Revision History
 
 | Date | Change |
 |---|---|
-| 2026-07-10 | Initial security boundaries diagram created. |
-| 2026-07-12 | Replaced the generic sandbox with a no-NIC microVM and separate external-connection broker. |
-| 2026-07-13 | Added typed host-mediated inference for the bounded code-interpreter guest. |
+| 2026-07-10 | Created the initial security boundaries diagram. |
+| 2026-07-12 | Adopted the no-NIC microVM boundary. |
+| 2026-07-20 | Made the generic offline agent the V1 execution path. |
+| 2026-07-23 | Added live read-only folder sharing, durable workspace manifests, and warm-session eviction. |

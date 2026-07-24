@@ -1,10 +1,17 @@
 import { spawn, spawnSync } from "node:child_process";
-import { lstat, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { createConnection, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createVaultCore, daemonEndpoint, startDaemon } from "@vault/core";
-import { PROTOCOL_VERSION, type RpcResponse, RpcResponseSchema } from "@vault/shared";
+import {
+  FolderSummarySchema,
+  PROTOCOL_VERSION,
+  type RpcResponse,
+  RpcResponseSchema,
+  SessionPageSchema,
+  SessionSummarySchema,
+} from "@vault/shared";
 import { afterEach, describe, expect, it } from "vitest";
 
 const temporaryRoots: string[] = [];
@@ -39,21 +46,24 @@ afterEach(async () => {
   );
 });
 
-function rpc(
-  endpoint: string,
-  protocolVersion: number = PROTOCOL_VERSION,
-  timeoutMs = 5000,
-): Promise<RpcResponse> {
+interface RpcMethodInput {
+  method: string;
+  params: Record<string, unknown>;
+  protocolVersion?: number;
+  timeoutMs?: number;
+}
+
+function rpcMethod(endpoint: string, input: RpcMethodInput): Promise<RpcResponse> {
   return new Promise((accept, reject) => {
     const socket = createConnection(endpoint);
     let output = "";
     socket.setEncoding("utf8");
-    socket.setTimeout(timeoutMs, () => socket.destroy(new Error("RPC timed out.")));
+    socket.setTimeout(input.timeoutMs ?? 5000, () => socket.destroy(new Error("RPC timed out.")));
     socket.on("data", (chunk) => (output += chunk));
     socket.once("error", reject);
     socket.once("connect", () => {
       socket.write(
-        `${JSON.stringify({ jsonrpc: "2.0", id: "gate", method: "status", params: {}, protocolVersion })}\n`,
+        `${JSON.stringify({ jsonrpc: "2.0", id: "gate", method: input.method, params: input.params, protocolVersion: input.protocolVersion ?? PROTOCOL_VERSION })}\n`,
       );
     });
     socket.once("end", () => {
@@ -66,6 +76,23 @@ function rpc(
   });
 }
 
+function rpc(
+  endpoint: string,
+  protocolVersion: number = PROTOCOL_VERSION,
+  timeoutMs = 5000,
+): Promise<RpcResponse> {
+  return rpcMethod(endpoint, {
+    method: "status",
+    params: {},
+    protocolVersion,
+    timeoutMs,
+  });
+}
+
+function rpcResult(response: RpcResponse): unknown {
+  if ("result" in response) return response.result;
+  throw new Error("RPC method failed.");
+}
 function windowsPipeSecurity(endpoint: string): WindowsPipeSecurityReport {
   const helper = join(
     process.cwd(),
@@ -230,5 +257,43 @@ describe("M1 daemon recovery", () => {
     expect("result" in (await rpc(daemon.endpoint))).toBe(true);
     await daemon.close();
     await core.close();
+  });
+});
+describe("M3 conversation daemon methods", () => {
+  it("returns safe summaries, deletes sessions, and types invalid-folder failures", async () => {
+    const root = await temporaryRoot("vault-m3-daemon-");
+    const selected = await temporaryRoot("vault-m3-selected-");
+    const core = await createTestCore(root);
+    const daemon = await startDaemon(core, root);
+    const missing = await rpcMethod(daemon.endpoint, {
+      method: "folders.add",
+      params: { rootPath: join(selected, "missing") },
+    });
+    expect("error" in missing ? missing.error.code : undefined).toBe("path_out_of_scope");
+    const added = await rpcMethod(daemon.endpoint, {
+      method: "folders.add",
+      params: { rootPath: selected },
+    });
+    const folder = FolderSummarySchema.parse(rpcResult(added));
+    expect(folder).not.toHaveProperty("rootPath");
+    const params = { folderId: folder.id };
+    const resolved = await rpcMethod(daemon.endpoint, { method: "folders.resolvePath", params });
+    expect(rpcResult(resolved)).toBe(await realpath(selected));
+    const created = await rpcMethod(daemon.endpoint, {
+      method: "sessions.create",
+      params: { folderId: folder.id },
+    });
+    const session = SessionSummarySchema.parse(rpcResult(created));
+    const deleted = await rpcMethod(daemon.endpoint, {
+      method: "sessions.delete",
+      params: { sessionId: session.id },
+    });
+    expect(rpcResult(deleted)).toEqual({ deleted: true });
+    const listed = await rpcMethod(daemon.endpoint, {
+      method: "sessions.list",
+      params: { folderId: folder.id },
+    });
+    expect(SessionPageSchema.parse(rpcResult(listed)).items).toEqual([]);
+    await Promise.all([daemon.close(), core.close()]);
   });
 });

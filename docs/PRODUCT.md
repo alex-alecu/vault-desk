@@ -2,7 +2,7 @@
 
 Created: 2026-07-10
 
-Vault Desk is a private AI coworker for document-heavy professional work. It should help individuals and small offices complete useful work while keeping sensitive documents local by default.
+Vault Desk is a private AI coworker for local folders and files. It should help individuals and small offices complete useful work while keeping source material and executable agent work on their own computer.
 
 ## Core Thesis
 
@@ -19,7 +19,7 @@ Certainty includes:
 - Business controls for several employees.
 - Backup, recovery, and accountable support.
 
-Vault Desk is not primarily a model launcher, a RAG configuration surface, or a technical agent playground.
+Vault Desk is not primarily a model launcher, a RAG configuration surface, or an unrestricted host-side coding environment.
 
 ## Problem
 
@@ -47,8 +47,8 @@ Expected characteristics:
 - Local and offline by default.
 - Windows and macOS initially.
 - Supported Apple, AMD, and NVIDIA hardware paths.
-- Core document reading and agent functionality.
-- Fast deterministic search and calculations across supported document and spreadsheet formats.
+- A generic agent that can inspect selected folders or attachments and use Python, Node.js, or installed guest commands inside an offline microVM.
+- Live read-only access to host source folders and a durable bounded guest workspace.
 - No artificial document, message, or usage limits.
 - Community documentation and support.
 - Optional paid professional support.
@@ -119,17 +119,17 @@ The active model name may appear in the desktop header because the user requeste
 
 Users should ask for outcomes:
 
-- Review these contracts and prepare a risk report.
-- Compare these invoices with this spreadsheet.
+- Explore this folder and explain how it is organized.
+- Compare these files and summarize the important differences.
 - Find all unsigned documents.
-- Prepare a cited summary of this folder.
-- Extract all invoice items and create an Excel file.
+- Turn these CSV files into one clean report.
+- Inspect these images and create a contact sheet.
 
-Supported searches, filtering, calculations, comparisons, and exports should use deterministic document tools. Generated code is reserved for uncommon transformations that cannot be expressed through those tools and runs only in a disposable no-NIC microVM.
+For V1, the local model may author Python, Node.js, or guest shell commands for the requested task, but execution occurs only in a session-scoped no-NIC microVM with fixed offline tools, a live read-only selected-folder mount, and a persistent bounded workspace. Purpose-built deterministic document operations may follow after V1 when measurements justify them.
 
 ### Desktop Interaction
 
-The first desktop application uses Tauri v2 and React. Its stable layout has a full-window header with session name and active model, chats and working folders in a left sidebar below it, a conversation workspace, and a chat composer anchored at the bottom of the conversation pane. See [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
+The first desktop application uses Tauri v2 and React. Its persistent sidebar starts each section with its creation action: New chat under Chats and Add folder under Folders. Folder sessions remain grouped beneath their selected folders, showing the newest five with Show more for older sessions. The conversation workspace and bottom composer remain stable while users switch context. See [DESKTOP_DESIGN.md](DESKTOP_DESIGN.md).
 
 ### Safe Actions
 
@@ -164,7 +164,7 @@ Users should see understandable library concepts such as domain, jurisdiction, e
 
 ## Initial Customer Segments
 
-Accounting firms are the strongest first vertical because they have high document volume, sensitive financial data, repeated workflows, measurable ROI, and lower regulatory risk than medical decision support.
+The Community V1 targets individuals and small teams that need a private general-purpose file agent. Vertical workflow specialization follows only after usage identifies repeatable high-value tasks.
 
 Legal practices are a strong second vertical because document comparison, citation, redaction, and formatting-sensitive edits are high-value workflows.
 
@@ -178,3 +178,6 @@ Medical administration is a later target. Initial medical scope should avoid aut
 | 2026-07-12 | Added passive, versioned offline domain libraries as a product capability distinct from Workflow Packs. |
 | 2026-07-13 | Added the Tauri desktop interaction contract, curated model presentation, deterministic document operations, and isolated generated-code fallback. |
 | 2026-07-17 | Prohibited all application telemetry and distinguished explicit user exports from local customer-owned audit records. |
+| 2026-07-20 | Made the generic offline dev agent the first desktop product and moved deterministic document specialization after V1. |
+| 2026-07-22 | Grouped creation actions under their matching sidebar sections. |
+| 2026-07-23 | Added session-scoped offline execution with a live read-only folder mount and persistent bounded workspace. |

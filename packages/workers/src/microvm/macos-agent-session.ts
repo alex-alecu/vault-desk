@@ -1,0 +1,158 @@
+import { randomUUID } from "node:crypto";
+import { rm } from "node:fs/promises";
+import {
+  AgentGuestExecuteRequestSchema,
+  AgentGuestHelloRequestSchema,
+  AgentGuestHelloResultSchema,
+  AgentGuestHydrateRequestSchema,
+  AgentGuestHydrateResultSchema,
+  type AgentGuestInput,
+  AgentGuestResultSchema,
+} from "@vault/shared";
+import type { AgentHelperTransport } from "./agent-transport.js";
+import type {
+  AgentExecutionObserver,
+  AgentSessionExecution,
+  CodeAgentSession,
+} from "./launcher.js";
+import type { AgentWorkspaceStore } from "./workspace-store.js";
+
+interface GuestInitialization {
+  sessionId: string;
+  inputs: AgentGuestInput[];
+  limits: {
+    wallTimeMs: number;
+    memoryBytes: number;
+    scratchBytes: number;
+    outputBytes: number;
+  };
+  transport: AgentHelperTransport;
+  store: AgentWorkspaceStore;
+  signal: AbortSignal;
+}
+
+export async function initializeAgentGuest(options: GuestInitialization): Promise<void> {
+  const hello = AgentGuestHelloResultSchema.parse(
+    await options.transport.exchange(
+      AgentGuestHelloRequestSchema.parse({
+        protocolVersion: 3,
+        requestId: randomUUID(),
+        jobId: options.sessionId,
+        operation: "hello",
+        inputs: options.inputs,
+        limits: options.limits,
+      }),
+      options.signal,
+    ),
+  );
+  if (hello.nonLoopbackNetworkDeviceCount !== 0) throw new Error("agent_guest_not_certified");
+  AgentGuestHydrateResultSchema.parse(
+    await options.transport.exchange(
+      AgentGuestHydrateRequestSchema.parse({
+        protocolVersion: 3,
+        requestId: randomUUID(),
+        operation: "hydrate",
+        workspace: await options.store.load(options.sessionId),
+      }),
+      options.signal,
+    ),
+  );
+}
+
+export class FramedAgentSession implements CodeAgentSession {
+  private activeRequestId: string | undefined;
+  private closed = false;
+
+  constructor(
+    private readonly options: {
+      sessionId: string;
+      limits: {
+        wallTimeMs: number;
+        memoryBytes: number;
+        scratchBytes: number;
+        outputBytes: number;
+      };
+      transport: AgentHelperTransport;
+      store: AgentWorkspaceStore;
+      temporaryRoot: string;
+      lifecycleObserver?: AgentExecutionObserver;
+      lifecyclePlatform: "macos" | "windows";
+    },
+  ) {}
+
+  async execute(
+    request: AgentSessionExecution,
+    signal?: AbortSignal,
+    observer?: AgentExecutionObserver,
+  ) {
+    signal?.throwIfAborted();
+    if (this.closed) throw new Error("agent_session_closed");
+    if (this.activeRequestId !== undefined) throw new Error("agent_session_busy");
+    const requestId = randomUUID();
+    const executionId = observer?.executionId ?? randomUUID();
+    this.activeRequestId = requestId;
+    const abort = () => {
+      try {
+        this.options.transport.write({ protocolVersion: 3, requestId, operation: "cancel" });
+      } catch {
+        // The pending exchange reports a helper failure.
+      }
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    try {
+      const frame = AgentGuestExecuteRequestSchema.parse({
+        protocolVersion: 3,
+        requestId,
+        executionId,
+        operation: "execute",
+        ...request,
+        limits: this.options.limits,
+      });
+      const result = AgentGuestResultSchema.parse(
+        await this.options.transport.exchange(frame, undefined, {
+          executionId,
+          onUpdate: observer?.onUpdate ?? (() => undefined),
+        }),
+      );
+      if (result.executionId !== executionId) throw new Error("agent_helper_execution_mismatch");
+      if (result.nonLoopbackNetworkDeviceCount !== 0) throw new Error("agent_guest_not_certified");
+      await this.options.store.applyDelta(this.options.sessionId, result.workspaceDelta);
+      return result.execution;
+    } finally {
+      signal?.removeEventListener("abort", abort);
+      this.activeRequestId = undefined;
+    }
+  }
+
+  async cancel(): Promise<void> {
+    if (this.activeRequestId !== undefined) {
+      try {
+        this.options.transport.write({
+          protocolVersion: 3,
+          requestId: this.activeRequestId,
+          operation: "cancel",
+        });
+      } catch {
+        // The active exchange reports a helper failure.
+      }
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    try {
+      await this.options.transport.close();
+    } finally {
+      try {
+        await this.options.lifecycleObserver?.onUpdate({
+          kind: "diagnostic",
+          code: "teardown",
+          platform: this.options.lifecyclePlatform,
+        });
+      } finally {
+        await rm(this.options.temporaryRoot, { recursive: true, force: true });
+      }
+    }
+  }
+}

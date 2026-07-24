@@ -4,6 +4,7 @@ import type {
   InferenceProfile,
   InferenceWorkerRequest,
   InferenceWorkerResponse,
+  ModelRuntimeStatus,
   StructuredGenerationRequest,
   StructuredGenerationResult,
 } from "@vault/shared";
@@ -23,15 +24,23 @@ export interface InferenceExecution {
   memoryBudgetBytes: number;
   timeoutMs: number;
   signal?: AbortSignal;
+  onThinkingDelta?(text: string): void;
 }
 
 export interface InferencePort {
   execute(execution: InferenceExecution): Promise<InferenceWorkerResponse>;
+  unload(): Promise<boolean>;
 }
 
 export interface InferenceService {
-  generate(input: GenerationInput, signal?: AbortSignal): Promise<StructuredGenerationResult>;
+  generate(
+    input: GenerationInput,
+    signal?: AbortSignal,
+    onThinkingDelta?: (text: string) => void,
+  ): Promise<StructuredGenerationResult>;
   embed(input: EmbeddingInput, signal?: AbortSignal): Promise<EmbeddingResult>;
+  modelStatus(): Promise<ModelRuntimeStatus>;
+  unloadModel(): Promise<boolean>;
 }
 
 export interface InferenceConfiguration {

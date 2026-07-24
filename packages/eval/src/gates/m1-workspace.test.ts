@@ -196,11 +196,11 @@ describe("M1 workspace migration", () => {
     await first.close();
     const database = new Database(join(root, ".vault", "catalog.sqlite"));
     database.exec(
-      "DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
+      "DROP TABLE agent_executions; DROP TABLE agent_artifacts; DROP TABLE agent_events; DROP TABLE agent_runs; DROP TABLE session_attachments; DROP TABLE session_drafts; DROP TABLE conversation_messages; DROP TABLE sessions; DROP TABLE folder_grants; DROP TRIGGER audit_head_no_delete; DROP TABLE audit_head; PRAGMA user_version = 1",
     );
     database.close();
     const migrated = await createTestCore(root);
-    expect((await migrated.status()).catalogSchemaVersion).toBe(2);
+    expect((await migrated.status()).catalogSchemaVersion).toBe(7);
     expect(await migrated.verifyAudit()).toBe(true);
     await migrated.close();
   });
@@ -215,7 +215,7 @@ describe("M1 workspace migration", () => {
     legacy.prepare("INSERT INTO legacy_marker VALUES (?)").run("before-migration");
     legacy.close();
     const core = await createTestCore(root);
-    expect((await core.status()).catalogSchemaVersion).toBe(2);
+    expect((await core.status()).catalogSchemaVersion).toBe(7);
     await core.close();
     const backupName = (await readdir(internalRoot)).find((name) =>
       name.startsWith("catalog.sqlite.pre-migration-v0-"),
@@ -226,5 +226,33 @@ describe("M1 workspace migration", () => {
     expect(marker.value).toBe("before-migration");
     expect(backup.pragma("user_version", { simple: true })).toBe(0);
     backup.close();
+  });
+});
+
+describe("M3 conversation audit atomicity", () => {
+  it("rolls back a session when the audit chain cannot be extended", async () => {
+    const root = await temporaryRoot();
+    const core = await createTestCore(root);
+    const database = new Database(join(root, ".vault", "catalog.sqlite"));
+    const row = database
+      .prepare("SELECT event_json FROM audit_events WHERE sequence = 0")
+      .get() as { event_json: string };
+    const changed = { ...(JSON.parse(row.event_json) as object), type: "tampered" };
+    database.exec("DROP TRIGGER audit_events_no_update");
+    database
+      .prepare("UPDATE audit_events SET event_json = ? WHERE sequence = 0")
+      .run(JSON.stringify(changed));
+
+    await expect(core.createSession(null)).rejects.toThrow("audit_chain_invalid");
+    const count = database.prepare("SELECT count(*) AS count FROM sessions").get() as {
+      count: number;
+    };
+    expect(count.count).toBe(0);
+
+    database
+      .prepare("UPDATE audit_events SET event_json = ? WHERE sequence = 0")
+      .run(row.event_json);
+    database.close();
+    await core.close();
   });
 });

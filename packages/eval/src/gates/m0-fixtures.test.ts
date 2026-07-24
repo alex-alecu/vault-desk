@@ -1,46 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { heldoutInvoiceCorpus } from "../fixtures/heldout.js";
-import { developmentInvoiceCorpus, encodeInvoiceCorpus } from "../fixtures/invoices.js";
+import { developmentAgentTasks, encodeAgentTaskCorpus } from "../fixtures/agent-tasks.js";
+import { heldoutAgentTasks } from "../fixtures/heldout-agent-tasks.js";
+
+const requiredCategories = new Set([
+  "positive",
+  "negative",
+  "contradiction",
+  "locale",
+  "corruption",
+  "prompt_injection",
+]);
 
 describe("M0 deterministic evaluation corpora", () => {
-  it("generates identical bytes", () => {
-    const first = encodeInvoiceCorpus(developmentInvoiceCorpus());
-    const second = encodeInvoiceCorpus(developmentInvoiceCorpus());
+  it("generates identical bytes and covers every required class", () => {
+    const first = encodeAgentTaskCorpus(developmentAgentTasks());
+    const second = encodeAgentTaskCorpus(developmentAgentTasks());
     expect(first).toEqual(second);
-  });
-
-  it("covers every required ground-truth class", () => {
-    const categories = new Set(developmentInvoiceCorpus().map((entry) => entry.category));
-    expect(categories).toEqual(
-      new Set([
-        "positive",
-        "negative",
-        "contradiction",
-        "locale",
-        "corruption",
-        "prompt_injection",
-      ]),
+    expect(new Set(developmentAgentTasks().map((entry) => entry.category))).toEqual(
+      requiredCategories,
     );
   });
 
-  it("keeps held-out templates and identifiers separate", () => {
-    const developmentIds = new Set(developmentInvoiceCorpus().map((entry) => entry.id));
-    expect(heldoutInvoiceCorpus().every((entry) => !developmentIds.has(entry.id))).toBe(true);
-  });
-
-  it("covers required classes in held-out data and keeps every source anchor exact", () => {
-    const heldout = heldoutInvoiceCorpus();
-    expect(new Set(heldout.map((entry) => entry.category))).toEqual(
-      new Set([
-        "positive",
-        "negative",
-        "contradiction",
-        "locale",
-        "corruption",
-        "prompt_injection",
-      ]),
-    );
-    for (const fixture of [...developmentInvoiceCorpus(), ...heldout]) {
+  it("keeps held-out tasks separate and every source anchor exact", () => {
+    const development = developmentAgentTasks();
+    const heldout = heldoutAgentTasks();
+    const developmentIds = new Set(development.map((entry) => entry.id));
+    expect(heldout.every((entry) => !developmentIds.has(entry.id))).toBe(true);
+    expect(new Set(heldout.map((entry) => entry.category))).toEqual(requiredCategories);
+    for (const fixture of [...development, ...heldout]) {
       const content = Buffer.from(fixture.contentBase64, "base64").toString("utf8");
       expect(fixture.anchors.every((anchor) => content.includes(anchor.exactText))).toBe(true);
     }

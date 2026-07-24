@@ -8,7 +8,7 @@ import {
 } from "@vault/shared";
 import { requestWindows } from "./windows-client.js";
 
-const MAX_RESPONSE_BYTES = 1024 * 1024;
+const MAX_RESPONSE_BYTES = 192 * 1024 * 1024;
 
 async function verifyEndpoint(endpoint: string): Promise<void> {
   if (process.platform === "win32") return;

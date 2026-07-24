@@ -4,6 +4,8 @@ mod acl;
 mod hcs;
 #[cfg(windows)]
 mod socket;
+#[cfg(windows)]
+mod source_access;
 
 #[cfg(windows)]
 use std::env;
@@ -21,6 +23,7 @@ struct Arguments {
     scratch: Option<PathBuf>,
     scratch_bytes: u64,
     inputs: Vec<PathBuf>,
+    source: Option<PathBuf>,
     print_configuration: bool,
 }
 
@@ -58,6 +61,10 @@ fn parse_arguments() -> Result<Arguments, Box<dyn Error>> {
         .iter()
         .find(|(key, _)| key == "--scratch")
         .map(|(_, path)| PathBuf::from(path));
+    let source = values
+        .iter()
+        .find(|(key, _)| key == "--source")
+        .map(|(_, path)| PathBuf::from(path));
     if (scratch_bytes == 0) != scratch.is_none() {
         return Err("Scratch path and positive scratch size must be supplied together.".into());
     }
@@ -69,6 +76,7 @@ fn parse_arguments() -> Result<Arguments, Box<dyn Error>> {
         scratch,
         scratch_bytes,
         inputs,
+        source,
         print_configuration,
     })
 }
@@ -81,12 +89,16 @@ fn run() -> Result<(), Box<dyn Error>> {
         println!("{configuration}");
         return Ok(());
     }
-    let guest = hcs::run(&configuration, &arguments)?;
-    println!(
-        "{{\"classification\":\"certified\",\"guest\":{guest},\"networkDeviceCount\":0,\"readOnlyInputCount\":{},\"scratchBytes\":{},\"socketDeviceCount\":1}}",
-        arguments.inputs.len(),
-        arguments.scratch_bytes
-    );
+    if arguments.source.is_some() {
+        hcs::run_agent(&configuration, &arguments)?;
+    } else {
+        let guest = hcs::run_probe(&configuration, &arguments)?;
+        println!(
+            "{{\"classification\":\"certified\",\"guest\":{guest},\"networkDeviceCount\":0,\"readOnlyInputCount\":{},\"scratchBytes\":{},\"socketDeviceCount\":1}}",
+            arguments.inputs.len(),
+            arguments.scratch_bytes
+        );
+    }
     Ok(())
 }
 

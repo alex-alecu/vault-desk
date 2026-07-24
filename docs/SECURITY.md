@@ -75,7 +75,7 @@ Examples of acceptable tool categories:
 
 Examples of unsafe default capabilities:
 
-- Direct shell access.
+- Direct host shell access or an unbounded guest shell.
 - Arbitrary filesystem traversal.
 - Arbitrary network calls.
 - Unbounded file writes.
@@ -84,19 +84,19 @@ Examples of unsafe default capabilities:
 
 ## Worker Isolation Requirements
 
-Hostile document parsing and future model-requested executable tools must run in disposable, job-scoped microVMs. A certified microVM has no virtual network device. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
+Hostile document parsing and model-requested executable tools must run in certified no-NIC microVMs. Document jobs may use disposable job-scoped guests; the V1 development agent uses one session-scoped guest with a durable bounded workspace. Network denial must come from the absence of a NIC and general network proxy, not from matching commands, executables, domains, URLs, addresses, or protocols.
 
-MicroVM workers receive only job-scoped staged inputs, read-only storage, or brokered handles and communicate over a versioned typed host/guest socket. Their root filesystem is immutable and their bounded writable scratch storage is disposable. They have no direct authority to approve actions, write exports, mutate workspace policy, traverse the general workspace, use credentials, or reach local or external networks. Each job has limits for time, memory, CPU, input expansion, temporary storage, output size, and concurrency.
+MicroVM workers receive immutable explicit attachments or one Core-validated live read-only folder share and communicate over a versioned typed host/guest socket. Their root filesystem is immutable. The dev agent's 128 MiB writable `/workspace` is session-owned and survives only through validated content-addressed manifests; a separate 16 MiB `/run/user` tmpfs is ephemeral, and `/tmp` is read-only to task processes. Neither grants selected-folder or general host writes. Executed child processes inherit no control descriptor and an OS-enforced syscall filter denies creation of new sockets, including VSOCK. Each execution retains time, memory, CPU, process, writable-storage, and output limits.
 
 GPU-backed inference may remain in a host-native supervised process so Metal, CUDA, HIP, or Vulkan remains available. That process is not a tool-execution environment: it receives no shell, credentials, approval authority, arbitrary workspace access, or network capability. Its network denial must be enforced by the operating system rather than application command matching. The completed M2 boundary uses Seatbelt on macOS and a no-capability AppContainer plus a one-process, memory-limited Job Object on Windows. Worker output must be schema-validated and size-checked before it can enter authoritative workspace state. Cancellation, crashes, malformed IPC, temporary-file cleanup, and restart recovery must be tested. See [adr/0012-worker-isolation-and-untrusted-documents.md](adr/0012-worker-isolation-and-untrusted-documents.md).
 
 ## Generated-Code Controls
 
-Generated code is a fallback capability, not a trusted extension mechanism. Each code job runs in a fresh no-NIC microVM with explicit read-only inputs, bounded scratch storage, pinned offline interpreters and libraries, and limits for processes, CPU, memory, time, storage, output count, and output size.
+Agent-authored code and installed guest commands are the V1 work capability, not a trusted extension mechanism. Each session uses a no-NIC microVM with a live read-only `/source`, a persistent bounded `/workspace`, pinned offline interpreters, `/bin/sh`, BusyBox tools, and libraries, plus limits for processes, CPU, memory, time, storage, output count, and output size.
 
-The guest receives no user home, credentials, arbitrary workspace path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or general model endpoint. Model completions are mediated through a narrow typed host/guest protocol. Code and dependencies cannot be installed during a job.
+The guest receives no user home, credentials, arbitrary host path, package manager access, host shell, generic Vault Core API, external connection broker, approval capability, or model endpoint. Its shell is guest-local and cannot cross the VM boundary. Vault Core mediates completions through the separately confined native inference worker and sends only validated execution requests to the guest. Code and dependencies cannot be installed.
 
-Vault Core records the generated source, interpreter and library manifest, input hashes, logs, structured result, artifacts, resource use, and termination reason. Results remain untrusted until schema validation, source-anchor checks, deterministic recalculation where applicable, policy checks, and any required export approval complete. See [adr/0015-deterministic-document-tools-and-code-fallback.md](adr/0015-deterministic-document-tools-and-code-fallback.md).
+Vault Core records every message, generated source or command, workspace path, summary, bounded logs, structured result, event, artifact, resource use, and termination reason. Originals remain durable even when prompt compaction replaces older successful logs with references. Results and workspace deltas remain untrusted until schema, path, hash, size, protocol, and policy validation completes. See [ADR 0018](adr/0018-offline-dev-agent-first.md).
 
 ## Desktop Shell Controls
 

@@ -14,8 +14,9 @@ struct Arguments {
     let initramfs: URL
     let cpuCount: Int
     let memoryBytes: UInt64
-    let scratch: URL
+    let scratch: URL?
     let inputs: [URL]
+    let source: URL?
 }
 
 func parseArguments() throws -> Arguments {
@@ -35,8 +36,7 @@ func parseArguments() throws -> Arguments {
     }
     guard let kernel = values["--kernel"], let initramfs = values["--initramfs"],
           let cpuText = values["--cpus"], let cpuCount = Int(cpuText),
-          let memoryText = values["--memory"], let memoryBytes = UInt64(memoryText),
-          let scratch = values["--scratch"] else {
+          let memoryText = values["--memory"], let memoryBytes = UInt64(memoryText) else {
         throw HelperError.invalidArguments
     }
     return Arguments(
@@ -44,8 +44,9 @@ func parseArguments() throws -> Arguments {
         initramfs: URL(fileURLWithPath: initramfs),
         cpuCount: cpuCount,
         memoryBytes: memoryBytes,
-        scratch: URL(fileURLWithPath: scratch),
-        inputs: inputs
+        scratch: values["--scratch"].map { URL(fileURLWithPath: $0) },
+        inputs: inputs,
+        source: values["--source"].map { URL(fileURLWithPath: $0) }
     )
 }
 
@@ -88,23 +89,82 @@ func writeAll(_ data: Data, to descriptor: Int32) throws {
 }
 
 func writeFrame(_ payload: Data, to descriptor: Int32) throws {
-    guard !payload.isEmpty, payload.count <= 4096 else { throw HelperError.invalidFrame }
+    guard !payload.isEmpty, payload.count <= 256 * 1024 else { throw HelperError.invalidFrame }
     let length = UInt32(payload.count)
-    let header = Data([
-        UInt8(length >> 24),
-        UInt8((length >> 16) & 0xff),
-        UInt8((length >> 8) & 0xff),
-        UInt8(length & 0xff),
-    ])
-    try writeAll(header, to: descriptor)
+    try writeAll(Data([
+        UInt8(length >> 24), UInt8((length >> 16) & 0xff),
+        UInt8((length >> 8) & 0xff), UInt8(length & 0xff),
+    ]), to: descriptor)
     try writeAll(payload, to: descriptor)
 }
 
 func readFrame(from descriptor: Int32) throws -> Data {
     let header = try readExact(count: 4, from: descriptor)
     let length = header.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
-    guard length > 0, length <= 4096 else { throw HelperError.invalidFrame }
+    guard length > 0, length <= 64 * 1024 * 1024 else { throw HelperError.invalidFrame }
     return try readExact(count: Int(length), from: descriptor)
+}
+
+struct RelayFrameValidator {
+    private var header: [UInt8] = []
+    private var remaining: UInt32?
+
+    mutating func accept(_ data: Data) throws {
+        for byte in data {
+            if let payloadRemaining = remaining {
+                let next = payloadRemaining - 1
+                remaining = next == 0 ? nil : next
+                continue
+            }
+            header.append(byte)
+            if header.count == 4 {
+                let length = header.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+                guard length > 0, length <= 192 * 1024 * 1024 else {
+                    throw HelperError.invalidFrame
+                }
+                header.removeAll(keepingCapacity: true)
+                remaining = length
+            }
+        }
+    }
+
+    func finish() throws {
+        guard header.isEmpty, remaining == nil else { throw HelperError.invalidFrame }
+    }
+}
+
+func relay(input: Int32, guest: Int32, output: Int32) throws {
+    var descriptors = [
+        pollfd(fd: input, events: Int16(POLLIN), revents: 0),
+        pollfd(fd: guest, events: Int16(POLLIN), revents: 0),
+    ]
+    var validators = [RelayFrameValidator(), RelayFrameValidator()]
+    var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+    while true {
+        let ready = poll(&descriptors, nfds_t(descriptors.count), -1)
+        if ready < 0 {
+            if errno == EINTR { continue }
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        for index in descriptors.indices where descriptors[index].revents != 0 {
+            let source = descriptors[index].fd
+            let destination = index == 0 ? guest : output
+            let count = Darwin.read(source, &buffer, buffer.count)
+            if count == 0 {
+                try validators[index].finish()
+                return
+            }
+            if count < 0 {
+                if errno == EINTR { continue }
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            try buffer.withUnsafeBytes { bytes in
+                let data = Data(bytes.prefix(count))
+                try validators[index].accept(data)
+                try writeAll(data, to: destination)
+            }
+        }
+    }
 }
 
 @MainActor
@@ -127,9 +187,10 @@ func storageDevices(_ arguments: Arguments) throws -> [VZStorageDeviceConfigurat
         let attachment = try VZDiskImageStorageDeviceAttachment(url: input, readOnly: true)
         devices.append(VZVirtioBlockDeviceConfiguration(attachment: attachment))
     }
-    if (try arguments.scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
+    if let scratch = arguments.scratch,
+       (try scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
         let attachment = try VZDiskImageStorageDeviceAttachment(
-            url: arguments.scratch,
+            url: scratch,
             readOnly: false
         )
         devices.append(VZVirtioBlockDeviceConfiguration(attachment: attachment))
@@ -155,6 +216,13 @@ func configuration(_ arguments: Arguments) throws -> VZVirtualMachineConfigurati
     result.serialPorts = [serialPort]
     result.socketDevices = [VZVirtioSocketDeviceConfiguration()]
     result.storageDevices = try storageDevices(arguments)
+    if let source = arguments.source {
+        let fileSystem = VZVirtioFileSystemDeviceConfiguration(tag: "source")
+        fileSystem.share = VZSingleDirectoryShare(
+            directory: VZSharedDirectory(url: source, readOnly: true)
+        )
+        result.directorySharingDevices = [fileSystem]
+    }
     try result.validate()
     return result
 }
@@ -171,34 +239,42 @@ struct VaultVirtualizationHelper {
             throw HelperError.socketUnavailable
         }
         let connection = try await connectWithRetry(socket)
-        let request: [String: Any] = [
-            "jobId": "00000000-0000-4000-8000-000000000001",
-            "operation": "probe",
-            "protocolVersion": 1,
-            "requestId": "m1-probe",
-        ]
-        try writeFrame(
-            JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]),
-            to: connection.fileDescriptor
-        )
-        let guest = try JSONSerialization.jsonObject(
-            with: readFrame(from: connection.fileDescriptor)
-        ) as? [String: Any]
+        if arguments.source != nil {
+            try relay(
+                input: STDIN_FILENO,
+                guest: connection.fileDescriptor,
+                output: STDOUT_FILENO
+            )
+        } else {
+            let probe: [String: Any] = [
+                "jobId": "00000000-0000-4000-8000-000000000001",
+                "operation": "probe",
+                "protocolVersion": 1,
+                "requestId": "m1-probe",
+            ]
+            let request = try JSONSerialization.data(withJSONObject: probe, options: [.sortedKeys])
+            try writeFrame(request, to: connection.fileDescriptor)
+            let guest = try JSONSerialization.jsonObject(
+                with: readFrame(from: connection.fileDescriptor)
+            ) as? [String: Any]
+            let scratchSize = try arguments.scratch?.resourceValues(
+                forKeys: [.fileSizeKey]
+            ).fileSize ?? 0
+            let result: [String: Any] = [
+                "classification": "certified",
+                "guest": guest ?? [:],
+                "networkDeviceCount": machineConfiguration.networkDevices.count,
+                "readOnlyInputCount": arguments.inputs.count,
+                "scratchBytes": scratchSize,
+                "socketDeviceCount": machineConfiguration.socketDevices.count,
+            ]
+            let output = try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])
+            FileHandle.standardOutput.write(output)
+            FileHandle.standardOutput.write(Data([0x0A]))
+        }
         connection.close()
         if virtualMachine.canStop {
             try await virtualMachine.stop()
         }
-        let scratchSize = try arguments.scratch.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        let result: [String: Any] = [
-            "classification": "certified",
-            "guest": guest ?? [:],
-            "networkDeviceCount": machineConfiguration.networkDevices.count,
-            "readOnlyInputCount": arguments.inputs.count,
-            "scratchBytes": scratchSize,
-            "socketDeviceCount": machineConfiguration.socketDevices.count,
-        ]
-        let output = try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])
-        FileHandle.standardOutput.write(output)
-        FileHandle.standardOutput.write(Data([0x0A]))
     }
 }

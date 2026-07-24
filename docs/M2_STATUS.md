@@ -2,7 +2,7 @@
 
 Updated: 2026-07-20
 
-M2 is complete across macOS and Windows. M3 is not authorized.
+M2 is complete across macOS and Windows. The repository owner subsequently activated M3 Offline Dev-Agent Desktop V1.
 
 ## Change Brief
 
@@ -10,7 +10,7 @@ M2 is complete across macOS and Windows. M3 is not authorized.
 - Authority: the repository owner activated M2 on 2026-07-19 and requested macOS implementation followed by Windows completion on a separate machine.
 - Product boundaries: Vault Core resolves hash-pinned installed models, schedules profile memory, owns audit and cancellation, and receives only typed results. A worker receives one approved model path, sanitized environment, fixed stdio IPC, and no workspace, credential, approval, shell, tool, or external-network authority.
 - Acceptance evidence: deterministic containment tests, physical macOS Seatbelt and Windows AppContainer authority probes, Qwen embedding smoke, Gemma 4 E2B grammar output, and Gemma 4 12B grammar output under Local 12 and Local 16 memory caps.
-- Explicitly excluded: M3 ingestion, runtime alternatives, model-download product behavior, arbitrary model paths, product UI, packaging, and final Local 12/Local 16 product certification.
+- Explicitly excluded: M3 agent behavior, model-download product behavior, arbitrary model paths, product UI, packaging, and final product certification.
 
 ## Implemented Scope
 
@@ -50,7 +50,7 @@ M2 is complete across macOS and Windows. M3 is not authorized.
 ## Gate Interpretation
 
 - The physical 12 GiB Windows GPU supplies the early Local 12-class target. The 48 GiB unified-memory Mac, exercised under the Local 16 cap, supplies the early Local 16-class target required before later LLM work.
-- These are M2 loading, grammar, memory-cap, authority, and shutdown canaries. They are not final profile certification: M11 still requires the complete workflow, context, compaction, recovery, packaging, and performance suite on actual target machines.
-- macOS and Windows now implement the same typed inference contract and prove equivalent authority denials through their platform-native boundaries.
+- These are M2 loading, grammar, memory-cap, authority, and shutdown canaries. They are not final product certification; M3 still requires the complete agent, recovery, packaging, and desktop suite on both platforms.
+- macOS and Windows implement the same typed inference contract and prove equivalent authority denials through their platform-native boundaries.
 
-Conclusion: ready; cross-platform M2 is complete. M3 and later work require a new explicit owner request.
+Conclusion: ready; cross-platform M2 is complete. Active M3 product evidence is recorded in [M3_STATUS.md](M3_STATUS.md).

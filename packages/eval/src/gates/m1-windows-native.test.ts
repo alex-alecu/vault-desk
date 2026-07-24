@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WindowsMicroVmLauncher } from "@vault/workers";
@@ -28,7 +28,12 @@ function limits(scratchBytes: number) {
   };
 }
 
-function configuration(helper: string, input: string, scratch: string): Record<string, unknown> {
+function configuration(
+  helper: string,
+  input: string,
+  scratch: string,
+  source?: string,
+): Record<string, unknown> {
   const artifacts = join(process.cwd(), "packages/workers/images/.generated/artifacts/x86_64");
   const result = spawnSync(
     helper,
@@ -48,6 +53,7 @@ function configuration(helper: string, input: string, scratch: string): Record<s
       String(8 * 1024 * 1024),
       "--input",
       input,
+      ...(source === undefined ? [] : ["--source", source]),
     ],
     { encoding: "utf8" },
   );
@@ -83,12 +89,17 @@ describeWindows("M1 certified Windows microVM", () => {
     try {
       const input = join(root, "input.vhd");
       const scratch = join(root, "scratch.vhd");
-      await Promise.all([writeFile(input, "input"), writeFile(scratch, "scratch")]);
-      const document = configuration(helperPath(), input, scratch) as {
+      const source = join(root, "source");
+      await Promise.all([writeFile(input, "input"), writeFile(scratch, "scratch"), mkdir(source)]);
+      const document = configuration(helperPath(), input, scratch, source) as {
         VirtualMachine: { Devices: Record<string, unknown> };
       };
       expect(document.VirtualMachine.Devices).not.toHaveProperty("NetworkAdapters");
       expect(document.VirtualMachine.Devices).toHaveProperty("HvSocket");
+      expect(document.VirtualMachine.Devices).toMatchObject({
+        Plan9: { Shares: [{ Flags: 1, Name: "source", Port: 50001 }] },
+      });
+      expect(document.VirtualMachine.Devices.Plan9).not.toHaveProperty("ReadOnly");
       expect(JSON.stringify(document)).toContain('"ReadOnly":true');
       expect(JSON.stringify(document)).toContain('"ReadOnly":false');
     } finally {

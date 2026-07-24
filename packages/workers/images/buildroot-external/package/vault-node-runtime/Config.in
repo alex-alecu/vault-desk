@@ -1,0 +1,5 @@
+config BR2_PACKAGE_VAULT_NODE_RUNTIME
+	bool "vault-node-runtime"
+	depends on BR2_aarch64
+	help
+	  Fixed Node.js runtime without npm or Corepack for the M3 agent guest.

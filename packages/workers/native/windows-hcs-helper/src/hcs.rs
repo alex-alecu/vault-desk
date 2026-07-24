@@ -1,6 +1,7 @@
 use crate::Arguments;
 use crate::acl;
 use crate::socket;
+use crate::source_access::SourceAccess;
 use std::error::Error;
 use std::ffi::{OsStr, c_void};
 use std::os::windows::ffi::OsStrExt;
@@ -63,18 +64,30 @@ fn attachments(arguments: &Arguments) -> Result<String, Box<dyn Error>> {
     Ok(values.join(","))
 }
 
+fn plan9(arguments: &Arguments) -> Result<String, Box<dyn Error>> {
+    let Some(source) = &arguments.source else {
+        return Ok(String::new());
+    };
+    Ok(format!(
+        r#",\"Plan9\":{{\"Shares\":[{{\"Name\":\"source\",\"Path\":\"{}\",\"Port\":50001,\"Flags\":1}}]}}"#,
+        json_path(source)?
+    ))
+}
+
 pub fn configuration(arguments: &Arguments) -> Result<String, Box<dyn Error>> {
     let memory_mb = arguments.memory_bytes.div_ceil(1024 * 1024);
     let kernel = json_path(&arguments.kernel)?;
     let initramfs = json_path(&arguments.initramfs)?;
     let scsi = attachments(arguments)?;
-    let template = r#"{"Owner":"Vault Desk M1","SchemaVersion":{"Major":2,"Minor":1},"ShouldTerminateOnLastHandleClosed":true,"VirtualMachine":{"StopOnReset":true,"Chipset":{"LinuxKernelDirect":{"KernelCmdLine":"console=ttyS0 init=/sbin/init panic=-1 dummy.numdummies=0 initcall_blacklist=virtio_vsock_init pci=off","KernelFilePath":"$KERNEL","InitRdPath":"$INITRAMFS"}},"ComputeTopology":{"Memory":{"AllowOvercommit":true,"SizeInMB":$MEMORY},"Processor":{"Count":$CPUS}},"Devices":{"Scsi":{"vault-scsi":{"Attachments":{$SCSI}}},"HvSocket":{"HvSocketConfig":{"DefaultBindSecurityDescriptor":"D:P(A;;FA;;;SY)(A;;FA;;;BA)","ServiceTable":{"00000fd2-facb-11e6-bd58-64006a7986d3":{"AllowWildcardBinds":true,"BindSecurityDescriptor":"D:P(A;;FA;;;WD)","ConnectSecurityDescriptor":"D:P(A;;FA;;;SY)(A;;FA;;;BA)"}}}}}}}"#;
+    let plan9 = plan9(arguments)?;
+    let template = r#"{"Owner":"Vault Desk M1","SchemaVersion":{"Major":2,"Minor":1},"ShouldTerminateOnLastHandleClosed":true,"VirtualMachine":{"StopOnReset":true,"Chipset":{"LinuxKernelDirect":{"KernelCmdLine":"console=ttyS0 init=/sbin/init panic=-1 dummy.numdummies=0 initcall_blacklist=virtio_vsock_init pci=off","KernelFilePath":"$KERNEL","InitRdPath":"$INITRAMFS"}},"ComputeTopology":{"Memory":{"AllowOvercommit":true,"SizeInMB":$MEMORY},"Processor":{"Count":$CPUS}},"Devices":{"Scsi":{"vault-scsi":{"Attachments":{$SCSI}}},"HvSocket":{"HvSocketConfig":{"DefaultBindSecurityDescriptor":"D:P(A;;FA;;;SY)(A;;FA;;;BA)","ServiceTable":{"00000fd2-facb-11e6-bd58-64006a7986d3":{"AllowWildcardBinds":true,"BindSecurityDescriptor":"D:P(A;;FA;;;WD)","ConnectSecurityDescriptor":"D:P(A;;FA;;;SY)(A;;FA;;;BA)"}}}}$PLAN9}}}"#;
     Ok(template
         .replace("$KERNEL", &kernel)
         .replace("$INITRAMFS", &initramfs)
         .replace("$MEMORY", &memory_mb.to_string())
         .replace("$CPUS", &arguments.cpu_count.to_string())
-        .replace("$SCSI", &scsi))
+        .replace("$SCSI", &scsi)
+        .replace("$PLAN9", &plan9))
 }
 
 struct Operation(Handle);
@@ -120,7 +133,10 @@ fn take_document(document: *mut u16) -> String {
     text
 }
 
-struct System(Handle);
+struct System {
+    handle: Handle,
+    source_access: Option<SourceAccess>,
+}
 
 impl System {
     fn create(configuration: &str) -> Result<Self, Box<dyn Error>> {
@@ -142,13 +158,16 @@ impl System {
         };
         started(status, "compute system creation")?;
         operation.wait("compute system creation")?;
-        Ok(Self(handle))
+        Ok(Self {
+            handle,
+            source_access: None,
+        })
     }
 
     fn start(&self) -> Result<(), Box<dyn Error>> {
         let operation = Operation::new()?;
         started(
-            unsafe { HcsStartComputeSystem(self.0, operation.0, null()) },
+            unsafe { HcsStartComputeSystem(self.handle, operation.0, null()) },
             "compute system start",
         )?;
         operation.wait("compute system start")?;
@@ -159,22 +178,50 @@ impl System {
         let operation = Operation::new()?;
         let query = wide(OsStr::new("{}"));
         started(
-            unsafe { HcsGetComputeSystemProperties(self.0, operation.0, query.as_ptr()) },
+            unsafe { HcsGetComputeSystemProperties(self.handle, operation.0, query.as_ptr()) },
             "property query",
         )?;
         operation.wait("property query")
+    }
+
+    fn terminate(&mut self) -> Result<(), Box<dyn Error>> {
+        if self.handle.is_null() {
+            return Ok(());
+        }
+        let result = (|| {
+            let operation = Operation::new()?;
+            started(
+                unsafe { HcsTerminateComputeSystem(self.handle, operation.0, null()) },
+                "compute system termination",
+            )?;
+            operation.wait("compute system termination")?;
+            Ok(())
+        })();
+        unsafe { HcsCloseComputeSystem(self.handle) };
+        self.handle = null_mut();
+        result
+    }
+
+    fn teardown(mut self) -> Result<(), Box<dyn Error>> {
+        let termination = self.terminate();
+        let revocation = match self.source_access.take() {
+            Some(access) => access.revoke(),
+            None => Ok(()),
+        };
+        match (termination, revocation) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(error), Ok(())) | (Ok(()), Err(error)) => Err(error),
+            (Err(termination), Err(revocation)) => Err(format!(
+                "{termination}; source ACL revocation also failed: {revocation}"
+            )
+            .into()),
+        }
     }
 }
 
 impl Drop for System {
     fn drop(&mut self) {
-        if let Ok(operation) = Operation::new() {
-            let status = unsafe { HcsTerminateComputeSystem(self.0, operation.0, null()) };
-            if status >= 0 {
-                let _ = operation.wait("compute system termination");
-            }
-        }
-        unsafe { HcsCloseComputeSystem(self.0) };
+        let _ = self.terminate();
     }
 }
 
@@ -201,24 +248,46 @@ fn runtime_id(properties: &str) -> Result<&str, Box<dyn Error>> {
         .ok_or_else(|| "RuntimeId was unterminated.".into())
 }
 
-pub fn run(configuration: &str, arguments: &Arguments) -> Result<String, Box<dyn Error>> {
-    let system = System::create(configuration)?;
+fn start(configuration: &str, arguments: &Arguments) -> Result<(System, String), Box<dyn Error>> {
+    let mut system = System::create(configuration)?;
     let runtime = system.properties()?;
-    let runtime_id = runtime_id(&runtime)?;
+    let runtime_id = runtime_id(&runtime)?.to_owned();
     if let Some(parent) = arguments
         .inputs
         .first()
         .or(arguments.scratch.as_ref())
         .and_then(|path| path.parent())
     {
-        acl::grant_traverse(runtime_id, parent)?;
+        acl::grant_traverse(&runtime_id, parent)?;
     }
     for input in &arguments.inputs {
-        acl::grant_read(runtime_id, input)?;
+        acl::grant_read(&runtime_id, input)?;
     }
     if let Some(scratch) = &arguments.scratch {
-        acl::grant_full(runtime_id, scratch)?;
+        acl::grant_full(&runtime_id, scratch)?;
+    }
+    if let Some(source) = &arguments.source {
+        acl::grant_tree_read(&runtime_id, source)?;
+        system.source_access = Some(SourceAccess::new(runtime_id.clone(), source.clone()));
     }
     system.start()?;
-    socket::exchange(runtime_id)
+    Ok((system, runtime_id))
+}
+
+fn finish<T>(system: System, run: Result<T, Box<dyn Error>>) -> Result<T, Box<dyn Error>> {
+    match (run, system.teardown()) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+        (Err(run), Err(teardown)) => Err(format!("{run}; teardown also failed: {teardown}").into()),
+    }
+}
+
+pub fn run_probe(configuration: &str, arguments: &Arguments) -> Result<String, Box<dyn Error>> {
+    let (system, runtime_id) = start(configuration, arguments)?;
+    finish(system, socket::exchange(&runtime_id))
+}
+
+pub fn run_agent(configuration: &str, arguments: &Arguments) -> Result<(), Box<dyn Error>> {
+    let (system, runtime_id) = start(configuration, arguments)?;
+    finish(system, socket::relay(&runtime_id))
 }

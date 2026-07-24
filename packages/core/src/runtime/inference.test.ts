@@ -11,7 +11,7 @@ import { ResourceScheduler } from "./scheduler.js";
 import { InferenceSupervisor } from "./supervisor.js";
 
 const roots: string[] = [];
-
+const GiB = 1024 * 1024 * 1024;
 async function modelResolver(): Promise<ModelResolver> {
   const root = await mkdtemp(join(tmpdir(), "vault-m2-models-"));
   roots.push(root);
@@ -35,7 +35,6 @@ async function modelResolver(): Promise<ModelResolver> {
   );
   return ModelResolver.open(root);
 }
-
 const generationInput = {
   modelId: "test-model",
   prompt: "ready",
@@ -44,11 +43,19 @@ const generationInput = {
   maxTokens: 8,
 };
 
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((accept) => {
+    resolve = accept;
+  });
+  return { promise, resolve };
+}
+
 async function supervisor(port: InferencePort, events: AuditEventInput[]) {
   return new InferenceSupervisor(
     port,
     await modelResolver(),
-    new ResourceScheduler("local12"),
+    new ResourceScheduler(12 * GiB),
     (event) => events.push(event),
   );
 }
@@ -63,7 +70,7 @@ describe("M2 inference orchestration", () => {
     const supervisor = new InferenceSupervisor(
       new FakeInferenceWorker(),
       await modelResolver(),
-      new ResourceScheduler("local12"),
+      new ResourceScheduler(12 * GiB),
       (event) => events.push(event),
     );
     const result = await supervisor.generate({
@@ -102,11 +109,81 @@ describe("M2 inference orchestration", () => {
   });
 
   it("prevents overlapping generation and embedding reservations", () => {
-    const scheduler = new ResourceScheduler("local16");
+    const scheduler = new ResourceScheduler(16 * GiB);
     const lease = scheduler.reserve("generate");
     expect(() => scheduler.reserve("embed")).toThrow("inference_memory_budget_exceeded");
     lease.release();
     expect(() => scheduler.reserve("embed")).not.toThrow();
+  });
+});
+
+describe("M3 model residency", () => {
+  it("keeps a successful model resident until manual unload", async () => {
+    const events: AuditEventInput[] = [];
+    const inference = await supervisor(new FakeInferenceWorker(), events);
+
+    await inference.generate(generationInput);
+    await inference.generate(generationInput);
+
+    await expect(inference.modelStatus()).resolves.toMatchObject({
+      state: "ready",
+      memoryBudgetBytes: 12 * GiB,
+      cpuRamBytes: 1024,
+      gpuVramBytes: 2048,
+      contextSizeTokens: 512,
+    });
+    await expect(inference.unloadModel()).resolves.toBe(true);
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: "unloaded" });
+  });
+});
+
+describe("M3 resident worker concurrency", () => {
+  it("rejects overlap without unloading the active resident worker", async () => {
+    const events: AuditEventInput[] = [];
+    const started = deferred();
+    const generationFinished = deferred();
+    let unloads = 0;
+    const port: InferencePort = {
+      async unload() {
+        unloads += 1;
+        return true;
+      },
+      async execute(execution) {
+        started.resolve();
+        await generationFinished.promise;
+        return {
+          protocolVersion: 1,
+          requestId: execution.request.requestId,
+          status: "ok",
+          operation: "generate",
+          value: { result: "ready" },
+          memory: {
+            cpuRamBytes: 1,
+            gpuVramBytes: 1,
+            budgetBytes: execution.memoryBudgetBytes,
+            detectedGpuVramBytes: execution.memoryBudgetBytes,
+          },
+          performance: {
+            promptTokens: 1,
+            outputTokens: 1,
+            promptDurationMs: 1,
+            generationDurationMs: 1,
+            totalDurationMs: 2,
+          },
+        };
+      },
+    };
+    const inference = await supervisor(port, events);
+
+    const first = inference.generate(generationInput);
+    await started.promise;
+    await expect(inference.generate(generationInput)).rejects.toMatchObject({
+      code: "out_of_memory",
+    });
+    expect(unloads).toBe(0);
+    generationFinished.resolve();
+    await expect(first).resolves.toMatchObject({ value: { result: "ready" } });
+    await expect(inference.modelStatus()).resolves.toMatchObject({ state: "ready" });
   });
 });
 
@@ -126,6 +203,9 @@ describe("M2 inference failure audit", () => {
     async (code) => {
       const events: AuditEventInput[] = [];
       const port: InferencePort = {
+        async unload() {
+          return false;
+        },
         async execute() {
           throw Object.assign(new Error(code), { code });
         },
@@ -145,6 +225,9 @@ describe("M2 inference failure audit", () => {
       markStarted = () => accept();
     });
     const port: InferencePort = {
+      async unload() {
+        return true;
+      },
       execute(execution) {
         markStarted();
         return new Promise((_accept, reject) => {
@@ -183,10 +266,18 @@ describe("M2 inference response validation", () => {
         status: "ok" as const,
         operation: "embed" as const,
         vector: [1],
-        memory: { cpuRamBytes: 1, gpuVramBytes: 1, budgetBytes: 1 },
+        memory: {
+          cpuRamBytes: 1,
+          gpuVramBytes: 1,
+          budgetBytes: 1,
+          detectedGpuVramBytes: 1,
+        },
       },
     ];
     const port: InferencePort = {
+      async unload() {
+        return true;
+      },
       async execute(execution) {
         const response = responses.shift();
         if (response === undefined) throw new Error("Missing test response.");

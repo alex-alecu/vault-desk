@@ -9,7 +9,7 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, wa
 - Goal: implement the smallest cross-platform workspace, security, daemon, CLI health, worker-protocol, and certified no-NIC microVM foundations.
 - Authority: M1 was activated by the repository owner's explicit 2026-07-17 request and closed on 2026-07-18 after the final Windows daemon endpoint gate passed.
 - Product boundaries: Vault Core alone owns authoritative workspace mutation; local RPC authenticates current-user-only endpoints and has no TCP mode; workers receive bounded already-authorized staged inputs and bounded scratch under one cancellation deadline; certified guests have no virtual NIC and accept only the fixed typed socket protocol.
-- Dependencies: `better-sqlite3` is the only consumed M1 package addition. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.
+- Dependencies at M1 closure: `better-sqlite3` was the only consumed package addition. M3 later moved product Core persistence to the Node 24 built-in `node:sqlite`; `better-sqlite3` remains only in historical M1 evaluation coverage. The Swift and Rust helpers use system frameworks or APIs and pinned standard-library toolchains. The Windows pipe guard adds no third-party crate.
 - Excluded: M2 inference, parsers, product UI, external networking, model acquisition, production packaging, and later-milestone behavior.
 
 ## Gate State
@@ -49,9 +49,9 @@ M1 is complete across macOS and Windows. M2 was not authorized at M1 closure, wa
 ## Remaining Risks And Deferrals
 
 - Generated guests, signed helpers, packaged sidecars, build output, coverage, and dependency directories remain local ignored artifacts and are not committed.
-- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification remain M10 work.
+- Development signing proves intact helper identity; release certificate management, notarization, installer ACLs, notices, and packaged artifact verification are now part of the M3 desktop gate.
 - Hosted CI classifies each available platform backend but does not replace the recorded elevated physical-host HCS or macOS hardware certification.
 - Node does not expose a durable Windows directory-handle flush equivalent; M1 still fsyncs file contents and verifies atomic replacement, SQLite recovery, and abrupt-termination behavior on Windows.
-- M2 subsequently completed and is tracked separately in [M2_STATUS.md](M2_STATUS.md); M3 and later product behavior require a new explicit owner request.
+- M2 subsequently completed and is tracked separately in [M2_STATUS.md](M2_STATUS.md); active M3 product evidence is recorded in [M3_STATUS.md](M3_STATUS.md).
 
-Conclusion: ready; M1 remains complete. Completed M2 evidence is recorded separately.
+Conclusion: ready; M1 remains complete. Current M2 and M3 evidence is recorded separately.

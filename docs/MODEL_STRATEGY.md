@@ -6,8 +6,8 @@ Vault Desk's product contracts are model-agnostic, with per-model certification 
 
 ## Current Recommendation
 
-- Gemma 4 12B QAT as the default generation model for both Local 12 and Local 16.
-- Local 12 and Local 16 should differ only by certified active context size.
+- Gemma 4 12B QAT as the default generation model on every supported desktop tier.
+- Derive the model-plus-context budget from hardware and vary only the automatically fitted active context.
 - Qwen3-Embedding-0.6B (Apache 2.0, official GGUF) as the product-managed dense encoder in every build flavor. EmbeddingGemma remains a validated alternative but carries Gemma Terms of Use distribution obligations and must not ship without a dedicated review.
 - Gemma 4 native function calling for tool proposals on the default model; tool-proposal contracts remain model-agnostic.
 - ShieldGemma or Gemma-family safety classifiers for local safety gates where licensing and runtime support fit.
@@ -20,15 +20,18 @@ The first cross-platform desktop runtime is also singular: node-llama-cpp with t
 
 ## Certified Profiles
 
-| Profile | Hardware target | Main model | Intended use |
-|---|---|---|---|
-| Local 12 | 12 GB VRAM or equivalent tested unified-memory envelope | Gemma 4 12B QAT (default) | Single-user desktop document QA, extraction, comparison, summaries, and exports with smaller active context |
-| Local 16 | 16 GB VRAM or equivalent tested unified-memory envelope | Gemma 4 12B QAT (default) | Same workflows, retrieval, verification, and safety behavior with larger active context |
-| Retrieval | Desktop and appliance | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
+| Hardware | Budget | Main model | Intended use |
+|---|---:|---|---|
+| 8 GB Mac | Unsupported | None | Keep the product available to explain that local inference cannot run |
+| More than 8 GB through 16 GB Mac | 10 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| More than 16 GB through 24 GB Mac | 12 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| More than 24 GB Mac | 16 GiB total | Gemma 4 12B QAT (default) | Automatically fitted local generation |
+| Windows | Complete detected GPU VRAM | Gemma 4 12B QAT (default) | Automatically fitted GPU generation |
+| Retrieval | Separate bounded reservation | Qwen3-Embedding-0.6B | Dense retrieval and semantic search over local document corpora |
 
 Google's current Gemma 4 documentation lists approximate Q4_0 inference-load memory of 6.7 GB for 12B, 14.4 GB for 26B A4B, and 17.5 GB for 31B. Those numbers are model-load estimates, not whole-product budgets. Vault Desk still needs room for KV cache, runtime overhead, embeddings, document parsers, OCR, indexes, UI, and operating-system memory.
 
-Gemma 4's medium models support up to 256K context according to the current docs. Vault Desk should treat that as a maximum capability to validate, not as the default active context for every folder workflow. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the Local 12 and Local 16 thesis but is still research-derived until measured under full product load.
+Gemma 4's medium models support up to 256K context according to the current docs. Vault Desk treats that as the automatic allocation ceiling, not a promise that every tier reaches it. Gemma 4's hybrid attention (interleaved local sliding-window plus global) keeps KV-cache growth sublinear at long context, which strengthens the hardware-derived budget strategy but is still research-derived until measured under full product load.
 
 Licensing (verified 2026-07-15): Gemma 4 is Apache 2.0 and Qwen3-Embedding-0.6B is Apache 2.0, so the default shipped stack is fully Apache 2.0. EmbeddingGemma remains under the Gemma Terms of Use; that burden is why it is no longer the default encoder (ADR 0016).
 
@@ -38,30 +41,30 @@ Development fetch sources (verified 2026-07-15): the hash-pinned development fet
 
 ### Pinned Default Assets
 
-These exact repository names, file names, sizes, and SHA-256 digests were read from the Hugging Face API on 2026-07-15 and are the canonical values for the M0 machine-readable model manifest. Download URLs follow the pattern `https://huggingface.co/<repository>/resolve/main/<file>`.
+The canonical machine-readable values live in [the model manifest](../assets/models.json), which pins each repository revision, literal file name, exact byte length, and SHA-256 digest. This table mirrors the current manifest; development source access was first verified on 2026-07-15. Download URLs follow the pattern `https://huggingface.co/<repository>/resolve/main/<file>`.
 
 | Role | Repository | File | Size | SHA-256 |
 |---|---|---|---|---|
-| Default generation (12B, manifest status `candidate_to_ship`) | `google/gemma-4-12B-it-qat-q4_0-gguf` | `gemma-4-12b-it-qat-q4_0.gguf` | 6.98 GB | `1e76e46623deaa4db97d4ef272ceab0dfb767c0f34c2c76524837edf2b57a510` |
+| Default generation (12B, manifest status `candidate_to_ship`) | `google/gemma-4-12B-it-qat-q4_0-gguf` | `gemma-4-12b-it-qat-q4_0.gguf` | 6.98 GB | `faff1a63667fac17ac5e777f47114688fcefea96e220e211aaa8d62c2c4561f1` |
 | 12B multimodal projector (paired with the above) | `google/gemma-4-12B-it-qat-q4_0-gguf` | `mmproj-gemma-4-12b-it-qat-q4_0.gguf` | 0.18 GB | `e70b0e5cd80323d5d588b4ed06780356b7b1ba03995a4b8164c6ae9db0ff5989` |
-| Development test model (E2B, manifest status `development`, never shipped) | `google/gemma-4-E2B-it-qat-q4_0-gguf` | `gemma-4-E2B_q4_0-it.gguf` | 3.35 GB | `25194efbf8a53268241e5ffa6d5490edc08b3faaa6ead24478c8b025a986d556` |
+| Development test model (E2B, manifest status `development`, never shipped) | `google/gemma-4-E2B-it-qat-q4_0-gguf` | `gemma-4-E2B_q4_0-it.gguf` | 3.35 GB | `3646b4c147cd235a44d91df1546d3b7d8e29b547dbe4e1f80856419aa455e6fd` |
 | E2B multimodal projector (paired with the above) | `google/gemma-4-E2B-it-qat-q4_0-gguf` | `gemma-4-E2B-it-mmproj.gguf` | 0.99 GB | `58c187648007cab392bd5678b87e862c3e8794017deb945feea2cf256195e96a` |
 | Default encoder (manifest status `candidate_to_ship`) | `Qwen/Qwen3-Embedding-0.6B-GGUF` | `Qwen3-Embedding-0.6B-Q8_0.gguf` | 0.64 GB | `06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439` |
 
 Notes:
 
 - The E2B file name does not follow the 12B naming pattern (`gemma-4-E2B_q4_0-it.gguf`, underscore before `q4_0`); the manifest must use these literal file names, not a derived pattern.
-- The Q8_0 encoder quantization is the pinned default (near-lossless, 0.64 GB). The f16 file (`Qwen3-Embedding-0.6B-f16.gguf`, 1.20 GB, `421a27e58d165478cc7acb984a688c2aa41404968b0203e7cd743ece44c54340`) is recorded as the comparison reference if M5 recall tests implicate quantization.
-- The multimodal projectors ride along for the M4 page-inspection path and E2B vision smoke tests; text-only milestones may defer fetching them.
+- The Q8_0 encoder quantization remains the pinned development reference. Retrieval quality is measured only when the post-V1 document-intelligence follow-up is activated.
+- Multimodal projectors remain post-V1 assets and are not fetched or packaged for M3.
 - A digest mismatch on fetch is a hard failure: the upstream file changed and the pin must be re-reviewed deliberately, never auto-updated.
 
 Vault Desk does not mirror or rehost model weights during development. GitHub is unsuitable regardless of preference: release assets cap at 2 GiB and Git LFS at 2-5 GB per file, below the 12B GGUF. The official repositories also keep provenance verifiable: the fetcher pins the upstream SHA-256 per file, so a silent upstream change fails the fetch instead of entering the cache. The same official repositories later serve as the allowlisted sources for the ADR 0016 model-download build, behind the typed broker and signed catalog.
 
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md) and [adr/0009-12-16gb-gemma-context-standard.md](adr/0009-12-16gb-gemma-context-standard.md).
 
-## Local 12 And Local 16 Profiles
+## Automatic Hardware Profiles
 
-Both profiles should use:
+Every supported tier uses:
 
 - Gemma 4 12B QAT as the main local model.
 - Retrieval-first prompting.
@@ -75,18 +78,13 @@ Both profiles should use:
 - The same citation and approval requirements.
 - The same context-compaction architecture.
 
-The only product capability difference should be certified active context:
-
-- Local 12 initial target: 32K active context, with 64K as a stretch target.
-- Local 16 initial target: 64K active context, with 128K as a stretch target.
-
-These targets are validation goals, not public support claims until measured on real hardware under full document-worker load.
+The runtime fits the active generation context from an 8K minimum through Gemma's 256K trained maximum after applying the tier budget. macOS fitting uses combined CPU and GPU estimates and rejects a measured allocation above the selected total budget. Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime, and the typed response records detected VRAM separately from the applied cap. The actual memory budget and allocated context are returned as typed evidence. Stability remains a validation question until measured on physical hardware under the full workload.
 
 The goal is reliability on professional documents, not maximum context-window marketing.
 
 ## Deferred Larger Profiles
 
-64 GB workstation and appliance profiles are deferred until the Local 12 and Local 16 document workflow suite is stable.
+Larger workstation and appliance profiles are deferred until the automatic desktop tiers are stable.
 
 Later validation may revisit:
 
@@ -112,7 +110,7 @@ Recommended retrieval shape:
 - Use metadata filters for workspace, file type, date, page, sheet, table, and permission scope.
 - Use vector compression only as an acceleration layer, not as the sole evidence store.
 
-Qwen3-Embedding retrieval quality on Vault Desk corpora is research-derived until the M5 held-out gate measures it.
+Qwen3-Embedding retrieval quality on Vault Desk corpora is research-derived until the post-V1 document-intelligence gate measures it.
 
 See [RETRIEVAL_AND_VERIFICATION.md](RETRIEVAL_AND_VERIFICATION.md).
 
@@ -136,7 +134,7 @@ For Vault Desk, MTP should be treated as:
 
 - An optional decode-speed optimization.
 - Not required for correctness (draft-and-verify output is provably identical, so the risk is memory and stability, not answer quality).
-- A roughly 2 GB additional memory cost for the drafter, which competes directly with the certified active context target on Local 12.
+- A roughly 2 GB additional memory cost for the drafter, which competes directly with the automatically fitted active context.
 - Not allowed to reduce the certified active context target.
 - Not allowed to change citation, extraction, or verification behavior.
 - Validated jointly with KV-cache quantization per pinned runtime build, because q8_0 KV-cache quantization initially broke MTP acceptance in llama.cpp.
@@ -148,11 +146,11 @@ Open validation item: node-llama-cpp supports generic draft-model speculative de
 
 Use runtime adapters:
 
-- node-llama-cpp in a supervised inference worker is the first Local 12 and Local 16 desktop path on Windows and macOS. It loads the pinned official Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling and embeddings, and covers Metal, CUDA, and Vulkan while keeping runtime-specific types outside Vault Core.
+- node-llama-cpp in a supervised inference worker is the first hardware-aware desktop path on Windows and macOS. It loads the pinned official Gemma 4 QAT GGUFs, enforces JSON-schema outputs, supports function calling and embeddings, and covers Metal, CUDA, and Vulkan while keeping runtime-specific types outside Vault Core.
 - Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists. Ollama's MLX backend currently has the most mature Gemma 4 MTP support on Apple Silicon.
 - MLX-family serving is a later Apple Silicon optimization candidate and must pass the same packaged workflow, citation, verification, compaction, and offline suite before certification.
 - Google LiteRT-LM as an emerging Google-first alternative to track: it ships an OpenAI-compatible local server and a JS/WASM API, added Gemma 4 12B support, and is Google's own optimized MTP test surface. MediaPipe LLM Inference is maintenance-only; do not build on it.
-- [PrismML Bonsai](https://prismml.com/news/bonsai-8b) as a research-derived post-M11 candidate to track: its low-bit model formats may suit Local 12 and Local 16, but evaluation waits until the formats and required upstream runtime backends are stable in pinned releases. It must pass the same licensing, redistribution, offline packaging, cross-platform, memory, context, structured-output, tool-use, workflow-quality, citation, and verification gates before certification; it does not change the current default.
+- [PrismML Bonsai](https://prismml.com/news/bonsai-8b) as a research-derived post-V1 candidate to track: its low-bit model formats may suit the supported desktop budgets, but evaluation waits until the formats and required upstream runtime backends are stable in pinned releases. It must pass the same licensing, redistribution, offline packaging, cross-platform, memory, context, structured-output, agent-task, and security gates before certification; it does not change the current default.
 - vLLM-class serving for later office appliances and high-throughput profiles after Gemma 4 QAT support is verified.
 - Avoid runtime-specific features in core workflow logic.
 - Pin runtime builds. QAT, KV-cache quantization, and MTP interact per build and must be certified together.
@@ -201,7 +199,10 @@ Each certified profile needs:
 | 2026-07-10 | Recentered first certification on Local 12 and Local 16 using the same Gemma 4 12B QAT model, with context size as the only product capability difference. |
 | 2026-07-11 | Revalidated against live sources: Apache 2.0 licensing, EmbeddingGemma license caveat, official QAT GGUF packaging rule, verified MTP runtime support and memory cost, node-llama-cpp and LiteRT-LM runtime guidance, and joint QAT/KV-quant/MTP certification rule. |
 | 2026-07-11 | Selected node-llama-cpp and the official QAT GGUF as the single first Windows/macOS runtime target through ADR 0013. |
-| 2026-07-15 | Recorded the official Google Hugging Face repositories as the only development fetch sources, the per-identity EmbeddingGemma gating procedure, and the decision not to mirror weights on GitHub or elsewhere before the M10 packaging gate. |
+| 2026-07-15 | Recorded the official Google Hugging Face repositories as the only development fetch sources, the per-identity EmbeddingGemma gating procedure, and the decision not to mirror weights on GitHub or elsewhere before the V1 packaging gate. |
 | 2026-07-15 | Applied ADR 0016: model-agnostic contracts with Gemma 4 12B QAT as default generation model, Qwen3-Embedding-0.6B replacing EmbeddingGemma as the product-managed encoder (ungated fetch, fully Apache 2.0 shipped stack), and the managed model-download build flavor. |
 | 2026-07-15 | Pinned the exact default assets for the M0 manifest — repository names, literal file names, sizes, and SHA-256 digests read from the Hugging Face API and verified anonymously downloadable — covering 12B QAT, E2B QAT, their multimodal projectors, and the Q8_0 encoder. |
-| 2026-07-15 | Added PrismML Bonsai as a research-derived post-M11 candidate, pending stable upstream runtime support and the complete certification suite. |
+| 2026-07-15 | Added PrismML Bonsai as a research-derived later candidate, pending stable upstream runtime support and the complete certification suite. |
+| 2026-07-20 | Moved embedding and multimodal document certification after V1 and aligned model evaluation with the generic agent product gate. |
+| 2026-07-22 | Aligned the 12B and E2B QAT SHA-256 digests with their pinned revisions in the canonical model manifest. |
+| 2026-07-22 | Replaced the fixed 8K product context with automatic macOS memory tiers, complete detected Windows GPU VRAM use, and runtime-fitted context up to 256K. |

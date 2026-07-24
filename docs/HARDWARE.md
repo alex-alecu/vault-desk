@@ -39,25 +39,25 @@ May work for technical users. No guarantee and limited support.
 
 ## Community Target
 
-Earlier community targets:
+Current community targets:
 
-- Useful operation on 12 GB and 16 GB discrete VRAM targets.
-- Better capability on larger unified-memory or workstation systems.
-- Dynamic capability detection based on available memory and runtime support.
+- 8 GB Macs do not start local inference and explain the requirement to the user.
+- Macs through 16 GB use a 10 GiB model-plus-context budget; Macs through 24 GB use 12 GiB; Macs above 24 GB use 16 GiB.
+- Windows generation uses the complete GPU VRAM capacity reported by the pinned runtime and requires a supported GPU.
+- Active context is fitted automatically inside the selected budget rather than configured by the user.
 
-The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Local 12 and Local 16 should not differ by verification strictness, citation requirements, supported workflows, or safety policy.
+The product should degrade by reducing active context pressure, multimodal usage, or concurrency rather than exposing low-level runtime choices to ordinary users. Hardware tiers must not differ by verification strictness, citation requirements, supported workflows, or safety policy.
 
 Current model target:
 
-- Gemma 4 12B QAT as the first Local 12 and Local 16 certified profile.
+- Gemma 4 12B QAT as the single default across the supported hardware-derived tiers.
 - Approximate Q4_0 model-load memory target: 6.7 GB before KV cache and product overhead.
 - Retrieval-first prompting and bounded active context.
 - One foreground reasoning job by default.
 - Background ingestion throttled around available memory.
-- Local 12 initial active-context target: 32K, with 64K as a stretch target.
-- Local 16 initial active-context target: 64K, with 128K as a stretch target.
+- Automatic active context from an 8K floor through the model's 256K trained maximum.
 - One first desktop runtime and model format across Windows and macOS: node-llama-cpp with the pinned official Gemma 4 QAT GGUF, per [ADR 0013](adr/0013-first-desktop-runtime.md).
-- A hardware capability check that classifies the current machine as Certified, Compatible, or Experimental before the user starts a model-dependent workflow.
+- A hardware capability check that selects the memory budget or returns a clear unsupported state before the user starts a model-dependent workflow.
 
 See [PERFORMANCE_AND_CONTEXT.md](PERFORMANCE_AND_CONTEXT.md).
 
@@ -98,7 +98,7 @@ Possible configurations:
 
 Current appliance stance:
 
-- Do not choose a 64 GB default SKU before Local 12 and Local 16 are validated.
+- Do not choose a 64 GB default SKU before the automatic desktop tiers are validated.
 - Treat Gemma 4 12B QAT with larger context and concurrency as the conservative later appliance baseline.
 - Treat Gemma 4 31B dense QAT and Gemma 4 26B A4B QAT as later research candidates.
 - Do not let larger-model appliance work change the desktop architecture.
@@ -112,12 +112,12 @@ Planned first-choice runtime directions:
 - Apple Silicon: node-llama-cpp through Metal with the pinned official QAT GGUF first; MLX-family serving is a later adapter-backed optimization candidate.
 - Windows with NVIDIA: node-llama-cpp/llama.cpp-compatible GGUF through CUDA first, with Ollama-compatible serving only when model packaging and context behavior are explicit, telemetry is absent or provably disabled, and no telemetry network path exists.
 - Windows with supported AMD hardware: node-llama-cpp/llama.cpp with HIP or Vulkan first.
-- Shared appliance or Linux server: vLLM-class serving only after Local 12 and Local 16 are validated and appliance profiles are re-opened.
+- Shared appliance or Linux server: vLLM-class serving only after the automatic desktop tiers are validated and appliance profiles are re-opened.
 - NVIDIA-specific optimization: later, after exact model support is proven.
 
 Runtime certification must include the model format, quantization type, maximum stable active context, KV-cache behavior, multimodal behavior, and document-worker memory overhead.
 
-Local 12 and Local 16 certification must also include context-compaction stability. A profile is not certified if it works only until the first context window fills.
+Every automatic memory tier must also pass context-compaction stability. A configuration is not certified if it works only until the first context window fills.
 
 ## Benchmark Strategy
 
@@ -163,3 +163,4 @@ Avoid company-wide exclusivity. Vendor-specific SKUs are acceptable, but the com
 | 2026-07-10 | Added Q4_0 model-load memory caveats for Gemma 4 12B, 26B A4B, and 31B. |
 | 2026-07-10 | Recentered certification on Local 12 and Local 16 with Gemma 4 12B QAT and context size as the only product capability difference. |
 | 2026-07-11 | Aligned the first desktop runtime with ADR 0013 and made hardware capability classification an implementation gate. |
+| 2026-07-22 | Added automatic macOS 10/12/16 GiB model-plus-context budgets, an unsupported 8 GB state, complete Windows GPU VRAM use, and automatic context fitting. |

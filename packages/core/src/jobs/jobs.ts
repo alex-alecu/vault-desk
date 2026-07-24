@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type JobRecord, JobRecordSchema } from "@vault/shared";
-import type Database from "better-sqlite3";
+import type { DatabasePort } from "../workspace/database.js";
 
 interface JobRow {
   id: string;
@@ -27,7 +27,7 @@ function record(row: JobRow): JobRecord {
 }
 
 export class JobStore {
-  constructor(private readonly database: Database.Database) {}
+  constructor(private readonly database: DatabasePort) {}
 
   create(kind: string, idempotencyKey: string): JobRecord {
     const existing = this.database
@@ -63,5 +63,25 @@ export class JobStore {
       | JobRow
       | undefined;
     return row === undefined ? undefined : record(row);
+  }
+
+  transition(id: string, state: "running" | "succeeded" | "failed"): void {
+    const updatedAt = new Date().toISOString();
+    const expectedState = state === "running" ? "queued" : "running";
+    const update = this.database
+      .prepare(
+        "UPDATE jobs SET state = ?, updated_at = ? WHERE id = ? AND state = ? AND cancellation_requested = 0",
+      )
+      .run(state, updatedAt, id, expectedState);
+    if (update.changes === 1) return;
+    const exists = this.database.prepare("SELECT 1 FROM jobs WHERE id = ?").get(id);
+    throw new Error(exists === undefined ? "job_not_found" : "job_transition_rejected");
+  }
+
+  isCancellationRequested(id: string): boolean {
+    const row = this.database
+      .prepare("SELECT cancellation_requested FROM jobs WHERE id = ?")
+      .get(id) as { cancellation_requested: number } | undefined;
+    return row?.cancellation_requested === 1;
   }
 }

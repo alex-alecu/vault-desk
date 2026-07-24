@@ -61,7 +61,7 @@ On 2026-07-11 a full live-web revalidation pass was run across the model stack, 
 
 Official Tauri v2 sources were reviewed for the operating-system webview architecture, React/TypeScript compatibility, capability-scoped commands, external-binary sidecars, and platform distribution. These remain research-derived until M0 validates a pinned Tauri version, signed Vault Core sidecar packaging, webview behavior, and capability denial on supported Windows and macOS targets.
 
-Official OpenCode sources were reviewed only to establish that it offers a headless server and code-capable tool loop. OpenCode is not an accepted dependency. M8 may compare it with a minimal Vault Desk-owned guest loop under identical offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-verification gates.
+Official OpenCode sources were reviewed as an interaction and agent-loop reference. OpenCode is not an accepted dependency. M3 starts with a minimal Vault Desk-owned guest loop under offline, no-NIC, typed-inference, resource, audit, cancellation, package-footprint, and result-validation gates.
 
 ## 2026-07-15 Development And Contribution Workflow Review
 
@@ -75,8 +75,8 @@ The canonical DCO text, DCO GitHub App, and GitHub commit sign-off documentation
 
 Now verified against primary sources (2026-07-11), still requiring validation on Vault Desk's own hardware and corpora:
 
-- Gemma 4 licensing (Apache 2.0) and QAT checkpoint availability: verified. Memory and runtime behavior on actual 12 GB and 16 GB targets under full product load: still to benchmark.
-- Multi-Token Prediction runtime support: verified. Its memory, latency, and stability on Local 12 and Local 16, and node-llama-cpp MTP drafter support: still to validate.
+- Gemma 4 licensing (Apache 2.0) and QAT checkpoint availability: verified. Memory and runtime behavior on every automatic macOS tier and representative Windows GPUs under full product load: still to benchmark.
+- Multi-Token Prediction runtime support: verified. Its memory, latency, and stability across the automatic hardware tiers, and node-llama-cpp MTP drafter support: still to validate.
 - EmbeddingGemma profile and license: verified; demoted to validated alternative by ADR 0016. Qwen3-Embedding-0.6B license (Apache 2.0), official GGUF availability, and published MTEB multilingual results: verified 2026-07-15. Retrieval quality of the default encoder on local professional corpora: still to benchmark.
 - Parser quality rankings and OCR benchmark scores: vendor and community benchmarks only; must be re-run on Vault Desk accounting and legal corpora.
 - Community tokens-per-second figures: research-derived, not lab results.
@@ -106,9 +106,9 @@ Before code or public claims:
 - Confirm allowed model redistribution terms.
 - Confirm supported runtimes by platform.
 - Benchmark chosen runtimes on actual target hardware.
-- Benchmark Gemma 4 12B QAT active context on 12 GB and 16 GB with document workers running.
-- Benchmark Local 12 and Local 16 through at least 30-minute sessions with multiple context compactions.
-- Benchmark Gemma 4 12B QAT, 26B A4B, and 31B dense only after the Local 12 and Local 16 workflow suite is stable.
+- Benchmark Gemma 4 12B QAT active context on every supported automatic macOS tier and representative Windows GPUs with document workers running.
+- Benchmark every automatic hardware tier through at least 30-minute sessions with multiple context compactions.
+- Benchmark Gemma 4 12B QAT, 26B A4B, and 31B dense only after the automatic hardware-tier workflow suite is stable.
 - Benchmark Qwen3-Embedding-0.6B plus lexical search against accounting and legal corpora, with EmbeddingGemma as the comparison alternative.
 - Benchmark native Node parsers, Granite-Docling GGUF, the Docling sidecar, PaddleOCR-VL, MarkItDown, Unstructured, and native spreadsheet parsing against the same files.
 - Benchmark LanceDB hybrid search (with RaBitQ quantization) against sqlite-vec and against turbovec-in-sidecar for recall and latency.
@@ -131,3 +131,4 @@ Before code or public claims:
 | 2026-07-12 | Added the live-web standards and architecture review for passive, domain-scoped offline Knowledge Bundles. |
 | 2026-07-13 | Added official Tauri and OpenCode sources for the desktop-shell and hybrid-execution decisions. |
 | 2026-07-15 | Added ECC workflow, DCO, and GitHub sign-off sources and documented the selective adoption boundary. |
+| 2026-07-22 | Reframed the open memory and context benchmarks around automatic macOS tiers and detected Windows GPU VRAM. |
