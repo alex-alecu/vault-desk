@@ -6,14 +6,16 @@ import { structuredValue } from "./structured.js";
 describe("structuredValue", () => {
   it("forwards generated function-call tokens to performance timing", async () => {
     let tokenChunks = 0;
+    let effectivePrompt = "";
     const session = {
       async prompt(
-        _prompt: string,
+        prompt: string,
         options: {
           functions: ChatSessionModelFunctions;
           onToken(tokens: Token[]): void;
         },
       ) {
+        effectivePrompt = prompt;
         options.onToken([1 as Token]);
         const action = Object.values(options.functions)[0];
         if (action === undefined) throw new Error("Missing structured action.");
@@ -47,6 +49,7 @@ describe("structuredValue", () => {
     });
 
     expect(tokenChunks).toBe(1);
+    expect(effectivePrompt).toBe("Respond.");
     expect(value).toEqual({ action: "respond", response: ["Done."] });
   });
 });

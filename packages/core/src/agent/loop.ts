@@ -4,12 +4,15 @@ import {
   type AgentEventType,
   type AgentExecutionResult,
   AgentExecutionResultSchema,
+  type AgentInferenceOutcome,
   type AgentRunResult,
   AgentRunResultSchema,
   type InferencePerformance,
+  type StructuredGenerationResult,
 } from "@vault/shared";
 import type { AgentSessionExecution } from "@vault/workers";
 import type { InferenceService } from "../runtime/inference.js";
+import { createGenerationRequest } from "../runtime/inference.js";
 import {
   type AgentProgress,
   type AgentPromptInput,
@@ -18,6 +21,7 @@ import {
   MAX_EXECUTIONS,
   parseDecision,
 } from "./prompt.js";
+import type { AgentTraceStore } from "./trace-store.js";
 
 const MAX_DECISIONS = 12;
 
@@ -29,7 +33,14 @@ export interface AgentRunInput extends AgentPromptInput {
   onEvent?(type: AgentEventType, summary: string, detail?: Partial<AgentEventDetail>): void;
   onThinking?(text: string | null): void;
   signal?: AbortSignal;
+  trace?: { runId: string; store: AgentTraceStore };
 }
+
+interface TracedDecision {
+  decision: AgentDecision;
+  turnId?: string;
+}
+type PreparedGeneration = ReturnType<typeof createGenerationRequest>;
 
 function emptyPerformance(): InferencePerformance {
   return {
@@ -63,7 +74,7 @@ export class AgentLoop {
     input: AgentRunInput,
     progress: AgentProgress,
     finalResponse = false,
-  ): Promise<AgentDecision> {
+  ): Promise<TracedDecision> {
     const { executions, inference } = progress;
     input.onEvent?.(
       "inference.started",
@@ -73,20 +84,73 @@ export class AgentLoop {
           ? "Loading the local model and planning the task."
           : `Planning step ${executions.length + 1}.`,
     );
-    let thinking = "";
     input.onThinking?.(null);
-    const generated = await this.inference.generate(
+    const request = createGenerationRequest(
       generationInput(input, progress, finalResponse, this.contextTokens),
-      input.signal,
-      (delta) => {
-        thinking = `${thinking}${delta}`.slice(-64_000);
-        input.onThinking?.(thinking);
-      },
     );
+    const turnId = await input.trace?.store.begin(
+      input.trace.runId,
+      finalResponse ? "final_response" : "decision",
+      { input: request.input, ...request.identity },
+    );
+    const generated = await this.generate(input, request, turnId);
+    if (turnId !== undefined) {
+      await input.trace?.store.captureResponse(
+        turnId,
+        generated.value,
+        generated.memory.contextSizeTokens,
+      );
+    }
     addPerformance(inference, generated.performance);
     this.contextTokens = generated.memory.contextSizeTokens ?? this.contextTokens;
     input.onThinking?.(null);
-    return parseDecision(generated.value);
+    return this.parseTracedDecision(input, generated.value, turnId);
+  }
+
+  private async generate(
+    input: AgentRunInput,
+    request: PreparedGeneration,
+    turnId: string | undefined,
+  ): Promise<StructuredGenerationResult> {
+    let thinking = "";
+    try {
+      return await this.inference.generate(
+        request.input,
+        input.signal,
+        (delta) => {
+          thinking = `${thinking}${delta}`.slice(-64_000);
+          input.onThinking?.(thinking);
+        },
+        request.identity,
+      );
+    } catch (error) {
+      this.recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "inference_failed");
+      throw error;
+    }
+  }
+
+  private parseTracedDecision(
+    input: AgentRunInput,
+    value: unknown,
+    turnId: string | undefined,
+  ): TracedDecision {
+    try {
+      const decision = parseDecision(value);
+      input.signal?.throwIfAborted();
+      return { decision, ...(turnId === undefined ? {} : { turnId }) };
+    } catch (error) {
+      this.recordOutcome(input, turnId, input.signal?.aborted ? "cancelled" : "invalid_response");
+      throw error;
+    }
+  }
+
+  private recordOutcome(
+    input: AgentRunInput,
+    turnId: string | undefined,
+    outcome: AgentInferenceOutcome,
+    executionSequence?: number,
+  ): void {
+    if (turnId !== undefined) input.trace?.store.recordOutcome(turnId, outcome, executionSequence);
   }
 
   private async execute(
@@ -149,8 +213,12 @@ export class AgentLoop {
       decisionCount += 1
     ) {
       input.signal?.throwIfAborted();
-      const decision = await this.decide(input, progress);
-      if (decision.action === "respond") return this.finish(input, progress, decision.response);
+      const traced = await this.decide(input, progress);
+      const { decision } = traced;
+      if (decision.action === "respond") {
+        this.recordOutcome(input, traced.turnId, "accepted_response");
+        return this.finish(input, progress, decision.response);
+      }
       if (
         progress.executions.some((execution) =>
           decision.language === "shell"
@@ -158,16 +226,22 @@ export class AgentLoop {
             : execution.source === decision.source,
         )
       ) {
+        this.recordOutcome(input, traced.turnId, "rejected_duplicate");
         progress.rejectedDuplicates += 1;
         continue;
       }
+      this.recordOutcome(input, traced.turnId, "accepted_execution", progress.executions.length);
       await this.execute(input, decision, progress);
       const verifiedResponse = executionBackedResponse(input, progress, "");
       if (verifiedResponse.length > 0) return this.finish(input, progress, verifiedResponse);
     }
     input.signal?.throwIfAborted();
-    const decision = await this.decide(input, progress, true);
-    if (decision.action !== "respond") throw new Error("agent_execution_limit_exceeded");
-    return this.finish(input, progress, decision.response);
+    const traced = await this.decide(input, progress, true);
+    if (traced.decision.action !== "respond") {
+      this.recordOutcome(input, traced.turnId, "invalid_response");
+      throw new Error("agent_execution_limit_exceeded");
+    }
+    this.recordOutcome(input, traced.turnId, "accepted_response");
+    return this.finish(input, progress, traced.decision.response);
   }
 }

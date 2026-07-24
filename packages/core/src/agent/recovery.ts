@@ -4,6 +4,7 @@ import type { AgentExecutionStore } from "./execution-store.js";
 export function recoverInterruptedRuns(
   database: DatabasePort,
   executions: AgentExecutionStore,
+  interruptTrace: (runId: string) => void,
   appendFailure: (runId: string) => void,
 ): number {
   const now = new Date().toISOString();
@@ -21,6 +22,7 @@ export function recoverInterruptedRuns(
         .prepare("UPDATE jobs SET state = 'failed', updated_at = ? WHERE id = ?")
         .run(now, row.job_id);
       executions.failIncomplete(row.id, false, now);
+      interruptTrace(row.id);
       appendFailure(row.id);
     }
     return rows.length;

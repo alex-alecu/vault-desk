@@ -29,7 +29,6 @@ const historical = {
 };
 
 function insertHistoricalRows(database: Database.Database): void {
-  database.exec("DROP TABLE agent_executions");
   database
     .prepare("INSERT INTO sessions VALUES (?, NULL, ?, ?, ?)")
     .run(historical.sessionId, "Historical run", historical.timestamp, historical.timestamp);
@@ -44,7 +43,9 @@ function insertHistoricalRows(database: Database.Database): void {
       historical.timestamp,
     );
   database
-    .prepare("INSERT INTO agent_runs VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, NULL)")
+    .prepare(
+      "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json) VALUES (?, ?, ?, ?, NULL, NULL, ?, ?, NULL)",
+    )
     .run(
       historical.runId,
       historical.sessionId,
@@ -70,12 +71,21 @@ function insertHistoricalRows(database: Database.Database): void {
   database.pragma("user_version = 6");
 }
 
+function downgradeToVersionSeven(database: Database.Database): void {
+  database.exec(
+    "DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; PRAGMA user_version = 7",
+  );
+}
+
 async function seedVersionSixCatalog(root: string): Promise<string> {
   const first = await openCore(root);
   await first.close();
   const databasePath = join(root, ".vault", "catalog.sqlite");
   const database = new Database(databasePath);
   try {
+    database.exec(
+      "DROP TABLE agent_inference_turns; ALTER TABLE agent_runs DROP COLUMN trace_version; DROP TABLE agent_executions",
+    );
     insertHistoricalRows(database);
   } finally {
     database.close();
@@ -110,5 +120,29 @@ describe("M3 execution catalog migration", () => {
       workspace_path: "steps/old.py",
       exit_code: 0,
     });
+  });
+
+  it("marks schema-v7 runs as not recorded without fabricating trace turns", async () => {
+    const root = await mkdtemp(join(tmpdir(), "vault-trace-migration-"));
+    roots.push(root);
+    const first = await openCore(root);
+    await first.close();
+    const databasePath = join(root, ".vault", "catalog.sqlite");
+    const database = new Database(databasePath);
+    try {
+      downgradeToVersionSeven(database);
+      insertHistoricalRows(database);
+      database.pragma("user_version = 7");
+    } finally {
+      database.close();
+    }
+    const migrated = await openCore(root);
+    expect(await migrated.getAgentTrace(historical.runId)).toEqual({
+      runId: historical.runId,
+      captureVersion: 0,
+      status: "not_recorded",
+      turns: [],
+    });
+    await migrated.close();
   });
 });

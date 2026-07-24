@@ -29,11 +29,13 @@ import {
   attachmentMediaType,
   type EventRow,
   eventFromRow,
+  nextEventSequence,
   type RunRow,
   readSelectedFile,
   runFromRow,
 } from "./records.js";
 import { recoverInterruptedRuns } from "./recovery.js";
+import { AgentTraceStore, type TraceAuditAppender } from "./trace-store.js";
 
 interface RunTransition {
   state: AgentRunState;
@@ -42,23 +44,17 @@ interface RunTransition {
   performance?: AgentRunPerformance;
 }
 
-function nextEventSequence(database: DatabasePort, runId: string): number {
-  const row = database
-    .prepare(
-      "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_events WHERE run_id = ?",
-    )
-    .get(runId) as { sequence: number };
-  return row.sequence;
-}
-
 export class AgentStore {
   readonly execution: AgentExecutionStore;
+  readonly trace: AgentTraceStore;
 
   constructor(
     private readonly database: DatabasePort,
     private readonly artifacts: ArtifactStore,
+    traceAudit?: TraceAuditAppender,
   ) {
     this.execution = new AgentExecutionStore(database);
+    this.trace = new AgentTraceStore(database, artifacts, traceAudit);
   }
 
   saveDraft(sessionId: string, content: string): SessionDraft {
@@ -150,7 +146,7 @@ export class AgentStore {
     });
     this.database
       .prepare(
-        "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO agent_runs (id, session_id, job_id, state, response, error, created_at, updated_at, performance_json, trace_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
       )
       .run(
         result.id,
@@ -288,8 +284,13 @@ export class AgentStore {
   }
 
   recoverInterrupted(): number {
-    return recoverInterruptedRuns(this.database, this.execution, (runId) => {
-      this.appendEvent(runId, "run.failed", "Interrupted when Vault Desk restarted.");
-    });
+    const recovered = recoverInterruptedRuns(
+      this.database,
+      this.execution,
+      (runId) => this.trace.interruptIncomplete(runId),
+      (runId) => this.appendEvent(runId, "run.failed", "Interrupted when Vault Desk restarted."),
+    );
+    this.trace.interruptAllIncomplete();
+    return recovered;
   }
 }

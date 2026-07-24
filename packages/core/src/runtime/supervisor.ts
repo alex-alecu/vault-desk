@@ -11,9 +11,11 @@ import { JobIdSchema } from "@vault/shared";
 import type {
   EmbeddingInput,
   GenerationInput,
+  GenerationRequestIdentity,
   InferencePort,
   InferenceService,
 } from "./inference.js";
+import { createGenerationRequest } from "./inference.js";
 import {
   InferenceFailure,
   inferenceAbortFailure,
@@ -258,14 +260,16 @@ export class InferenceSupervisor implements InferenceService {
     input: GenerationInput,
     signal?: AbortSignal,
     onThinkingDelta?: (text: string) => void,
+    identity?: GenerationRequestIdentity,
   ): Promise<StructuredGenerationResult> {
+    const request = createGenerationRequest(input, identity);
     const response = await this.run(
       {
         protocolVersion: 1,
-        requestId: randomUUID(),
-        jobId: JobIdSchema.parse(randomUUID()),
+        requestId: request.identity.requestId,
+        jobId: request.identity.jobId,
         operation: "generate",
-        ...input,
+        ...request.input,
       },
       signal,
       onThinkingDelta,

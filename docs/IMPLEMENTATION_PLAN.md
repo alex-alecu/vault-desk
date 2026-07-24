@@ -73,7 +73,9 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 - A session belongs either to one folder grant or to the global New chat area.
 - The newest five sessions per folder are one query, with cursor-based expansion for older sessions.
 - Conversation turns and agent-run summaries commit atomically.
-- Catalog schema v7 stores one normalized execution record per attempt, backfills historical execution events, caps stdout and stderr at 1 MB each and typed VM diagnostics at 256 KiB, and retains partial logs through failure, cancellation, and restart recovery.
+- Catalog schema v8 preserves the v7 normalized execution records and adds versioned inference turns linked to runs. New runs durably capture the exact effective prompt, canonical JSON schema, exact pre-parse structured result, worker request identifiers, limits, decision outcome, and execution sequence through immutable content hashes. Historical runs remain version 0 and explicitly report `not_recorded`; restart recovery marks unfinished turns `interrupted`.
+- `agent.trace` resolves one run's ordered inference payloads for local diagnostics. `agent.list` remains the session run index, and `agent.get` remains the bounded polling response without trace payloads.
+- Events, executions, messages, and audit metadata never copy trace payloads. Trace audit entries contain only identifiers, content hashes, outcomes, and execution links.
 - A daemon or guest crash leaves the previous committed conversation readable and the interrupted run explicitly failed or resumable.
 - Raw hidden model reasoning is never persisted.
 - Typed model thought segments are transient active-run state only; completed snapshots, events, audit, and conversation records never contain them.
@@ -204,3 +206,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-22 | Added hardware-derived macOS inference budgets, complete Windows GPU VRAM use, automatic context fitting up to 256K, and the unsupported 8 GB Mac behavior. |
 | 2026-07-22 | Restored concise task activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
 | 2026-07-23 | Added protocol-v3 bounded live execution logs, typed VM diagnostics, normalized catalog schema v7 execution records, and the Overview-first Technical details design. |
+| 2026-07-24 | Added catalog schema v8 durable per-run inference traces and the read-only `agent.trace` diagnostic method without persisting hidden reasoning. |

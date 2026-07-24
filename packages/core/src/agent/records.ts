@@ -14,8 +14,18 @@ import {
   type AttachmentSummary,
   AttachmentSummarySchema,
 } from "@vault/shared";
+import type { DatabasePort } from "../workspace/database.js";
 
 const MAX_ATTACHMENT_BYTES = 512 * 1024 * 1024;
+
+export function nextEventSequence(database: DatabasePort, runId: string): number {
+  const row = database
+    .prepare(
+      "SELECT COALESCE(MAX(sequence), -1) + 1 AS sequence FROM agent_events WHERE run_id = ?",
+    )
+    .get(runId) as { sequence: number };
+  return row.sequence;
+}
 
 export interface RunRow {
   id: string;

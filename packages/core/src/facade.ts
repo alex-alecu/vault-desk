@@ -1,6 +1,7 @@
 import type {
   AgentRunSnapshot,
   AgentRunSummary,
+  AgentTrace,
   AttachmentSummary,
   ConversationMessage,
   FolderSummary,
@@ -35,6 +36,7 @@ export interface VaultCorePorts extends InferenceService {
   startAgent(sessionId: string, task: string): Promise<AgentRunSummary>;
   listAgentRuns(sessionId: string): Promise<AgentRunSummary[]>;
   getAgentRun(runId: string): Promise<AgentRunSnapshot>;
+  getAgentTrace(runId: string): Promise<AgentTrace>;
   cancelAgent(jobId: string): Promise<boolean>;
   cancelJob(jobId: string): Promise<boolean>;
   verifyAudit(): Promise<boolean>;
@@ -63,6 +65,7 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
     startAgent: (sessionId, task) => ports.startAgent(sessionId, task),
     listAgentRuns: (sessionId) => ports.listAgentRuns(sessionId),
     getAgentRun: (runId) => ports.getAgentRun(runId),
+    getAgentTrace: (runId) => ports.getAgentTrace(runId),
     cancelAgent: (jobId) => ports.cancelAgent(jobId),
     cancelJob: (jobId) => ports.cancelJob(jobId),
     verifyAudit: () => ports.verifyAudit(),
@@ -70,7 +73,8 @@ export function createFacade(ports: VaultCorePorts): VaultCore {
       input: GenerationInput,
       signal?: AbortSignal,
       onThinkingDelta?: (text: string) => void,
-    ) => ports.generate(input, signal, onThinkingDelta),
+      identity?: Parameters<InferenceService["generate"]>[3],
+    ) => ports.generate(input, signal, onThinkingDelta, identity),
     embed: (input: EmbeddingInput, signal?: AbortSignal) => ports.embed(input, signal),
     modelStatus: () => ports.modelStatus(),
     unloadModel: () => ports.unloadModel(),

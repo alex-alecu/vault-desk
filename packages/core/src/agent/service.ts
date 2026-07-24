@@ -4,6 +4,7 @@ import type {
   AgentRunPerformance,
   AgentRunSnapshot,
   AgentRunSummary,
+  AgentTrace,
   AttachmentSummary,
   SessionDraft,
   WorkerLimits,
@@ -63,7 +64,6 @@ export class AgentService {
       new AgentInputResolver(database, store),
       LIMITS,
     );
-    store.recoverInterrupted();
   }
 
   saveDraft(sessionId: string, content: string): SessionDraft {
@@ -134,6 +134,9 @@ export class AgentService {
   }
   listRuns(sessionId: string): AgentRunSummary[] {
     return this.store.listRuns(sessionId);
+  }
+  async trace(runId: string): Promise<AgentTrace> {
+    return await this.store.trace.get(runId);
   }
   private async persistArtifacts(runId: string, outputs: AgentExecutionResult["artifacts"]) {
     for (const output of outputs) {
@@ -223,6 +226,7 @@ export class AgentService {
           const active = this.active.get(run.jobId);
           if (active !== undefined) active.thinking = thinking;
         },
+        trace: { runId: run.id, store: this.store.trace },
         onEvent: (type, summary, detail) => this.store.appendEvent(run.id, type, summary, detail),
       });
       const performance: AgentRunPerformance = {

@@ -31,6 +31,8 @@ Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive 
 
 Core builds each Gemma request from durable conversation messages and execution events. It reserves 4,096 output tokens, uses the actual allocated context when known and the certified 8K minimum otherwise, preserves the current run and newest unsuperseded failed repair in full, anchors the last two user turns, and summarizes older history without deleting stored originals. If mandatory repair context cannot fit, Core returns `agent_context_exhausted` rather than dropping required source or commands.
 
+For new runs, Core stores each exact effective inference prompt plus canonical JSON schema and pre-parse structured result in the immutable content-addressed store. The catalog links their hashes and request metadata to an ordered run turn and records the decision outcome before execution or response acceptance. Capture fails closed, while hidden thought segments remain transient and absent from traces.
+
 The host-native inference worker remains separately sandboxed so local acceleration is available. A guest completion request is schema-bounded and mediated by Vault Core; the guest cannot choose a model path or connect to the inference worker directly.
 
 The V1 desktop uses Tauri v2 and React under ADR 0014. Its sidebar contains a global New chat action and folder groups. A folder group shows its five most recent sessions and expands older sessions through Show more. New chat sessions accept explicit file attachments without granting a full folder. The webview receives opaque identifiers and display metadata, never unrestricted host paths or filesystem handles.
