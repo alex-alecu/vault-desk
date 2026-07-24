@@ -1,13 +1,37 @@
-import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { chmod, lstat, mkdir, mkdtemp, open, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { AgentWorkspacePathSchema, ContentHashSchema } from "@vault/shared";
 import { DebugSessionError, debugStateInvalid } from "./debug-errors.js";
 
 const MAX_WORKSPACE_BYTES = 128 * 1024 * 1024;
 const WORKSPACE_ATTEMPTS = 3;
+const run = promisify(execFile);
+
+const WINDOWS_PRIVATE_DIRECTORY_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+$path = [Environment]::GetEnvironmentVariable('VAULT_SNAPSHOT_PATH', 'Process')
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+if ([string]::IsNullOrEmpty($path) -or $null -eq $sid) { throw 'missing snapshot identity' }
+$acl = [Security.AccessControl.DirectorySecurity]::new()
+$acl.SetOwner($sid)
+$acl.SetAccessRuleProtection($true, $false)
+$inheritance = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit
+$rule = [Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::FullControl, $inheritance, [Security.AccessControl.PropagationFlags]::None, [Security.AccessControl.AccessControlType]::Allow)
+[void]$acl.AddAccessRule($rule)
+if (Test-Path -LiteralPath $path) {
+  Set-Acl -LiteralPath $path -AclObject $acl
+} else {
+  [void][IO.Directory]::CreateDirectory($path, $acl)
+}
+$actual = Get-Acl -LiteralPath $path
+$rules = @($actual.GetAccessRules($true, $false, [Security.Principal.SecurityIdentifier]))
+if (-not $actual.AreAccessRulesProtected -or $actual.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne $sid.Value -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $sid.Value -or $rules[0].AccessControlType -ne [Security.AccessControl.AccessControlType]::Allow) { throw 'snapshot DACL verification failed' }
+`;
 
 interface ManifestEntry {
   kind: "directory" | "file";
@@ -187,7 +211,10 @@ export async function safeDatabasePath(path: string): Promise<string> {
 }
 
 export async function makeSnapshotDirectory(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "vault-session-debug-"));
+  const root =
+    process.platform === "win32"
+      ? join(tmpdir(), `vault-session-debug-${randomUUID()}`)
+      : await mkdtemp(join(tmpdir(), "vault-session-debug-"));
   try {
     await makePrivateDirectory(root);
     return root;
@@ -214,6 +241,17 @@ export async function readVerifiedArtifact(
 }
 
 export async function makePrivateDirectory(path: string): Promise<void> {
+  if (process.platform === "win32") {
+    await run(
+      "powershell.exe",
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_PRIVATE_DIRECTORY_SCRIPT],
+      {
+        env: { ...process.env, VAULT_SNAPSHOT_PATH: path },
+        windowsHide: true,
+      },
+    );
+    return;
+  }
   await mkdir(path, { recursive: true, mode: 0o700 });
   await chmod(path, 0o700);
 }

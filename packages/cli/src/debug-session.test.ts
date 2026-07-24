@@ -16,11 +16,34 @@ async function json(path: string): Promise<Record<string, unknown>> {
 }
 
 async function assertPrivateTree(path: string): Promise<void> {
-  if (process.platform === "win32") return;
+  if (process.platform === "win32") {
+    await assertWindowsPrivateTree(path);
+    return;
+  }
   const state = await lstat(path);
   expect(state.mode & 0o077).toBe(0);
   if (!state.isDirectory()) return;
   for (const name of await readdir(path)) await assertPrivateTree(join(path, name));
+}
+
+async function assertWindowsPrivateTree(path: string): Promise<void> {
+  const script = `
+$ErrorActionPreference = 'Stop'
+$root = [Environment]::GetEnvironmentVariable('VAULT_TEST_SNAPSHOT_PATH', 'Process')
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$items = @((Get-Item -LiteralPath $root -Force)) + @(Get-ChildItem -LiteralPath $root -Recurse -Force)
+foreach ($item in $items) {
+  $acl = Get-Acl -LiteralPath $item.FullName
+  $rules = @($acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]))
+  if ($rules.Count -eq 0 -or @($rules | Where-Object { $_.IdentityReference.Value -ne $sid }).Count -ne 0) { throw 'non-owner snapshot access rule' }
+}
+$rootAcl = Get-Acl -LiteralPath $root
+if (-not $rootAcl.AreAccessRulesProtected) { throw 'snapshot root inherits access rules' }
+`;
+  await run("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script], {
+    env: { ...process.env, VAULT_TEST_SNAPSHOT_PATH: path },
+    windowsHide: true,
+  });
 }
 
 async function debugDirectories(): Promise<Set<string>> {
