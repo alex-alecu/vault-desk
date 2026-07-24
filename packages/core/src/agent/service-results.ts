@@ -4,9 +4,9 @@ export function tokenRate(tokens: number, milliseconds: number): number {
 
 export function agentFailureText(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (/^[a-z][a-z0-9_]{0,127}$/u.test(message)) return message;
   if (/memory/iu.test(message)) return "agent_memory_unavailable";
   if (/model|inference/iu.test(message)) return "agent_model_failed";
+  if (/^[a-z][a-z0-9_]{0,127}$/u.test(message)) return message;
   return "agent_run_failed";
 }
 

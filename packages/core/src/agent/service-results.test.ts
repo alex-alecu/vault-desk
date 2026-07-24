@@ -10,5 +10,10 @@ describe("agent failure privacy", () => {
     expect(agentFailureText(new Error("failed at /private/tmp/customer/source"))).toBe(
       "agent_run_failed",
     );
+    expect(agentFailureText(new Error("missing_model"))).toBe("agent_model_failed");
+    expect(agentFailureText(new Error("model_integrity_failed"))).toBe("agent_model_failed");
+    expect(agentFailureText(new Error("combined_memory_budget_exceeded"))).toBe(
+      "agent_memory_unavailable",
+    );
   });
 });
