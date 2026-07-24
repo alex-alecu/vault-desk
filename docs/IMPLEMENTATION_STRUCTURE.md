@@ -1,6 +1,6 @@
 # Implementation Structure
 
-Updated: 2026-07-23
+Updated: 2026-07-24
 
 This blueprint accompanies [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). M0, M1, and M2 source exists, and the M3 macOS implementation is complete. M3 remains active for its Windows product integration and cross-platform launch gate. Paths not yet present remain authority, not evidence of implementation.
 
@@ -134,9 +134,10 @@ Extend only as needed to exercise M3 daemon behavior without the desktop:
 vault folders add/list/remove
 vault sessions create/list/show
 vault agent run/cancel
+vault debug-session --database <catalog> --session <session>
 ```
 
-The CLI does not open or traverse granted folders itself. Native path selection remains a desktop concern; test and CLI grant creation accepts an explicit owner-authorized path through the same Core validation.
+The CLI does not open or traverse granted folders itself. Native path selection remains a desktop concern; test and CLI grant creation accepts an explicit owner-authorized path through the same Core validation. The local debug command is a separate read-only catalog adapter: it reconstructs only the requested session's already-persisted private state into an owner-only temporary directory and does not call a native helper or mutate the catalog.
 
 ### `packages/eval`
 
@@ -201,5 +202,6 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 | 2026-07-20 | Replaced the former pre-product blueprint with the M3 generic offline dev-agent desktop structure. |
 | 2026-07-23 | Added protocol-v3 live execution frames, catalog-v7 normalized execution records, and Overview-first Technical details logs. |
 | 2026-07-24 | Added catalog-v8 content-addressed inference-turn traces and the Core-only read diagnostic. |
+| 2026-07-24 | Added the read-only local session debug snapshot over existing catalog and content-addressed stores. |
 | 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
 | 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |

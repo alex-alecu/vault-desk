@@ -10,8 +10,10 @@ export { shouldFollowLog } from "./technical-logs.js";
 
 interface TechnicalDetailsProps {
   artifacts: AgentArtifactSummary[];
+  catalogPath: string;
   executions: AgentExecutionSnapshot[];
   open: boolean;
+  sessionId: string | undefined;
   timeline: TimelineItem[];
   onClose(): void;
 }
@@ -58,15 +60,35 @@ function DrawerTabs({ tab, setTab }: { tab: DrawerTab; setTab(tab: DrawerTab): v
 
 function Overview({
   artifacts,
+  catalogPath,
   executions,
+  sessionId,
   timeline,
-}: Pick<TechnicalDetailsProps, "artifacts" | "executions" | "timeline">) {
+}: Pick<
+  TechnicalDetailsProps,
+  "artifacts" | "catalogPath" | "executions" | "sessionId" | "timeline"
+>) {
   const limits = timeline.find((item) => item.eventType === "run.started")?.text;
+  const debugCommand =
+    sessionId === undefined || catalogPath.length === 0
+      ? undefined
+      : `pnpm vault debug-session --database "${catalogPath.replaceAll(/([\\"$`])/gu, "\\$1")}" --session "${sessionId}"`;
   return (
     <div className="technical-details-scroll" role="tabpanel" id="technical-overview-panel">
       {limits === undefined && executions.length === 0 && artifacts.length === 0 ? (
         <p className="technical-details-empty">Technical details will appear after a task runs.</p>
       ) : null}
+      {sessionId === undefined ? null : (
+        <article className="technical-details-item">
+          <p>Local session ID: {sessionId}</p>
+          <p>Catalog path: {catalogPath}</p>
+          <p>Debug locally with Codex or Claude Code:</p>
+          {debugCommand === undefined ? null : <pre>{debugCommand}</pre>}
+          <p className="technical-limits">
+            This creates a private, read-only temporary snapshot. It does not modify the session.
+          </p>
+        </article>
+      )}
       <article className="technical-details-item">
         <p>Certified guest capabilities</p>
         {limits === undefined ? null : <p className="technical-limits">{limits}</p>}

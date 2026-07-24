@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { request } from "./client.js";
+import { createSessionDebugSnapshot } from "./debug-session.js";
 import { daemonEndpoint } from "./endpoint.js";
 import { writeError, writeResult } from "./output.js";
 
@@ -10,6 +11,16 @@ function option(args: string[], name: string): string | undefined {
 
 async function main(args: string[]): Promise<number> {
   const command = args[0];
+  if (command === "debug-session") {
+    const database = option(args, "--database");
+    const session = option(args, "--session");
+    if (database === undefined || session === undefined) {
+      writeError("Usage: vault debug-session --database <catalog path> --session <session ID>");
+      return 2;
+    }
+    process.stdout.write(`${await createSessionDebugSnapshot(database, session)}\n`);
+    return 0;
+  }
   const workspace = option(args, "--workspace");
   if (command !== "status" || workspace === undefined) {
     writeError("Usage: vault status --workspace <directory> [--json]");

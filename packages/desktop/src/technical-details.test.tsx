@@ -105,9 +105,11 @@ function renderTechnicalDetails(): string {
   return renderToStaticMarkup(
     <TechnicalDetails
       artifacts={[artifact]}
+      catalogPath="/Users/alex/Library/Application Support/dev.vaultdesk.desktop/state/.vault/catalog.sqlite"
       executions={[execution]}
       onClose={() => undefined}
       open
+      sessionId="da911f87-ff26-46d8-9a58-bad222a584ab"
       timeline={timeline}
     />,
   );
@@ -118,6 +120,11 @@ describe("technical details drawer", () => {
     const markup = renderTechnicalDetails();
 
     expect(markup).toContain("Technical details");
+    expect(markup).toContain("Local session ID: da911f87-ff26-46d8-9a58-bad222a584ab");
+    expect(markup).toContain("Catalog path:");
+    expect(markup).toContain("pnpm vault debug-session --database");
+    expect(markup).toContain("--session &quot;da911f87-ff26-46d8-9a58-bad222a584ab&quot;");
+    expect(markup).toContain("private, read-only temporary snapshot");
     expect(markup).toContain('aria-label="Close technical details"');
     expect(markup).toContain("4 CPUs, 4 GiB memory, 128 MiB persistent workspace");
     expect(markup).toContain("Certified guest capabilities");
