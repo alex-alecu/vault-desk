@@ -10,6 +10,8 @@ import {
   WorkerLimitsSchema,
 } from "@vault/shared";
 import { stagePackedAgentInputs } from "./agent-staging.js";
+import { AgentHelperTransport } from "./agent-transport.js";
+import { emitDiagnostic } from "./diagnostics.js";
 import type {
   CodeAgentLauncher,
   CodeAgentSession,
@@ -18,11 +20,7 @@ import type {
   MicroVmLaunchRequest,
   MicroVmLaunchResult,
 } from "./launcher.js";
-import {
-  AgentHelperTransport,
-  initializeAgentGuest,
-  MacOsAgentSession,
-} from "./macos-agent-session.js";
+import { FramedAgentSession, initializeAgentGuest } from "./macos-agent-session.js";
 import { copyBoundedInput, launchSignal } from "./staging.js";
 import { AgentWorkspaceStore } from "./workspace-store.js";
 
@@ -243,6 +241,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
     temporaryRoot: string,
     signal: AbortSignal,
   ): Promise<CodeAgentSession> {
+    await emitDiagnostic(request.observer, "macos", "staging");
     const inputs = await stagePackedAgentInputs(
       request.readonlyInputs,
       temporaryRoot,
@@ -256,6 +255,7 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
       request,
       source: request.sourceFolder,
     });
+    await emitDiagnostic(request.observer, "macos", "vm_start");
     const transport = new AgentHelperTransport(
       spawn(this.helperPath, args, { stdio: ["pipe", "pipe", "pipe"] }),
     );
@@ -271,14 +271,18 @@ export class MacOsMicroVmLauncher implements MicroVmLauncher, CodeAgentLauncher 
         store,
         signal,
       });
-      return new MacOsAgentSession({
+      await emitDiagnostic(request.observer, "macos", "guest_connection");
+      return new FramedAgentSession({
         sessionId: request.sessionId,
         limits,
         transport,
         store,
         temporaryRoot,
+        lifecyclePlatform: "macos",
+        ...(request.observer === undefined ? {} : { lifecycleObserver: request.observer }),
       });
     } catch (error) {
+      await emitDiagnostic(request.observer, "macos", "platform_error", error);
       await transport.close().catch(() => undefined);
       throw error;
     }

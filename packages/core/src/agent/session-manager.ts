@@ -1,5 +1,11 @@
 import type { WorkerLimits } from "@vault/shared";
-import type { AgentSessionExecution, CodeAgentLauncher, CodeAgentSession } from "@vault/workers";
+import type {
+  AgentExecutionObserver,
+  AgentExecutionUpdate,
+  AgentSessionExecution,
+  CodeAgentLauncher,
+  CodeAgentSession,
+} from "@vault/workers";
 import type { AgentInputResolver, ResolvedAgentInputs } from "./inputs.js";
 
 interface WarmSession {
@@ -9,8 +15,21 @@ interface WarmSession {
 }
 
 export class AgentSessionManager {
+  private lifecycleSessionId: string | undefined;
+  private lifecycleTarget: AgentExecutionObserver | undefined;
+  private readonly pendingLifecycle: AgentExecutionUpdate[] = [];
   private warm: WarmSession | undefined;
   private serial: Promise<void> = Promise.resolve();
+  private readonly lifecycleObserver: AgentExecutionObserver = {
+    executionId: "00000000-0000-4000-8000-000000000000",
+    onUpdate: async (update) => {
+      if (this.lifecycleTarget !== undefined) {
+        await this.lifecycleTarget.onUpdate(update);
+      } else if (update.kind === "diagnostic") {
+        this.pendingLifecycle.push(update);
+      }
+    },
+  };
 
   constructor(
     private readonly launcher: CodeAgentLauncher,
@@ -32,10 +51,21 @@ export class AgentSessionManager {
     }
   }
 
-  private async ensure(sessionId: string, signal?: AbortSignal): Promise<WarmSession> {
+  private async ensure(
+    sessionId: string,
+    signal?: AbortSignal,
+    observer?: AgentExecutionObserver,
+  ): Promise<WarmSession> {
     signal?.throwIfAborted();
-    if (this.warm?.id === sessionId) return this.warm;
+    if (this.warm?.id === sessionId) {
+      await this.activateLifecycle(observer);
+      return this.warm;
+    }
     await this.closeWarm();
+    this.lifecycleTarget = undefined;
+    if (this.lifecycleSessionId !== sessionId) this.pendingLifecycle.length = 0;
+    this.lifecycleSessionId = sessionId;
+    await this.activateLifecycle(observer);
     const inputs = await this.resolver.resolve(sessionId);
     try {
       const handle = await this.launcher.openAgentSession({
@@ -43,6 +73,7 @@ export class AgentSessionManager {
         sourceFolder: inputs.sourceFolder,
         readonlyInputs: inputs.attachments,
         limits: this.limits,
+        observer: this.lifecycleObserver,
         ...(signal === undefined ? {} : { signal }),
       });
       this.warm = { id: sessionId, handle, inputs };
@@ -53,18 +84,29 @@ export class AgentSessionManager {
     }
   }
 
+  private async activateLifecycle(observer: AgentExecutionObserver | undefined): Promise<void> {
+    if (observer === undefined) return;
+    this.lifecycleTarget = observer;
+    for (const update of this.pendingLifecycle.splice(0)) await observer.onUpdate(update);
+  }
+
   warmSession(sessionId: string): Promise<void> {
     return this.exclusive(async () => {
       await this.ensure(sessionId);
     });
   }
 
-  execute(sessionId: string, request: AgentSessionExecution, signal?: AbortSignal) {
+  execute(
+    sessionId: string,
+    request: AgentSessionExecution,
+    signal?: AbortSignal,
+    observer?: AgentExecutionObserver,
+  ) {
     return this.exclusive(async () => {
       signal?.throwIfAborted();
-      const session = await this.ensure(sessionId, signal);
+      const session = await this.ensure(sessionId, signal, observer);
       try {
-        return await session.handle.execute(request, signal);
+        return await session.handle.execute(request, signal, observer);
       } catch (error) {
         if (this.warm === session) await this.closeWarm().catch(() => undefined);
         throw error;
@@ -90,7 +132,13 @@ export class AgentSessionManager {
     try {
       await session.handle.close();
     } finally {
-      await session.inputs.dispose();
+      try {
+        await session.inputs.dispose();
+      } finally {
+        this.lifecycleTarget = undefined;
+        this.lifecycleSessionId = undefined;
+        this.pendingLifecycle.length = 0;
+      }
     }
   }
 }

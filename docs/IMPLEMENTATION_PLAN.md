@@ -33,7 +33,7 @@ The compact resizable left sidebar has a Chats section whose first option is the
 
 A New chat action prepares a blank composer with no folder grant and does not persist a placeholder session until the user submits a message or selects attachments. Explicit files remain immutable session-owned attachments. A folder conversation grants a live read-only mount of the selected folder without enumerating or copying it. Switching sessions restores the conversation, selected context, tool activity, draft text, and durable guest workspace; selecting the session begins VM boot and hydration in the background.
 
-The main pane is conversation-first. Its header shows the approved model name, subtle live VRAM with context beneath it when available, on-device residency state, an idle-only manual unload action, and a Technical details control. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics in chronological order. Executed code, bounded logs, resource limits, termination evidence, and generated-file metadata remain available in the right-side Technical details drawer. The composer remains anchored at the bottom. Arbitrary model/runtime configuration stays out of the ordinary interface.
+The main pane is conversation-first. Its header shows the approved model name, subtle live VRAM with context beneath it when available, on-device residency state, an idle-only manual unload action, and a Technical details control. It shows streamed assistant output, transient typed thought segments when the approved model supports them, concise code/tool activity, generated artifacts, warnings, failures, cancellation state, and response-speed metrics in chronological order. The right-side Technical details drawer opens to an Overview without log bodies; its Logs tab exposes bounded live output, errors, and typed VM diagnostics one collapsed execution at a time. The composer remains anchored at the bottom. Arbitrary model/runtime configuration stays out of the ordinary interface.
 
 ## Agent Execution Contract
 
@@ -44,7 +44,7 @@ Each agent session:
 1. Validates and canonicalizes the native-picker folder grant in Core; the webview retains only opaque identifiers.
 2. Starts or reuses the session VM with zero virtual NICs and mounts the exact folder read-only at `/source` through macOS VirtioFS or certified Windows HCS Plan9.
 3. Rehydrates the last atomic content-addressed `/workspace` manifest into a 128 MiB tmpfs.
-4. Exchanges protocol-v2 hello/capabilities, hydration, repeated execution, cancellation, workspace delta, result, and shutdown frames over the fixed socket.
+4. Exchanges protocol-v3 hello/capabilities, hydration, repeated execution, bounded stdout/stderr chunks, typed lifecycle diagnostics, cancellation, workspace delta, result, and shutdown frames over the fixed socket. The M1 probe remains protocol v1.
 5. Atomically writes complete Python or Node source to a safe workspace-relative path, or runs a command through `/bin/sh` from `/workspace`.
 6. Separately mediates bounded model completions between Core and the host-native inference worker; the guest has no inference channel.
 7. Returns and durably records the proposal, path, source or command, stdout, stderr, result, summary, artifacts, limits, and termination reason.
@@ -73,6 +73,7 @@ Vault Core persists authoritative state in the existing schema-versioned workspa
 - A session belongs either to one folder grant or to the global New chat area.
 - The newest five sessions per folder are one query, with cursor-based expansion for older sessions.
 - Conversation turns and agent-run summaries commit atomically.
+- Catalog schema v7 stores one normalized execution record per attempt, backfills historical execution events, caps stdout and stderr at 1 MB each and typed VM diagnostics at 256 KiB, and retains partial logs through failure, cancellation, and restart recovery.
 - A daemon or guest crash leaves the previous committed conversation readable and the interrupted run explicitly failed or resumable.
 - Raw hidden model reasoning is never persisted.
 - Typed model thought segments are transient active-run state only; completed snapshots, events, audit, and conversation records never contain them.
@@ -118,8 +119,9 @@ Scope:
 - Add native folder/file dialogs without exposing arbitrary paths to the webview.
 - Implement the Vault Core-owned agent loop with bounded turns, typed inference mediation, cancellation, audit, and deterministic fake coverage.
 - Build a reproducible agent guest image with Python, Node.js, BusyBox shell/tools, the reviewed fixed library set, a typed guest entrypoint, immutable root, live read-only source, and bounded persistent workspace.
-- Extend the common microVM protocol from the M1 probe to hello/capabilities, workspace hydration, repeated execution, cancellation, workspace deltas, structured results, and graceful shutdown.
+- Extend the agent guest protocol to version 3 for hello/capabilities, workspace hydration, repeated execution, ordered bounded stdout/stderr frames, typed lifecycle diagnostics, cancellation, workspace deltas, structured results, and graceful shutdown while preserving the M1 probe protocol.
 - Integrate the completed Windows native inference boundary into the agent product and verify the real V1 model on both platforms.
+- On Windows, expose the selected source through host-read-only Plan9 plus a guest read-only mount, and remove the VM-specific recursive read grant when HCS teardown completes.
 - Package the exact Vault Core sidecar, native helpers, model assets, and guest image with zero-download first launch.
 
 Gate:
@@ -133,13 +135,14 @@ Gate:
 - VM configuration and runtime probes prove zero virtual network adapters and denial of DNS, IPv4, IPv6, LAN, multicast, host reachability, package installation, credentials, host paths, arbitrary host services, and generic model endpoints without command or destination matching.
 - Traversal, symlink/junction escape, time-of-check/time-of-use replacement, malformed IPC, oversized input/output, process storms, timeout, cancellation, guest crash, daemon crash, and low-disk cases are contained and produce typed durable outcomes.
 - The webview cannot invoke arbitrary shell commands, processes, paths, URLs, local endpoints, environments, model files, or filesystem operations.
-- The conversation exposes concise activity and generated artifacts, while the Technical details drawer exposes workspace paths, executed source or commands, certified guest capabilities, bounded logs, resource limits, generated-file metadata, and termination reason without persisting hidden reasoning.
+- The conversation exposes concise activity and generated artifacts. Technical details opens to Overview; Logs initially shows collapsed executions newest first, auto-expands only the active execution after selection, exposes one bounded stream at a time, follows output only near the bottom, and never persists hidden reasoning.
 - The approved model remains loaded between successful turns, reports its state in the desktop header, and unloads only through the typed idle-only Core command or Core shutdown.
 - Supported Gemma thought segments stream through typed IPC into transient active-run state and are absent from persisted events, messages, audit, and terminal snapshots.
 - The newest assistant response shows measured generation speed, prompt-processing speed, and total run time.
 - Keyboard navigation, visible focus, screen-reader labels, reduced motion, resizing, and 200 percent scaling pass on both platform webviews.
 - Packaged application checks cover install, first launch with zero downloads, sidecar and helper identity, restart, upgrade, uninstall, and preservation of user workspace state.
 - Required notices, SBOMs, artifact manifests, hashes, signatures, and unsupported-hardware messages are present and accurate.
+- On physical Windows x64, `pnpm test:m3:windows` proves real-Gemma Python and Node output before terminal state, typed diagnostics, cancellation retention, stdout truncation, malformed-frame HCS teardown, and session teardown. It is not a substitute for the remaining packaged-desktop evidence.
 
 M3 closes only when all macOS and Windows evidence passes. Closing M3 is the Community Desktop V1 launch gate.
 
@@ -200,3 +203,4 @@ AI assistants, models, coding agents, and tools are never commit authors or co-a
 | 2026-07-22 | Grouped sidebar creation actions under their Chats and Folders sections. |
 | 2026-07-22 | Added hardware-derived macOS inference budgets, complete Windows GPU VRAM use, automatic context fitting up to 256K, and the unsupported 8 GB Mac behavior. |
 | 2026-07-22 | Restored concise task activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
+| 2026-07-23 | Added protocol-v3 bounded live execution logs, typed VM diagnostics, normalized catalog schema v7 execution records, and the Overview-first Technical details design. |

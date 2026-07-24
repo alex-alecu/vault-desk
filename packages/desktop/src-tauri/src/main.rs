@@ -11,7 +11,7 @@ use tauri_plugin_shell::process::CommandChild;
 
 mod commands;
 
-const MAX_RESPONSE_BYTES: u64 = 1024 * 1024;
+const MAX_RESPONSE_BYTES: u64 = 192 * 1024 * 1024;
 
 #[cfg(windows)]
 fn add_platform_arguments(

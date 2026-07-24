@@ -9,6 +9,7 @@ export const MessageIdSchema = z.uuid().brand<"MessageId">();
 export const AttachmentIdSchema = z.uuid().brand<"AttachmentId">();
 export const AgentRunIdSchema = z.uuid().brand<"AgentRunId">();
 export const AgentEventIdSchema = z.uuid().brand<"AgentEventId">();
+export const AgentExecutionIdSchema = z.uuid().brand<"AgentExecutionId">();
 export const AgentArtifactIdSchema = z.uuid().brand<"AgentArtifactId">();
 export const RequestIdSchema = z.union([z.string().min(1).max(128), z.number().int()]);
 
@@ -21,5 +22,6 @@ export type MessageId = z.infer<typeof MessageIdSchema>;
 export type AttachmentId = z.infer<typeof AttachmentIdSchema>;
 export type AgentRunId = z.infer<typeof AgentRunIdSchema>;
 export type AgentEventId = z.infer<typeof AgentEventIdSchema>;
+export type AgentExecutionId = z.infer<typeof AgentExecutionIdSchema>;
 export type AgentArtifactId = z.infer<typeof AgentArtifactIdSchema>;
 export type RequestId = z.infer<typeof RequestIdSchema>;

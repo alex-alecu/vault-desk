@@ -8,6 +8,8 @@ use std::ptr::null_mut;
 const SE_FILE_OBJECT: u32 = 1;
 const DACL_SECURITY_INFORMATION: u32 = 4;
 const GRANT_ACCESS: u32 = 1;
+const REVOKE_ACCESS: u32 = 4;
+const SUB_CONTAINERS_AND_OBJECTS_INHERIT: u32 = 3;
 const FILE_GENERIC_READ: u32 = 0x0012_0089;
 const FILE_GENERIC_EXECUTE: u32 = 0x0012_00a0;
 const FILE_ALL_ACCESS: u32 = 0x001f_01ff;
@@ -145,7 +147,13 @@ fn virtual_machine_sid(runtime_id: &str) -> Result<Vec<u32>, Box<dyn Error>> {
     Ok(sid)
 }
 
-fn grant(runtime_id: &str, path: &Path, permissions: u32) -> Result<(), Box<dyn Error>> {
+fn update(
+    runtime_id: &str,
+    path: &Path,
+    permissions: u32,
+    access_mode: u32,
+    inheritance: u32,
+) -> Result<(), Box<dyn Error>> {
     let mut path = wide(path.canonicalize()?.as_os_str());
     let mut descriptor = null_mut();
     let mut old_acl = null_mut();
@@ -169,8 +177,8 @@ fn grant(runtime_id: &str, path: &Path, permissions: u32) -> Result<(), Box<dyn 
     let mut sid = virtual_machine_sid(runtime_id)?;
     let entry = ExplicitAccess {
         permissions,
-        access_mode: GRANT_ACCESS,
-        inheritance: 0,
+        access_mode,
+        inheritance,
         trustee: Trustee {
             multiple_trustee: null_mut(),
             multiple_trustee_operation: 0,
@@ -202,13 +210,33 @@ fn grant(runtime_id: &str, path: &Path, permissions: u32) -> Result<(), Box<dyn 
 }
 
 pub fn grant_read(runtime_id: &str, path: &Path) -> Result<(), Box<dyn Error>> {
-    grant(runtime_id, path, FILE_GENERIC_READ)
+    update(runtime_id, path, FILE_GENERIC_READ, GRANT_ACCESS, 0)
 }
 
 pub fn grant_traverse(runtime_id: &str, path: &Path) -> Result<(), Box<dyn Error>> {
-    grant(runtime_id, path, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)
+    update(
+        runtime_id,
+        path,
+        FILE_GENERIC_READ | FILE_GENERIC_EXECUTE,
+        GRANT_ACCESS,
+        0,
+    )
 }
 
 pub fn grant_full(runtime_id: &str, path: &Path) -> Result<(), Box<dyn Error>> {
-    grant(runtime_id, path, FILE_ALL_ACCESS)
+    update(runtime_id, path, FILE_ALL_ACCESS, GRANT_ACCESS, 0)
+}
+
+pub fn grant_tree_read(runtime_id: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+    update(
+        runtime_id,
+        path,
+        FILE_GENERIC_READ | FILE_GENERIC_EXECUTE,
+        GRANT_ACCESS,
+        SUB_CONTAINERS_AND_OBJECTS_INHERIT,
+    )
+}
+
+pub fn revoke(runtime_id: &str, path: &Path) -> Result<(), Box<dyn Error>> {
+    update(runtime_id, path, 0, REVOKE_ACCESS, 0)
 }

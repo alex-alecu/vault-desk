@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 import { type InferenceProfile, InferenceProfileSchema, type WorkspaceStatus } from "@vault/shared";
 import {
   InferenceWorkerClient,
-  MacOsMicroVmLauncher,
   MacOsNativeWorkerLauncher,
   WindowsNativeWorkerLauncher,
   windowsNativeWorkerEntryPath,
 } from "@vault/workers";
+import { createCodeAgentLauncher } from "./agent/launcher.js";
 import { AgentService } from "./agent/service.js";
 import { AgentStore } from "./agent/store.js";
 import { AuditLog } from "./audit/log.js";
@@ -272,7 +272,7 @@ export async function createVaultCore(options: VaultCoreOptions): Promise<VaultC
           jobs,
           artifacts,
           inference,
-          new MacOsMicroVmLauncher(
+          createCodeAgentLauncher(
             options.agentHelperPath,
             options.agentImageRoot,
             resolve(workspaceRoot, ".vault", "agent-workspaces"),

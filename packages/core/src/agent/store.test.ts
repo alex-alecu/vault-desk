@@ -99,12 +99,96 @@ describe("M3 interrupted run recovery", () => {
     const run = store.createRun(session.id, job.id);
     jobs.transition(job.id, "running");
     store.transitionRun(run.id, { state: "running" });
+    const execution = store.execution.create(run.id, {
+      language: "python",
+      path: "steps/recovery.py",
+      source: "print('partial')",
+    });
+    store.execution.appendStream(execution.id, "stdout", Buffer.from("partial\n"));
 
     expect(store.listRuns(session.id).map((item) => item.id)).toEqual([run.id]);
     expect(store.recoverInterrupted()).toBe(1);
     const recovered = store.snapshot(run.id);
     expect(recovered.run).toMatchObject({ state: "failed", error: "core_restarted" });
     expect(recovered.events.at(-1)).toMatchObject({ type: "run.failed" });
+    expect(recovered.executions[0]).toMatchObject({
+      state: "failed",
+      termination: "crash",
+      stdout: "partial\n",
+    });
+    catalog.close();
+  });
+});
+
+describe("M3 bounded live execution record limits", () => {
+  it("caps streamed output and marks truncation explicitly", async () => {
+    const { catalog, store, conversations, jobs } = await fixture();
+    const session = conversations.createSession(null);
+    const job = jobs.create("agent", "stream-limit-test");
+    const run = store.createRun(session.id, job.id);
+    const execution = store.execution.create(run.id, {
+      language: "shell",
+      command: "yes x",
+    });
+    store.execution.appendDiagnostic(execution.id, {
+      code: "process_start",
+      platform: "guest",
+    });
+    store.execution.appendStream(execution.id, "stdout", Buffer.alloc(1_000_010, 0x61));
+    store.execution.complete(execution.id, {
+      language: "shell",
+      path: null,
+      source: null,
+      command: "yes x",
+      exitCode: 255,
+      stdout: "a".repeat(1_000_000),
+      stderr: "",
+      stdoutTruncated: true,
+      stderrTruncated: false,
+      durationMs: 10,
+      termination: "resource_limit",
+      artifacts: [],
+    });
+
+    expect(store.snapshot(run.id).executions[0]).toMatchObject({
+      state: "failed",
+      stdoutBytes: 1_000_000,
+      stdoutTruncated: true,
+      stderrTruncated: false,
+      vmDiagnostics: [{ code: "process_start", platform: "guest" }],
+    });
+    catalog.close();
+  });
+});
+
+describe("M3 live execution result integrity", () => {
+  it("rejects a terminal result that does not match streamed bytes", async () => {
+    const { catalog, store, conversations, jobs } = await fixture();
+    const session = conversations.createSession(null);
+    const job = jobs.create("agent", "stream-mismatch-test");
+    const run = store.createRun(session.id, job.id);
+    const execution = store.execution.create(run.id, {
+      language: "python",
+      path: "steps/mismatch.py",
+      source: "print('final')",
+    });
+    store.execution.appendStream(execution.id, "stdout", Buffer.from("live\n"));
+
+    expect(() =>
+      store.execution.complete(execution.id, {
+        language: "python",
+        path: "steps/mismatch.py",
+        source: "print('final')",
+        command: null,
+        exitCode: 0,
+        stdout: "final\n",
+        stderr: "",
+        durationMs: 1,
+        termination: "completed",
+        artifacts: [],
+      }),
+    ).toThrow("agent_execution_result_mismatch");
+    expect(store.snapshot(run.id).executions[0]?.state).toBe("failed");
     catalog.close();
   });
 });

@@ -20,6 +20,7 @@ import {
 } from "@vault/shared";
 import type { ArtifactStore } from "../workspace/artifacts.js";
 import type { DatabasePort } from "../workspace/database.js";
+import { AgentExecutionStore } from "./execution-store.js";
 import {
   type ArtifactRow,
   type AttachmentRow,
@@ -32,6 +33,7 @@ import {
   readSelectedFile,
   runFromRow,
 } from "./records.js";
+import { recoverInterruptedRuns } from "./recovery.js";
 
 interface RunTransition {
   state: AgentRunState;
@@ -50,10 +52,14 @@ function nextEventSequence(database: DatabasePort, runId: string): number {
 }
 
 export class AgentStore {
+  readonly execution: AgentExecutionStore;
+
   constructor(
     private readonly database: DatabasePort,
     private readonly artifacts: ArtifactStore,
-  ) {}
+  ) {
+    this.execution = new AgentExecutionStore(database);
+  }
 
   saveDraft(sessionId: string, content: string): SessionDraft {
     const updatedAt = new Date().toISOString();
@@ -258,12 +264,18 @@ export class AgentStore {
         .prepare("SELECT * FROM agent_events WHERE run_id = ? ORDER BY sequence")
         .all(runId) as EventRow[]
     ).map(eventFromRow);
+    const executions = this.execution.list(runId);
     const artifacts = (
       this.database
         .prepare("SELECT * FROM agent_artifacts WHERE run_id = ? ORDER BY created_at, id")
         .all(runId) as ArtifactRow[]
     ).map(artifactFromRow);
-    return AgentRunSnapshotSchema.parse({ run: runFromRow(runRow), events, artifacts });
+    return AgentRunSnapshotSchema.parse({
+      run: runFromRow(runRow),
+      events,
+      executions,
+      artifacts,
+    });
   }
 
   listRuns(sessionId: string): AgentRunSummary[] {
@@ -276,23 +288,8 @@ export class AgentStore {
   }
 
   recoverInterrupted(): number {
-    const now = new Date().toISOString();
-    return this.database.transaction(() => {
-      const rows = this.database
-        .prepare("SELECT id, job_id FROM agent_runs WHERE state IN ('queued', 'running')")
-        .all() as Array<{ id: string; job_id: string }>;
-      for (const row of rows) {
-        this.database
-          .prepare(
-            "UPDATE agent_runs SET state = 'failed', error = 'core_restarted', updated_at = ? WHERE id = ?",
-          )
-          .run(now, row.id);
-        this.database
-          .prepare("UPDATE jobs SET state = 'failed', updated_at = ? WHERE id = ?")
-          .run(now, row.job_id);
-        this.appendEvent(row.id, "run.failed", "Interrupted when Vault Desk restarted.");
-      }
-      return rows.length;
-    })();
+    return recoverInterruptedRuns(this.database, this.execution, (runId) => {
+      this.appendEvent(runId, "run.failed", "Interrupted when Vault Desk restarted.");
+    });
   }
 }

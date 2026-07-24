@@ -4,14 +4,14 @@ import { encodeFrame, FrameDecoder } from "./ipc.js";
 
 function shutdownFrame() {
   return {
-    protocolVersion: 2 as const,
+    protocolVersion: 3 as const,
     requestId: randomUUID(),
     operation: "shutdown" as const,
   };
 }
 
 describe("persistent agent frame decoder", () => {
-  it("decodes fragmented and adjacent protocol-v2 frames", () => {
+  it("decodes fragmented and adjacent protocol-v3 frames", () => {
     const first = shutdownFrame();
     const second = shutdownFrame();
     const encoded = Buffer.concat([encodeFrame(first), encodeFrame(second)]);

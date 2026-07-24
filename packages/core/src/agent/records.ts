@@ -6,6 +6,8 @@ import {
   AgentArtifactSummarySchema,
   type AgentEvent,
   AgentEventSchema,
+  type AgentExecutionSnapshot,
+  AgentExecutionSnapshotSchema,
   AgentRunPerformanceSchema,
   type AgentRunSummary,
   AgentRunSummarySchema,
@@ -43,6 +45,29 @@ export interface EventRow {
   duration_ms: number | null;
   termination: string | null;
   created_at: string;
+}
+
+export interface ExecutionRow {
+  id: string;
+  run_id: string;
+  sequence: number;
+  language: string;
+  workspace_path: string | null;
+  code: string | null;
+  command: string | null;
+  state: string;
+  exit_code: number | null;
+  duration_ms: number | null;
+  termination: string | null;
+  stdout: Buffer | string;
+  stderr: Buffer | string;
+  vm_diagnostics_json: string;
+  stdout_truncated: number;
+  stderr_truncated: number;
+  vm_diagnostics_truncated: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
 export interface ArtifactRow {
@@ -100,6 +125,40 @@ export function eventFromRow(row: EventRow): AgentEvent {
     durationMs: row.duration_ms,
     termination: row.termination,
     createdAt: row.created_at,
+  });
+}
+
+function logBytes(value: Buffer | string): Buffer {
+  return Buffer.isBuffer(value) ? value : Buffer.from(value);
+}
+
+export function executionFromRow(row: ExecutionRow): AgentExecutionSnapshot {
+  const stdout = logBytes(row.stdout);
+  const stderr = logBytes(row.stderr);
+  return AgentExecutionSnapshotSchema.parse({
+    id: row.id,
+    runId: row.run_id,
+    sequence: row.sequence,
+    language: row.language,
+    path: row.workspace_path,
+    source: row.code,
+    command: row.command,
+    state: row.state,
+    exitCode: row.exit_code,
+    durationMs: row.duration_ms,
+    termination: row.termination,
+    stdout: stdout.toString("utf8"),
+    stderr: stderr.toString("utf8"),
+    vmDiagnostics: JSON.parse(row.vm_diagnostics_json),
+    stdoutBytes: stdout.byteLength,
+    stderrBytes: stderr.byteLength,
+    vmDiagnosticsBytes: Buffer.byteLength(row.vm_diagnostics_json),
+    stdoutTruncated: row.stdout_truncated === 1,
+    stderrTruncated: row.stderr_truncated === 1,
+    vmDiagnosticsTruncated: row.vm_diagnostics_truncated === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at,
   });
 }
 

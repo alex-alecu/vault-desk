@@ -18,6 +18,7 @@ import type { DatabasePort } from "../workspace/database.js";
 import { historyForSession } from "./history.js";
 import { AgentInputResolver } from "./inputs.js";
 import { AgentLoop } from "./loop.js";
+import { agentFailureEvent, agentFailureText, tokenRate } from "./service-results.js";
 import { AgentSessionManager } from "./session-manager.js";
 import type { AgentStore } from "./store.js";
 
@@ -38,36 +39,6 @@ interface ActiveRun {
   runId: string;
   sessionId: string;
   thinking: string | null;
-}
-
-function rate(tokens: number, milliseconds: number): number {
-  return milliseconds <= 0 ? 0 : tokens / (milliseconds / 1_000);
-}
-
-function failureText(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) return error.message.slice(0, 1_000);
-  return "agent_run_failed";
-}
-
-function failureSummary(detail: string): string {
-  if (detail === "agent_context_exhausted")
-    return "The required conversation and repair context no longer fits in the local model window.";
-  if (detail === "worker_input_limit_exceeded")
-    return "The selected files exceed this task's supported input limit.";
-  if (detail.includes("memory"))
-    return "The local model needs more available memory to complete this task.";
-  if (detail.includes("model") || detail.includes("Inference"))
-    return "The local model could not be loaded or did not respond.";
-  return "The local task could not be completed safely.";
-}
-
-function failureEvent(cancelled: boolean, detail: string) {
-  if (cancelled) return { type: "run.cancelled" as const, summary: "Task cancelled.", detail: {} };
-  return {
-    type: "run.failed" as const,
-    summary: failureSummary(detail),
-    detail: { stderr: detail },
-  };
 }
 
 export class AgentService {
@@ -221,7 +192,18 @@ export class AgentService {
         this.inference,
         {
           execute: async (input, executionSignal) => {
-            const result = await this.sessions.execute(run.sessionId, input, executionSignal);
+            const execution = this.store.execution.create(run.id, input);
+            const result = await this.sessions.execute(run.sessionId, input, executionSignal, {
+              executionId: execution.id,
+              onUpdate: (update) => {
+                if (update.kind === "stream") {
+                  this.store.execution.appendStream(execution.id, update.stream, update.bytes);
+                  return;
+                }
+                this.store.execution.appendDiagnostic(execution.id, update);
+              },
+            });
+            this.store.execution.complete(execution.id, result);
             await this.persistArtifacts(run.id, result.artifacts);
             return result;
           },
@@ -246,8 +228,11 @@ export class AgentService {
       const performance: AgentRunPerformance = {
         promptTokens: result.inference.promptTokens,
         outputTokens: result.inference.outputTokens,
-        tokensPerSecond: rate(result.inference.outputTokens, result.inference.generationDurationMs),
-        promptTokensPerSecond: rate(
+        tokensPerSecond: tokenRate(
+          result.inference.outputTokens,
+          result.inference.generationDurationMs,
+        ),
+        promptTokensPerSecond: tokenRate(
           result.inference.promptTokens,
           result.inference.promptDurationMs,
         ),
@@ -272,11 +257,12 @@ export class AgentService {
     } catch (error) {
       const cancelled = signal.aborted || this.jobs.isCancellationRequested(run.jobId);
       const state = cancelled ? "cancelled" : "failed";
-      const detail = cancelled ? "cancelled" : failureText(error);
-      const event = failureEvent(cancelled, detail);
+      const detail = cancelled ? "cancelled" : agentFailureText(error);
+      const event = agentFailureEvent(cancelled, detail);
       const active = this.active.get(run.jobId);
       if (active !== undefined) active.thinking = null;
       this.database.transaction(() => {
+        this.store.execution.failIncomplete(run.id, cancelled);
         this.store.transitionRun(run.id, { state, error: detail });
         if (!cancelled) this.jobs.transition(run.jobId, "failed");
         this.store.appendEvent(run.id, event.type, event.summary, event.detail);

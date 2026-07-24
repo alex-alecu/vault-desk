@@ -22,6 +22,8 @@ macOS uses one read-only VirtioFS share. Windows certification requires an HCS P
 
 The offline dev agent defined by [ADR 0018](0018-offline-dev-agent-first.md) is an executable-tool guest role under this boundary. Every session starts from the immutable image with pinned offline interpreters and libraries; dependency installation is forbidden. Vault Core calls the separately confined host-native inference worker, then sends only validated execution requests to the guest. The guest receives no model-server socket, Vault Core API, external-connection broker, approval authority, or export authority.
 
+Agent protocol v3 streams only execution stdout, stderr, and typed lifecycle diagnostics with execution identity and monotonic sequence validation. Core caps and durably records those streams before exposing them through polling. Native helper stderr, temporary host paths, credentials, model reasoning, and arbitrary platform logger output never enter the execution record.
+
 The first platform backends to validate are research-derived until M0 proves their packaging and lifecycle behavior:
 
 - macOS 26 on Apple silicon: Apple Containerization or Virtualization.framework, configured without a virtual network device and with virtio-socket IPC.

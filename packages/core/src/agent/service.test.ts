@@ -21,7 +21,38 @@ function fakeLauncher(
 ): CodeAgentLauncher {
   return {
     async openAgentSession() {
-      return { execute, async cancel() {}, async close() {} };
+      return {
+        async execute(request, _signal, observer) {
+          await observer?.onUpdate({
+            kind: "diagnostic",
+            code: "process_start",
+            platform: "guest",
+          });
+          const result = await execute(request);
+          if (result.stdout.length > 0) {
+            await observer?.onUpdate({
+              kind: "stream",
+              stream: "stdout",
+              bytes: Buffer.from(result.stdout),
+            });
+          }
+          if (result.stderr.length > 0) {
+            await observer?.onUpdate({
+              kind: "stream",
+              stream: "stderr",
+              bytes: Buffer.from(result.stderr),
+            });
+          }
+          await observer?.onUpdate({
+            kind: "diagnostic",
+            code: "process_exit",
+            platform: "guest",
+          });
+          return result;
+        },
+        async cancel() {},
+        async close() {},
+      };
     },
     async deleteWorkspace() {},
   };

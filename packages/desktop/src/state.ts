@@ -1,6 +1,7 @@
 import type {
   AgentArtifactSummary,
   AgentEventType,
+  AgentExecutionSnapshot,
   AgentRunSnapshot,
   AgentRunSummary,
   AttachmentSummary,
@@ -43,6 +44,7 @@ export interface DesktopState {
   removableAttachmentIds: string[];
   activeRun: AgentRunSummary | undefined;
   artifacts: AgentArtifactSummary[];
+  executions: AgentExecutionSnapshot[];
   thinking: string | null;
   loaded: boolean;
 }
@@ -269,6 +271,9 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
     const known = new Set(state.timeline.map((item) => item.id));
     const knownArtifacts = new Set(state.artifacts.map((item) => item.id));
     const activity = action.snapshot.events.filter((item) => !known.has(item.id)).map(eventItem);
+    const otherExecutions = state.executions.filter(
+      (item) => item.runId !== action.snapshot.run.id,
+    );
     return {
       ...state,
       activeRun: action.snapshot.run,
@@ -277,6 +282,7 @@ export function desktopReducer(state: DesktopState, action: DesktopAction): Desk
         ...state.artifacts,
         ...action.snapshot.artifacts.filter((item) => !knownArtifacts.has(item.id)),
       ],
+      executions: [...otherExecutions, ...action.snapshot.executions],
       timeline: [...state.timeline, ...activity],
     };
   }

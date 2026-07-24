@@ -39,8 +39,6 @@ function architecture(): GuestArchitecture {
     index < 0 ? (process.arch === "arm64" ? "aarch64" : "x86_64") : process.argv[index + 1];
   if (selected !== "aarch64" && selected !== "x86_64")
     throw new Error("--arch must be aarch64 or x86_64.");
-  if (agentBuild && selected !== "aarch64")
-    throw new Error("The M3 agent image is macOS arm64 only.");
   return selected;
 }
 
@@ -89,7 +87,10 @@ function build(
   run("docker", [...base, "tar", "-xJf", "/input/buildroot.tar.xz", "-C", "/workspace"]);
   const source = `/workspace/buildroot-${manifest.builder.version}`;
   const variables = ["BR2_EXTERNAL=/external", "O=/workspace/output", "BR2_DL_DIR=/downloads"];
-  const config = manifest.builder.config ?? `vault_probe_${selected}_defconfig`;
+  const config =
+    agentBuild && selected === "x86_64"
+      ? "vault_agent_x86_64_defconfig"
+      : (manifest.builder.config ?? `vault_probe_${selected}_defconfig`);
   run("docker", [...base, "make", "-C", source, ...variables, config]);
   run("docker", [...base, "make", "-s", "-C", source, ...variables]);
 }

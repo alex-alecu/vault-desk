@@ -1,7 +1,11 @@
 import { z } from "zod";
-import { AgentExecutionResultSchema, AgentWorkspacePathSchema } from "./agent.js";
+import {
+  AgentExecutionResultSchema,
+  AgentVmDiagnosticCodeSchema,
+  AgentWorkspacePathSchema,
+} from "./agent.js";
 import { VaultErrorSchema } from "./errors.js";
-import { JobIdSchema, RequestIdSchema } from "./ids.js";
+import { AgentExecutionIdSchema, JobIdSchema, RequestIdSchema } from "./ids.js";
 
 export const WorkerLimitsSchema = z.object({
   wallTimeMs: z.number().int().positive().max(300_000),
@@ -95,7 +99,7 @@ const AgentGuestLimitsSchema = z.object({
 });
 
 export const AgentGuestHelloRequestSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
   jobId: JobIdSchema,
   operation: z.literal("hello"),
@@ -104,7 +108,7 @@ export const AgentGuestHelloRequestSchema = z.object({
 });
 
 export const AgentGuestHydrateRequestSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
   operation: z.literal("hydrate"),
   workspace: z.array(AgentWorkspaceEntrySchema).max(10_000),
@@ -112,8 +116,9 @@ export const AgentGuestHydrateRequestSchema = z.object({
 
 export const AgentGuestExecuteRequestSchema = z.discriminatedUnion("language", [
   z.object({
-    protocolVersion: z.literal(2),
+    protocolVersion: z.literal(3),
     requestId: RequestIdSchema,
+    executionId: AgentExecutionIdSchema,
     operation: z.literal("execute"),
     language: z.enum(["python", "node"]),
     path: AgentWorkspacePathSchema,
@@ -121,8 +126,9 @@ export const AgentGuestExecuteRequestSchema = z.discriminatedUnion("language", [
     limits: AgentGuestLimitsSchema,
   }),
   z.object({
-    protocolVersion: z.literal(2),
+    protocolVersion: z.literal(3),
     requestId: RequestIdSchema,
+    executionId: AgentExecutionIdSchema,
     operation: z.literal("execute"),
     language: z.literal("shell"),
     command: z.string().min(1).max(128_000),
@@ -131,7 +137,7 @@ export const AgentGuestExecuteRequestSchema = z.discriminatedUnion("language", [
 ]);
 
 export const AgentGuestControlRequestSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
   operation: z.enum(["cancel", "shutdown"]),
 });
@@ -162,7 +168,7 @@ export const WorkerFailureSchema = z.object({
 });
 
 export const AgentGuestHelloResultSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
   status: z.literal("ok"),
   operation: z.literal("hello"),
@@ -177,15 +183,16 @@ export const AgentGuestHelloResultSchema = z.object({
 });
 
 export const AgentGuestHydrateResultSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
   status: z.literal("ok"),
   operation: z.literal("hydrate"),
 });
 
 export const AgentGuestResultSchema = z.object({
-  protocolVersion: z.literal(2),
+  protocolVersion: z.literal(3),
   requestId: RequestIdSchema,
+  executionId: AgentExecutionIdSchema,
   status: z.literal("ok"),
   operation: z.literal("execute"),
   nonLoopbackNetworkDeviceCount: z.number().int().nonnegative(),
@@ -194,6 +201,42 @@ export const AgentGuestResultSchema = z.object({
   execution: AgentExecutionResultSchema,
   workspaceDelta: AgentWorkspaceDeltaSchema,
 });
+
+export const AgentGuestStreamFrameSchema = z.object({
+  protocolVersion: z.literal(3),
+  requestId: RequestIdSchema,
+  executionId: AgentExecutionIdSchema,
+  operation: z.literal("stream"),
+  sequence: z.number().int().nonnegative(),
+  stream: z.enum(["stdout", "stderr"]),
+  contentBase64: z
+    .string()
+    .max(88_000)
+    .regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u),
+  byteLength: z
+    .number()
+    .int()
+    .positive()
+    .max(64 * 1024),
+});
+
+export const AgentGuestDiagnosticFrameSchema = z.object({
+  protocolVersion: z.literal(3),
+  requestId: RequestIdSchema,
+  executionId: AgentExecutionIdSchema,
+  operation: z.literal("diagnostic"),
+  sequence: z.number().int().nonnegative(),
+  diagnostic: z.object({
+    code: AgentVmDiagnosticCodeSchema.extract(["process_start", "process_exit"]),
+    platform: z.literal("guest"),
+    platformCode: z.null().default(null),
+  }),
+});
+
+export const AgentGuestUpdateFrameSchema = z.union([
+  AgentGuestStreamFrameSchema,
+  AgentGuestDiagnosticFrameSchema,
+]);
 
 export const WorkerFrameSchema = z.union([
   WorkerRequestSchema,
@@ -204,6 +247,8 @@ export const WorkerFrameSchema = z.union([
   WorkerResultSchema,
   AgentGuestHelloResultSchema,
   AgentGuestHydrateResultSchema,
+  AgentGuestStreamFrameSchema,
+  AgentGuestDiagnosticFrameSchema,
   AgentGuestResultSchema,
   WorkerFailureSchema,
 ]);
@@ -235,4 +280,5 @@ export type AgentWorkspaceDelta = z.infer<typeof AgentWorkspaceDeltaSchema>;
 export type AgentGuestHelloRequest = z.infer<typeof AgentGuestHelloRequestSchema>;
 export type AgentGuestExecuteRequest = z.infer<typeof AgentGuestExecuteRequestSchema>;
 export type AgentGuestResult = z.infer<typeof AgentGuestResultSchema>;
+export type AgentGuestUpdateFrame = z.infer<typeof AgentGuestUpdateFrameSchema>;
 export type MicroVmAgentReport = z.infer<typeof MicroVmAgentReportSchema>;

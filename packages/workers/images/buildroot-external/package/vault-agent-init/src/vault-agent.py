@@ -100,13 +100,29 @@ def mount_runtime(request):
     WORKSPACE.mkdir(mode=0o700, exist_ok=True)
     INPUTS.mkdir(mode=0o755, parents=True, exist_ok=True)
     RUNTIME.mkdir(mode=0o700, exist_ok=True)
-    subprocess.run(
+    mounted = subprocess.run(
         ["/bin/mount", "-t", "virtiofs", "-o", "ro", "source", str(SOURCE)],
-        check=True,
+        check=False,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    if mounted.returncode != 0:
+        subprocess.run(
+            [
+                "/bin/mount",
+                "-t",
+                "9p",
+                "-o",
+                "trans=virtio,version=9p2000.L,ro",
+                "source",
+                str(SOURCE),
+            ],
+            check=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     subprocess.run(
         ["/bin/mount", "-t", "tmpfs", "-o", f"size={scratch_bytes},mode=0700", "tmpfs", str(WORKSPACE)],
         check=True,
@@ -241,8 +257,39 @@ def atomic_source(request):
 
 def append_output(target, chunk, limit):
     remaining = max(0, limit - len(target))
-    target.extend(chunk[:remaining])
-    return len(chunk) > remaining
+    retained = chunk[:remaining]
+    target.extend(retained)
+    return retained, len(chunk) > remaining
+
+
+def write_execution_update(connection, request, sequence, operation, **detail):
+    write_frame(
+        connection,
+        {
+            "protocolVersion": 3,
+            "requestId": request["requestId"],
+            "executionId": request["executionId"],
+            "operation": operation,
+            "sequence": sequence,
+            **detail,
+        },
+    )
+    return sequence + 1
+
+
+def stream_output(connection, request, sequence, stream, target, chunk, limit):
+    retained, truncated = append_output(target, chunk, limit)
+    if retained:
+        sequence = write_execution_update(
+            connection,
+            request,
+            sequence,
+            "stream",
+            stream=stream,
+            contentBase64=base64.b64encode(retained).decode("ascii"),
+            byteLength=len(retained),
+        )
+    return sequence, truncated
 
 
 def stop_process_group(process):
@@ -351,6 +398,8 @@ def execute(connection, request, previous):
     output_limit = min(request["limits"]["outputBytes"], MAX_LOG_BYTES)
     stdout = bytearray()
     stderr = bytearray()
+    stdout_truncated = False
+    stderr_truncated = False
     termination = "completed"
     close_after = False
     process = subprocess.Popen(
@@ -363,6 +412,13 @@ def execute(connection, request, previous):
         start_new_session=True,
         preexec_fn=lambda: limit_process(request),
         close_fds=True,
+    )
+    sequence = write_execution_update(
+        connection,
+        request,
+        0,
+        "diagnostic",
+        diagnostic={"code": "process_start", "platform": "guest", "platformCode": None},
     )
     deadline = started + request["limits"]["wallTimeMs"] / 1000
     streams = {process.stdout: stdout, process.stderr: stderr}
@@ -384,16 +440,40 @@ def execute(connection, request, previous):
                 chunk = os.read(stream.fileno(), 64 * 1024)
                 if not chunk:
                     streams.pop(stream)
-                elif append_output(streams[stream], chunk, output_limit) and termination == "completed":
-                    termination = "resource_limit"
+                else:
+                    name = "stdout" if stream is process.stdout else "stderr"
+                    sequence, truncated = stream_output(
+                        connection, request, sequence, name, streams[stream], chunk, output_limit
+                    )
+                    if stream is process.stdout:
+                        stdout_truncated = stdout_truncated or truncated
+                    else:
+                        stderr_truncated = stderr_truncated or truncated
+                    if truncated and termination == "completed":
+                        termination = "resource_limit"
         if termination != "completed":
             break
     stop_process_group(process)
     remainder_out, remainder_err = process.communicate()
-    if append_output(stdout, remainder_out, output_limit) and termination == "completed":
+    sequence, remainder_truncated = stream_output(
+        connection, request, sequence, "stdout", stdout, remainder_out, output_limit
+    )
+    stdout_truncated = stdout_truncated or remainder_truncated
+    if remainder_truncated and termination == "completed":
         termination = "resource_limit"
-    if append_output(stderr, remainder_err, output_limit) and termination == "completed":
+    sequence, remainder_truncated = stream_output(
+        connection, request, sequence, "stderr", stderr, remainder_err, output_limit
+    )
+    stderr_truncated = stderr_truncated or remainder_truncated
+    if remainder_truncated and termination == "completed":
         termination = "resource_limit"
+    write_execution_update(
+        connection,
+        request,
+        sequence,
+        "diagnostic",
+        diagnostic={"code": "process_exit", "platform": "guest", "platformCode": None},
+    )
     workspace = collect_workspace()
     language = request["language"]
     result = {
@@ -404,6 +484,8 @@ def execute(connection, request, previous):
         "exitCode": max(0, min(255, process.returncode if process.returncode >= 0 else 255)),
         "stdout": stdout.decode("utf-8", "replace"),
         "stderr": stderr.decode("utf-8", "replace"),
+        "stdoutTruncated": stdout_truncated,
+        "stderrTruncated": stderr_truncated,
         "durationMs": int((time.monotonic() - started) * 1000),
         "termination": termination if process.returncode == 0 or termination != "completed" else "crash",
         "artifacts": collect_artifacts(workspace, previous),
@@ -422,13 +504,13 @@ def main():
     connection, _ = listener.accept()
     with connection:
         hello = read_frame(connection)
-        if hello.get("protocolVersion") != 2 or hello.get("operation") != "hello":
+        if hello.get("protocolVersion") != 3 or hello.get("operation") != "hello":
             raise RuntimeError("unsupported_operation")
         mount_runtime(hello)
         write_frame(
             connection,
             {
-                "protocolVersion": 2,
+                "protocolVersion": 3,
                 "requestId": hello["requestId"],
                 "status": "ok",
                 "operation": "hello",
@@ -443,14 +525,14 @@ def main():
             },
         )
         hydration = read_frame(connection)
-        if hydration.get("protocolVersion") != 2 or hydration.get("operation") != "hydrate":
+        if hydration.get("protocolVersion") != 3 or hydration.get("operation") != "hydrate":
             raise RuntimeError("unsupported_operation")
         hydrate(hydration["workspace"])
         workspace_state = workspace_signatures(hydration["workspace"])
         write_frame(
             connection,
             {
-                "protocolVersion": 2,
+                "protocolVersion": 3,
                 "requestId": hydration["requestId"],
                 "status": "ok",
                 "operation": "hydrate",
@@ -461,17 +543,18 @@ def main():
             operation = request.get("operation")
             if operation == "shutdown":
                 break
-            if request.get("protocolVersion") == 2 and operation == "cancel":
+            if request.get("protocolVersion") == 3 and operation == "cancel":
                 continue
-            if request.get("protocolVersion") != 2 or operation != "execute":
+            if request.get("protocolVersion") != 3 or operation != "execute":
                 raise RuntimeError("unsupported_operation")
             execution, workspace, close_after = execute(connection, request, workspace_state)
             delta = workspace_delta(workspace, workspace_state)
             write_frame(
                 connection,
                 {
-                    "protocolVersion": 2,
+                    "protocolVersion": 3,
                     "requestId": request["requestId"],
+                    "executionId": request["executionId"],
                     "status": "ok",
                     "operation": "execute",
                     "nonLoopbackNetworkDeviceCount": interface_count(),

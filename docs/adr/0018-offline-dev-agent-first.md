@@ -24,7 +24,7 @@ Each conversation owns a reusable no-NIC microVM under ADR 0012. It stays alive 
 - A verified immutable root image.
 - The selected folder mounted live and read-only at `/source`, with its original hierarchy and no host enumeration, flattening, copying, file-count limit, individual-size limit, or aggregate-size limit. Immediate host-change visibility is accepted in place of snapshot reproducibility.
 - A session-scoped writable `/workspace`, limited to 128 MiB and committed after every responsive execution as an atomic content-addressed manifest. Core rehydrates it after VM eviction or application and machine restart.
-- A fixed versioned host/guest socket for hello and capabilities, hydration, repeated execution, cancellation, workspace deltas, results, and graceful shutdown.
+- A fixed versioned host/guest socket. Agent protocol v3 carries hello and capabilities, hydration, repeated execution, ordered bounded stdout/stderr chunks, typed lifecycle diagnostics, cancellation, workspace deltas, results, and graceful shutdown; the M1 probe remains protocol v1.
 - Python, Node.js, `/bin/sh`, BusyBox commands, and a reviewed pinned library set already present in the image.
 - No dependency installation, package downloads, credentials, user home, writable selected-folder mount, host shell, generic Vault Core API, or generic model endpoint.
 - One execution at a time. Eviction occurs for another session, deletion, revocation, Core shutdown, helper failure, or memory-budget pressure; responsive workspace state is committed first.
@@ -76,3 +76,4 @@ Negative:
 |---|---|
 | 2026-07-20 | Made the generic offline dev agent and full desktop application the V1 product path. |
 | 2026-07-23 | Replaced one-execution snapshots with a session-scoped warm VM, live read-only source mount, durable bounded workspace, shell execution, and anchored repair context. |
+| 2026-07-23 | Added durable bounded live execution streams, allowlisted VM diagnostics, final-result completeness validation, and normalized execution recovery records. |

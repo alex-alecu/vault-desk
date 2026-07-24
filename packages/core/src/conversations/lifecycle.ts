@@ -43,12 +43,16 @@ export function warmConversationSession(
   sessionId: string,
 ): void {
   void agent?.warmSession(sessionId).catch((error: unknown) => {
+    const platformCode = (error as NodeJS.ErrnoException | undefined)?.code;
     audit.append({
       type: "agent.warm_failed",
       outcome: "failed",
       metadata: {
         sessionId,
-        code: error instanceof Error ? error.message.slice(0, 200) : "warm_failed",
+        code:
+          platformCode !== undefined && /^[A-Za-z0-9_:.-]{1,64}$/u.test(platformCode)
+            ? platformCode
+            : "warm_failed",
       },
     });
   });

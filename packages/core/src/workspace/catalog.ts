@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type DatabasePort, VaultDatabase } from "./database.js";
 
-const LATEST_SCHEMA_VERSION = 6;
+const LATEST_SCHEMA_VERSION = 7;
 
 const MIGRATION_NAMES = [
   "initial",
@@ -24,6 +24,7 @@ const MIGRATION_NAMES = [
   "agent",
   "agent-performance",
   "agent-workspace",
+  "agent-executions",
 ] as const;
 
 export interface WorkspaceCatalog {

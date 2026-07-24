@@ -51,7 +51,7 @@ src/agent.ts         task, observable event, completion request, result, artifac
 src/desktop.ts       narrow desktop command/result contracts
 ```
 
-The agent contract versions the host/guest messages and bounds code, observations, stdout, stderr, artifacts, turns, and completion payloads.
+The agent contract preserves the M1 probe at protocol v1 and uses agent protocol v3 for ordered execution frames. It bounds code, observations, stdout, stderr, typed VM diagnostics, artifacts, turns, and completion payloads.
 
 ### `packages/core`
 
@@ -162,6 +162,7 @@ The existing workspace catalog remains the one authoritative database. M3 adds n
 - Turns and drafts.
 - Attachment identities and immutable staged bytes.
 - Agent runs, terminal state, observable events, and bounded numeric response-performance evidence.
+- Normalized execution attempts with identity, ordering, source or command, terminal evidence, 1 MB stdout, 1 MB stderr, 256 KiB allowlisted VM diagnostics, truncation flags, and recovery timestamps. Catalog migration v7 backfills historical execution events.
 - Generated artifact metadata and immutable bytes accepted from guest scratch.
 - Session-scoped content-addressed workspace manifests stored under the private `.vault` state root.
 
@@ -197,5 +198,6 @@ The existing source-limit gate remains authoritative. Prefer files below 300 lin
 |---|---|
 | 2026-07-13 | Created the original milestone-to-folder blueprint. |
 | 2026-07-20 | Replaced the former pre-product blueprint with the M3 generic offline dev-agent desktop structure. |
+| 2026-07-23 | Added protocol-v3 live execution frames, catalog-v7 normalized execution records, and Overview-first Technical details logs. |
 | 2026-07-22 | Added the model header and persisted response-performance evidence surfaces. |
 | 2026-07-23 | Added the session-scoped guest lifecycle, live read-only source share, and persistent workspace boundary. |

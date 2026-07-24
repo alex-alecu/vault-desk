@@ -68,7 +68,9 @@ The conversation timeline supports:
 - Streaming assistant text.
 - Concise model-planning, execution-purpose, completion, failure, and cancellation activity inline in chronological order without code or logs.
 - Generated scratch artifacts inline with the surrounding task activity and response.
-- A top-right **Technical details** control that opens resource limits, executed Python or Node.js source or guest shell commands, bounded stdout/stderr, termination evidence, and generated-file metadata in a right-side drawer.
+- A top-right **Technical details** control that opens a right-side drawer on **Overview**. Overview contains limits, compact execution summaries, collapsed code or commands, termination evidence, guest capabilities, and generated-file metadata without rendering log bodies.
+- A separate **Logs** tab lists executions newest first and collapsed by default. Selecting Logs auto-expands only the active execution. Each row selects one stream at a time: Output, Errors, or typed VM diagnostics, with byte counts, explicit state text, and truncation text.
+- Active output follows only while the viewer remains within 40 pixels of the bottom. Manual scrolling is preserved and exposes **Jump to latest**. Reopening the drawer or switching conversations resets it to Overview.
 - Plain-language running, cancelling, cancelled, timed-out, failed, and completed states.
 - Security or unsupported-operation warnings.
 - A compact performance row beneath the newest assistant response with generation tokens per second, prompt-processing tokens per second, and total run time.
@@ -105,7 +107,7 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 
 ## Accessibility And Platform Behavior
 
-- Full keyboard navigation and visible focus.
+- Full keyboard navigation and visible focus, including arrow-key tab selection and button-operated execution rows.
 - Screen-reader labels for folders, sessions, status, attachments, inline activity, Technical details, and composer actions.
 - Focus restoration after dialogs, session switches, cancellation, and reconnect.
 - Reduced-motion support.
@@ -124,3 +126,4 @@ Runtime, quantization, context-window, endpoint, and model-file vocabulary stays
 | 2026-07-22 | Added safe CommonMark presentation for assistant responses. |
 | 2026-07-22 | Restored concise activity and generated files to the conversation and reserved the renamed Technical details drawer for low-level evidence. |
 | 2026-07-23 | Replaced folder snapshots and disposable scratch with the live read-only source mount and persistent session workspace. |
+| 2026-07-23 | Added the Overview-first Technical details drawer with collapsed execution logs, selectable bounded streams, typed VM diagnostics, and scroll-follow controls. |

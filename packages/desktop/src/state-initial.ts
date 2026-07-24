@@ -11,6 +11,7 @@ export const initialDesktopState: DesktopState = {
   removableAttachmentIds: [],
   activeRun: undefined,
   artifacts: [],
+  executions: [],
   thinking: null,
   loaded: false,
 };
@@ -25,6 +26,7 @@ export function emptyConversation(newSessionFolderId: string | null | undefined)
     removableAttachmentIds: [],
     activeRun: undefined,
     artifacts: [],
+    executions: [],
     thinking: null,
   };
 }

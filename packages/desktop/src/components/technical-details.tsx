@@ -1,20 +1,22 @@
-import type { AgentArtifactSummary } from "@vault/shared";
+import type { AgentArtifactSummary, AgentExecutionSnapshot } from "@vault/shared";
+import { useState } from "react";
 import capabilities from "../../../workers/images/agent/capabilities.json" with { type: "json" };
 import type { TimelineItem } from "../state.js";
 import { Icon } from "./icons.js";
+import { selectAdjacentTab } from "./tab-keyboard.js";
+import { ExecutionStatus, LogsPanel } from "./technical-logs.js";
+
+export { shouldFollowLog } from "./technical-logs.js";
 
 interface TechnicalDetailsProps {
   artifacts: AgentArtifactSummary[];
+  executions: AgentExecutionSnapshot[];
   open: boolean;
   timeline: TimelineItem[];
   onClose(): void;
 }
 
-function isTechnical(item: TimelineItem): boolean {
-  return (
-    item.kind === "activity" && (item.eventType === "run.started" || item.detail !== undefined)
-  );
-}
+type DrawerTab = "overview" | "logs";
 
 function guestCapabilities(): string {
   const runtimes = Object.entries(capabilities.runtimes).map(
@@ -32,60 +34,102 @@ function guestCapabilities(): string {
   ].join("\n");
 }
 
-export function TechnicalDetails({ artifacts, open, timeline, onClose }: TechnicalDetailsProps) {
-  const details = timeline.filter(isTechnical);
-  return open ? (
+function DrawerTabs({ tab, setTab }: { tab: DrawerTab; setTab(tab: DrawerTab): void }) {
+  const tabs = ["overview", "logs"] as const;
+  return (
+    <div aria-label="Technical detail views" className="technical-tabs" role="tablist">
+      {tabs.map((item) => (
+        <button
+          aria-controls={`technical-${item}-panel`}
+          aria-selected={tab === item}
+          key={item}
+          onClick={() => setTab(item)}
+          onKeyDown={(event) => selectAdjacentTab(event, item, tabs, setTab)}
+          role="tab"
+          tabIndex={tab === item ? 0 : -1}
+          type="button"
+        >
+          {item === "overview" ? "Overview" : "Logs"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Overview({
+  artifacts,
+  executions,
+  timeline,
+}: Pick<TechnicalDetailsProps, "artifacts" | "executions" | "timeline">) {
+  const limits = timeline.find((item) => item.eventType === "run.started")?.text;
+  return (
+    <div className="technical-details-scroll" role="tabpanel" id="technical-overview-panel">
+      {limits === undefined && executions.length === 0 && artifacts.length === 0 ? (
+        <p className="technical-details-empty">Technical details will appear after a task runs.</p>
+      ) : null}
+      <article className="technical-details-item">
+        <p>Certified guest capabilities</p>
+        {limits === undefined ? null : <p className="technical-limits">{limits}</p>}
+        <details>
+          <summary>Show tools and runtimes</summary>
+          <pre>{guestCapabilities()}</pre>
+        </details>
+      </article>
+      {executions.map((execution) => (
+        <article className="technical-details-item" key={execution.id}>
+          <div className="execution-heading">
+            <p>
+              Execution {execution.sequence + 1} · {execution.language}
+            </p>
+            <ExecutionStatus execution={execution} />
+          </div>
+          <p>{execution.path ?? "Guest shell command"}</p>
+          <p>
+            Termination: {execution.termination ?? "in progress"}
+            {execution.exitCode === null ? "" : ` · exit ${execution.exitCode}`}
+          </p>
+          <details>
+            <summary>Show code or command</summary>
+            <pre>{execution.source ?? execution.command}</pre>
+          </details>
+        </article>
+      ))}
+      {artifacts.map((item) => (
+        <article className="technical-details-item" key={item.id}>
+          <span className="activity-label">Generated file</span>
+          <p>{item.name}</p>
+          <dl className="technical-file-metadata">
+            <div>
+              <dt>Type</dt>
+              <dd>{item.mediaType}</dd>
+            </div>
+            <div>
+              <dt>Size</dt>
+              <dd>{item.byteLength} bytes</dd>
+            </div>
+          </dl>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+export function TechnicalDetails(props: TechnicalDetailsProps) {
+  const [tab, setTab] = useState<DrawerTab>("overview");
+  if (!props.open) return null;
+  return (
     <aside aria-label="Technical details" className="technical-details-drawer">
       <header className="technical-details-header">
         <div>
           <h2>Technical details</h2>
-          <p>Code, commands, logs, local limits, and generated files</p>
+          <p>Local limits, execution evidence, and bounded logs</p>
         </div>
-        <button aria-label="Close technical details" onClick={onClose} type="button">
+        <button aria-label="Close technical details" onClick={props.onClose} type="button">
           <Icon name="close" />
         </button>
       </header>
-      <div className="technical-details-scroll">
-        {details.length === 0 && artifacts.length === 0 ? (
-          <p className="technical-details-empty">
-            Technical details will appear after a task runs.
-          </p>
-        ) : null}
-        <article className="technical-details-item">
-          <p>Certified guest capabilities</p>
-          <details>
-            <summary>Show tools and runtimes</summary>
-            <pre>{guestCapabilities()}</pre>
-          </details>
-        </article>
-        {details.map((item) => (
-          <article className="technical-details-item" key={item.id}>
-            <p>{item.text}</p>
-            {item.detail === undefined ? null : (
-              <details>
-                <summary>Show details</summary>
-                <pre>{item.detail}</pre>
-              </details>
-            )}
-          </article>
-        ))}
-        {artifacts.map((item) => (
-          <article className="technical-details-item" key={item.id}>
-            <span className="activity-label">Generated file</span>
-            <p>{item.name}</p>
-            <dl className="technical-file-metadata">
-              <div>
-                <dt>Type</dt>
-                <dd>{item.mediaType}</dd>
-              </div>
-              <div>
-                <dt>Size</dt>
-                <dd>{item.byteLength} bytes</dd>
-              </div>
-            </dl>
-          </article>
-        ))}
-      </div>
+      <DrawerTabs setTab={setTab} tab={tab} />
+      {tab === "overview" ? <Overview {...props} /> : <LogsPanel executions={props.executions} />}
     </aside>
-  ) : null;
+  );
 }

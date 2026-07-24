@@ -121,3 +121,54 @@ describe("agent helper recovery", () => {
     expect(events).toContain(`dispose:${sessionId}`);
   });
 });
+
+describe("warm session lifecycle diagnostics", () => {
+  it("replays buffered startup diagnostics and retains teardown on the execution", async () => {
+    const diagnostics: string[] = [];
+    const codeLauncher: CodeAgentLauncher = {
+      async openAgentSession(request) {
+        await request.observer?.onUpdate({
+          kind: "diagnostic",
+          code: "vm_start",
+          platform: "macos",
+        });
+        return {
+          async execute() {
+            return {
+              language: "shell",
+              path: null,
+              source: null,
+              command: "true",
+              exitCode: 0,
+              stdout: "",
+              stderr: "",
+              durationMs: 1,
+              termination: "completed",
+              artifacts: [],
+            };
+          },
+          async cancel() {},
+          async close() {
+            await request.observer?.onUpdate({
+              kind: "diagnostic",
+              code: "teardown",
+              platform: "macos",
+            });
+          },
+        };
+      },
+      async deleteWorkspace() {},
+    };
+    const manager = new AgentSessionManager(codeLauncher, resolver([]), limits);
+    const sessionId = randomUUID();
+    await manager.warmSession(sessionId);
+    await manager.execute(sessionId, { language: "shell", command: "true" }, undefined, {
+      executionId: randomUUID(),
+      onUpdate(update) {
+        if (update.kind === "diagnostic") diagnostics.push(update.code);
+      },
+    });
+    await manager.closeSession(sessionId);
+    expect(diagnostics).toEqual(["vm_start", "teardown"]);
+  });
+});

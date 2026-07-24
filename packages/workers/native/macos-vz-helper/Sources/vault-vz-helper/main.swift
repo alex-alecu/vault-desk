@@ -105,11 +105,40 @@ func readFrame(from descriptor: Int32) throws -> Data {
     return try readExact(count: Int(length), from: descriptor)
 }
 
+struct RelayFrameValidator {
+    private var header: [UInt8] = []
+    private var remaining: UInt32?
+
+    mutating func accept(_ data: Data) throws {
+        for byte in data {
+            if let payloadRemaining = remaining {
+                let next = payloadRemaining - 1
+                remaining = next == 0 ? nil : next
+                continue
+            }
+            header.append(byte)
+            if header.count == 4 {
+                let length = header.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+                guard length > 0, length <= 192 * 1024 * 1024 else {
+                    throw HelperError.invalidFrame
+                }
+                header.removeAll(keepingCapacity: true)
+                remaining = length
+            }
+        }
+    }
+
+    func finish() throws {
+        guard header.isEmpty, remaining == nil else { throw HelperError.invalidFrame }
+    }
+}
+
 func relay(input: Int32, guest: Int32, output: Int32) throws {
     var descriptors = [
         pollfd(fd: input, events: Int16(POLLIN), revents: 0),
         pollfd(fd: guest, events: Int16(POLLIN), revents: 0),
     ]
+    var validators = [RelayFrameValidator(), RelayFrameValidator()]
     var buffer = [UInt8](repeating: 0, count: 64 * 1024)
     while true {
         let ready = poll(&descriptors, nfds_t(descriptors.count), -1)
@@ -121,13 +150,18 @@ func relay(input: Int32, guest: Int32, output: Int32) throws {
             let source = descriptors[index].fd
             let destination = index == 0 ? guest : output
             let count = Darwin.read(source, &buffer, buffer.count)
-            if count == 0 { return }
+            if count == 0 {
+                try validators[index].finish()
+                return
+            }
             if count < 0 {
                 if errno == EINTR { continue }
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             }
             try buffer.withUnsafeBytes { bytes in
-                try writeAll(Data(bytes.prefix(count)), to: destination)
+                let data = Data(bytes.prefix(count))
+                try validators[index].accept(data)
+                try writeAll(data, to: destination)
             }
         }
     }

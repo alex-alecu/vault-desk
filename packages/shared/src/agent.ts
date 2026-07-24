@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   AgentArtifactIdSchema,
   AgentEventIdSchema,
+  AgentExecutionIdSchema,
   AgentRunIdSchema,
   ContentHashSchema,
   JobIdSchema,
@@ -50,6 +51,8 @@ const AgentExecutionEvidenceSchema = z.object({
   exitCode: z.number().int().min(0).max(255),
   stdout: z.string().max(1_000_000),
   stderr: z.string().max(1_000_000),
+  stdoutTruncated: z.boolean().optional(),
+  stderrTruncated: z.boolean().optional(),
   durationMs: z.number().int().nonnegative(),
   termination: z.enum(["completed", "timeout", "cancelled", "resource_limit", "crash"]),
   artifacts: z
@@ -100,6 +103,66 @@ export const AgentRunStateSchema = z.enum([
   "failed",
   "cancelled",
 ]);
+
+export const AgentVmDiagnosticCodeSchema = z.enum([
+  "staging",
+  "vm_start",
+  "guest_connection",
+  "process_start",
+  "process_exit",
+  "teardown",
+  "platform_error",
+]);
+
+export const AgentVmDiagnosticSchema = z.object({
+  sequence: z.number().int().nonnegative(),
+  code: AgentVmDiagnosticCodeSchema,
+  platform: z.enum(["guest", "macos", "windows"]),
+  platformCode: z
+    .string()
+    .regex(/^[A-Za-z0-9_:.-]{1,64}$/u)
+    .nullable()
+    .default(null),
+  createdAt: z.iso.datetime(),
+});
+
+export const AgentExecutionStateSchema = z.enum([
+  "starting",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export const AgentExecutionSnapshotSchema = z.object({
+  id: AgentExecutionIdSchema,
+  runId: AgentRunIdSchema,
+  sequence: z.number().int().nonnegative(),
+  language: AgentLanguageSchema,
+  path: AgentWorkspacePathSchema.nullable(),
+  source: z.string().max(128_000).nullable(),
+  command: z.string().max(128_000).nullable(),
+  state: AgentExecutionStateSchema,
+  exitCode: z.number().int().min(0).max(255).nullable(),
+  durationMs: z.number().int().nonnegative().nullable(),
+  termination: z.enum(["completed", "timeout", "cancelled", "resource_limit", "crash"]).nullable(),
+  stdout: z.string().max(1_000_000),
+  stderr: z.string().max(1_000_000),
+  vmDiagnostics: z.array(AgentVmDiagnosticSchema).max(4_000),
+  stdoutBytes: z.number().int().nonnegative().max(1_000_000),
+  stderrBytes: z.number().int().nonnegative().max(1_000_000),
+  vmDiagnosticsBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(256 * 1024),
+  stdoutTruncated: z.boolean(),
+  stderrTruncated: z.boolean(),
+  vmDiagnosticsTruncated: z.boolean(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
+});
 
 export const AgentRunSummarySchema = z.object({
   id: AgentRunIdSchema,
@@ -161,6 +224,7 @@ export const AgentArtifactSummarySchema = z.object({
 export const AgentRunSnapshotSchema = z.object({
   run: AgentRunSummarySchema,
   events: z.array(AgentEventSchema).max(1_000),
+  executions: z.array(AgentExecutionSnapshotSchema).max(6).default([]),
   artifacts: z.array(AgentArtifactSummarySchema).max(100),
   thinking: z.string().max(64_000).nullable().default(null),
 });
@@ -171,6 +235,10 @@ export type AgentExecutionResult = z.infer<typeof AgentExecutionResultSchema>;
 export type AgentRunResult = z.infer<typeof AgentRunResultSchema>;
 export type AgentRunPerformance = z.infer<typeof AgentRunPerformanceSchema>;
 export type AgentRunState = z.infer<typeof AgentRunStateSchema>;
+export type AgentVmDiagnosticCode = z.infer<typeof AgentVmDiagnosticCodeSchema>;
+export type AgentVmDiagnostic = z.infer<typeof AgentVmDiagnosticSchema>;
+export type AgentExecutionState = z.infer<typeof AgentExecutionStateSchema>;
+export type AgentExecutionSnapshot = z.infer<typeof AgentExecutionSnapshotSchema>;
 export type AgentRunSummary = z.infer<typeof AgentRunSummarySchema>;
 export type AgentEventType = z.infer<typeof AgentEventTypeSchema>;
 export type AgentEvent = z.infer<typeof AgentEventSchema>;
