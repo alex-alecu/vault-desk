@@ -226,7 +226,7 @@ async function installResources(identity: PackageIdentity): Promise<ResourceHash
     migrations[name] = await sha256(destination);
   }
   let windowsPipeGuard: string | undefined;
-  if (process.platform === "win32") {
+  if (process.platform === "win32" && !process.argv.includes("--check")) {
     run("pnpm", ["--dir", repositoryRoot, "core:windows-pipe-guard:build"], process.env);
     const pipeGuard = join(resourcesRoot, "vault-pipe-guard.exe");
     await copyFile(
